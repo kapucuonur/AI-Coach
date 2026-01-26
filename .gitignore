@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+.env
+*.fit
+*.csv
+*.db
+simulate_history_ultra.py
+simulate_history_detailed.py
+simulate_history.py
