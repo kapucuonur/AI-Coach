@@ -27,7 +27,9 @@ export function Login({ onLogin }) { // Reverted onLoginSuccess to onLogin to ma
             const response = await client.post('/coach/daily-briefing', payload);
 
             // If successful, data is in response.data
-            onLogin(response.data);
+            // If successful, data is in response.data
+            // Pass both data and the credentials payload to parent
+            onLogin(response.data, payload);
         } catch (err) {
             console.error("Login Error:", err);
             const errorMsg = err.response?.data?.detail || "Login failed. Check credentials.";

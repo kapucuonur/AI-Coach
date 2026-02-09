@@ -36,17 +36,14 @@ function App() {
 
   // ... (darkMode effect existing)
 
-  const handleLogin = async (creds) => {
+  const handleLogin = async (briefingData, creds) => {
     setLoading(true);
     setError(null);
     setCredentials(creds); // Store for later API calls (Plan generation)
+    setData(briefingData); // Set the advice data directly from Login component
 
     try {
-      // 1. Login & Get Briefing
-      const res = await client.post('/coach/daily-briefing', creds);
-      setData(res.data);
-
-      // 2. Fetch Settings (for language preference)
+      // Fetch Settings (for language preference)
       try {
         const settingsRes = await client.get('/settings');
         setSettingsData(settingsRes.data);
@@ -57,7 +54,7 @@ function App() {
       setIsAuthenticated(true);
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.detail || "Login failed or could not fetch plan. Check credentials.";
+      const msg = err.response?.data?.detail || "Login failed or could not fetch settings.";
       setError(msg);
     } finally {
       setLoading(false);
