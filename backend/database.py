@@ -3,6 +3,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
 
+import ssl
+
 # Database URL
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 
@@ -14,6 +16,12 @@ if SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
 connect_args = {}
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
+elif "postgresql+pg8000" in SQLALCHEMY_DATABASE_URL:
+    # Supabase/PostgreSQL requires SSL
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    connect_args = {"ssl_context": ssl_context}
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args=connect_args
