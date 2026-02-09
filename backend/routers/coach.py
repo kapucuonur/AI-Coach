@@ -21,8 +21,10 @@ def get_daily_briefing(user_data: GarminLoginSchema):
         gemini_key = os.getenv("GEMINI_API_KEY")
         
         client = GarminClient(user_data.email, user_data.password)
-        if not client.login():
-             raise HTTPException(status_code=401, detail="Garmin login failed")
+        success, error_msg = client.login()
+        if not success:
+             print(f"Login failed details: {error_msg}") # Stdout for Render logs
+             raise HTTPException(status_code=401, detail=error_msg)
              
         brain = CoachBrain(gemini_key)
         processor = DataProcessor()

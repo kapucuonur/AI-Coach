@@ -20,8 +20,9 @@ class GarminClient:
     def login(self):
         """Authenticate with Garmin Connect."""
         if not self.email or not self.password:
-            logger.error("Garmin credentials not found in environment variables.")
-            return False
+            msg = "Garmin credentials not provided."
+            logger.error(msg)
+            return False, msg
 
         try:
             # Try to resume session first
@@ -35,8 +36,6 @@ class GarminClient:
                 self.client.garth.load(garth_dir)
                 try:
                     # Verify session
-                    # Note: get_user_profile() might return user settings which lacks displayName
-                    # So we explicitly fetch socialProfile to get the handle
                     self.client.display_name = None
                     try:
                         social_profile = self.client.connectapi("/userprofile-service/socialProfile")
@@ -45,10 +44,8 @@ class GarminClient:
                     except Exception as e:
                         logger.warning(f"Could not fetch social profile: {e}")
 
-                    # Fallback if social profile failed but we have a valid session
                     if not self.client.display_name:
                          profile = self.client.get_user_profile()
-                         # Try to find something useful
                          if 'displayName' in profile:
                              self.client.display_name = profile['displayName']
                     
@@ -56,7 +53,7 @@ class GarminClient:
                         raise ValueError("Could not determine display name (username).")
 
                     logger.info(f"Session verified. Logged in as: {self.client.display_name}")
-                    return True
+                    return True, "Session resumed"
                 except Exception as e:
                      logger.warning(f"Session invalid: {e}. Trying fresh login.")
         except Exception as e:
@@ -70,10 +67,14 @@ class GarminClient:
             home_dir = os.path.expanduser("~")
             garth.save(os.path.join(home_dir, ".garth"))
             logger.info("Successfully authenticated and saved session.")
-            return True
+            return True, "Authenticated successfully"
         except Exception as e:
-            logger.error(f"Failed to authenticate: {e}")
-            return False
+            error_msg = str(e)
+            logger.error(f"Failed to authenticate: {error_msg}")
+            # Check for common errors
+            if "401" in error_msg or "403" in error_msg:
+                return False, "Invalid credentials or Garmin blocked login (Cloudflare)."
+            return False, f"Login failed: {error_msg}"
 
     def get_profile(self):
         """Fetch user profile."""
