@@ -15,6 +15,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
     user_context: Optional[str] = None
+    language: str = "en"
 
 @router.post("/")
 async def chat_with_coach(request: ChatRequest):
@@ -28,7 +29,7 @@ async def chat_with_coach(request: ChatRequest):
         # Convert Pydantic models to dicts for the brain service
         messages_dicts = [msg.model_dump() for msg in request.messages]
         
-        response_text = brain.generate_chat_response(messages_dicts, request.user_context)
+        response_text = brain.generate_chat_response(messages_dicts, request.user_context, request.language)
         
         return {"response": response_text}
     except Exception as e:

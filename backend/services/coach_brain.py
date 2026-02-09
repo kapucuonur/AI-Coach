@@ -183,7 +183,7 @@ class CoachBrain:
             return '{"advice_text": "Sorry, I could not generate advice today.", "workout": null}'
         except Exception as e:
             logger.error(f"Failed to generate advice with Gemini: {e}")
-    def generate_chat_response(self, messages, user_context=None):
+    def generate_chat_response(self, messages, user_context=None, language="en"):
         """
         Generate a conversational response based on chat history and user context.
         """
@@ -192,6 +192,12 @@ class CoachBrain:
         if user_context:
             context_str = f"User Context: {user_context}"
             
+        language_map = {
+            "en": "English", "tr": "Turkish", "de": "German", 
+            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
+        }
+        target_language = language_map.get(language, "English")
+
         system_instruction = f"""
         You are an elite, empathetic, and data-driven sports coach.
         Your goal is to support the athlete's training, recovery, and mental state.
@@ -205,14 +211,15 @@ class CoachBrain:
         
         **Capabilities:**
         - You can answer questions about training, nutrition, and recovery.
-        - You can generate training plans if requested (e.g., "Give me a 1-week structured plan").
-        - If asked for a plan, outline it clearly day-by-day.
         
         **Current Interaction:**
         The user has just logged in or is engaging with you. 
         If this is the start of the conversation, they might be answering your check-in question ("How are you feeling?").
         
-        Respond naturally to the last message in the history. Keep responses concise unless a detailed plan is requested.
+        **CRITICAL RULE:**
+        Respond ONLY in {target_language}. Do NOT use English unless the user's language is English.
+        
+        Respond naturally to the last message in the history. Keep responses concise.
         """
         
         try:
@@ -222,12 +229,79 @@ class CoachBrain:
             
             full_prompt = f"{system_instruction}\n\nChat History:\n{conversation_history}\n\nCoach:"
             
-            logger.info("Sending chat request to Gemini...")
+            logger.info(f"Sending chat request to Gemini (Language: {target_language})...")
             response = self.model.generate_content(full_prompt)
             return response.text
         except Exception as e:
             logger.error(f"Failed to generate chat response: {e}")
-            return "I'm having trouble connecting right now. Let's try again in a moment."
+            return "Connection error. Please try again."
+
+    def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, user_settings):
+        """
+        Generate a structured training plan (JSON) for the dashboard.
+        """
+        # Prepare context (similar to daily advice but focused on planning)
+        activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
+        
+        # Extract settings
+        sport = user_settings.get("primary_sport", "Endurance Sports")
+        language = user_settings.get("language", "en")
+        
+        language_map = {
+            "en": "English", "tr": "Turkish", "de": "German", 
+            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
+        }
+        target_language = language_map.get(language, "English")
+        
+        # Build prompt
+        prompt = f"""
+        Act as an elite {sport} coach.
+        Create a **{duration_str}** training plan for this athlete.
+        
+        **Athlete Context:**
+        - Sport: {sport}
+        - Recent Load: {activities_str}
+        - Recovery: Resting HR {health_stats.get('restingHeartRate', 'N/A')}, Sleep {health_stats.get('sleepScore', 'N/A')}
+        
+        **Task:**
+        Generate a structured plan.
+        
+        **Output Format:**
+        Return ONLY valid JSON with this structure:
+        {{
+            "title": "1-Week Build Phase",
+            "summary": "Focus on volume building with ...",
+            "weeks": [
+                {{
+                    "week_number": 1,
+                    "focus": "Endurance",
+                    "days": [
+                        {{
+                            "day_name": "Monday",
+                            "activity_type": "Run",
+                            "workout_title": "Easy Aerobic Run",
+                            "duration": "45 min",
+                            "description": "Run at comfortable pace...",
+                            "intensity": "Low"
+                        }}
+                    ]
+                }}
+            ]
+        }}
+        
+        **CRITICAL:**
+        - The `days` array must contain 7 days per week.
+        - Ensure the content is in **{target_language}**.
+        - Do not encompass the JSON in code blocks. Just valid JSON.
+        """
+        
+        try:
+            logger.info("Generating structured plan...")
+            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to generate plan: {e}")
+            return '{"error": "Failed to generate plan"}'
 
 if __name__ == "__main__":
     # simple test

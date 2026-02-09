@@ -1,13 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, X, Send } from 'lucide-react';
 import client from '../api/client';
 
-export function ChatWidget({ userContext }) {
+export function ChatWidget({ userContext, language = "en" }) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
+
+    // Simple translations
+    const t = {
+        en: {
+            greeting: "Hi! How are you feeling today? Any pain, fatigue, or soreness I should know about? (To generate a training plan, verify your settings and press the Generate Plan button on the dashboard!)",
+            placeholder: "Ask your coach...",
+            connError: "Sorry, I'm having trouble connecting to the Coach Brain right now."
+        },
+        tr: {
+            greeting: "Merhaba! Bugün nasıl hissediyorsun? Herhangi bir ağrı, yorgunluk veya bilmem gereken bir durum var mı? (Antrenman programı oluşturmak için panodaki butonları kullanabilirsin!)",
+            placeholder: "Koçuna sor...",
+            connError: "Üzgünüm, şu anda Coach Brain ile bağlantı kuramıyorum."
+        },
+        // Add others as needed
+    };
+
+    const txt = t[language] || t['en'];
 
     // Auto-open on mount with greeting
     useEffect(() => {
@@ -15,10 +32,10 @@ export function ChatWidget({ userContext }) {
             setIsOpen(true);
             if (messages.length === 0) {
                 setMessages([
-                    { role: 'model', content: "Hi! How are you feeling today? Any pain, fatigue, or soreness I should know about?" }
+                    { role: 'model', content: txt.greeting }
                 ]);
             }
-        }, 1500); // Small delay for effect
+        }, 1500);
         return () => clearTimeout(timer);
     }, []);
 
@@ -40,29 +57,23 @@ export function ChatWidget({ userContext }) {
         setLoading(true);
 
         try {
-            // Send entire history + context
+            // Send entire history + context + language
             const history = [...messages, userMsg];
 
             const response = await client.post('/chat/', {
                 messages: history,
-                user_context: userContext ? JSON.stringify(userContext) : null
+                user_context: userContext ? JSON.stringify(userContext) : null,
+                language: language
             });
 
             const aiMsg = { role: 'model', content: response.data.response };
             setMessages(prev => [...prev, aiMsg]);
         } catch (err) {
             console.error("Chat error:", err);
-            setMessages(prev => [...prev, { role: 'model', content: "Sorry, I'm having trouble connecting to the Coach Brain right now." }]);
+            setMessages(prev => [...prev, { role: 'model', content: txt.connError }]);
         } finally {
             setLoading(false);
         }
-    };
-
-    const generatePlan = (duration) => {
-        const prompt = `Please generate a structured ${duration} training plan for me based on my profile and current state.`;
-        setInput(prompt);
-        // Optionally auto-send:
-        // handleSend({ preventDefault: () => {} });
     };
 
     return (
@@ -110,31 +121,13 @@ export function ChatWidget({ userContext }) {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Quick Actions (Plan Generation) */}
-                    {messages.length < 3 && (
-                        <div className="px-4 py-2 bg-gray-50 dark:bg-zinc-950 flex gap-2 overflow-x-auto">
-                            <button
-                                onClick={() => generatePlan('1-week')}
-                                className="text-xs bg-white dark:bg-zinc-800 border border-gray-300 dark:border-gray-700 rounded-full px-3 py-1 hover:bg-gray-100 dark:hover:bg-zinc-700 whitespace-nowrap text-gray-700 dark:text-gray-300"
-                            >
-                                📅 1-Week Plan
-                            </button>
-                            <button
-                                onClick={() => generatePlan('1-month')}
-                                className="text-xs bg-white dark:bg-zinc-800 border border-gray-300 dark:border-gray-700 rounded-full px-3 py-1 hover:bg-gray-100 dark:hover:bg-zinc-700 whitespace-nowrap text-gray-700 dark:text-gray-300"
-                            >
-                                🗓️ 1-Month Plan
-                            </button>
-                        </div>
-                    )}
-
                     {/* Input Area */}
                     <form onSubmit={handleSend} className="p-4 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-gray-800 flex gap-2">
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask your coach..."
+                            placeholder={txt.placeholder}
                             className="flex-1 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garmin-blue"
                         />
                         <button

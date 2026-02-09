@@ -4,6 +4,7 @@ import { StatsCard } from './components/StatsCard';
 import { ActivityList } from './components/ActivityList';
 import { AdviceBlock } from './components/AdviceBlock';
 import { SettingsModal } from './components/SettingsModal';
+import { TrainingPlan } from './components/TrainingPlan';
 import { Login } from './components/Login';
 import { ChatWidget } from './components/ChatWidget';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings } from 'lucide-react';
@@ -30,9 +31,37 @@ function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  const handleLogin = (dashboardData) => {
-    setData(dashboardData);
-    setIsAuthenticated(true);
+  const [credentials, setCredentials] = useState(null);
+  const [settingsData, setSettingsData] = useState(null);
+
+  // ... (darkMode effect existing)
+
+  const handleLogin = async (creds) => {
+    setLoading(true);
+    setError(null);
+    setCredentials(creds); // Store for later API calls (Plan generation)
+
+    try {
+      // 1. Login & Get Briefing
+      const res = await client.post('/coach/daily-briefing', creds);
+      setData(res.data);
+
+      // 2. Fetch Settings (for language preference)
+      try {
+        const settingsRes = await client.get('/settings');
+        setSettingsData(settingsRes.data);
+      } catch (e) {
+        console.warn("Could not fetch settings", e);
+      }
+
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.detail || "Login failed or could not fetch plan. Check credentials.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -148,12 +177,14 @@ function App() {
           />
         </div>
 
+
         {/* Main Content Split */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Left: Coach Advice (Merged column) */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Left: Coach Advice & Plan (Merged column) */}
+          <div className="lg:col-span-2 space-y-6">
             <AdviceBlock advice={advice} workout={workout} />
+            <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
           </div>
 
           {/* Right: Activities */}
@@ -162,7 +193,7 @@ function App() {
           </div>
         </div>
       </div>
-      <ChatWidget userContext={{ health, sleep, metrics }} />
+      <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
     </div>
   );
 }
