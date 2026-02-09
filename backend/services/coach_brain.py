@@ -177,12 +177,10 @@ class CoachBrain:
         try:
             logger.info("Sending request to Gemini...")
             response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-            return response.text
+            return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Failed to generate advice with Gemini: {e}")
             return '{"advice_text": "Sorry, I could not generate advice today.", "workout": null}'
-        except Exception as e:
-            logger.error(f"Failed to generate advice with Gemini: {e}")
     def generate_chat_response(self, messages, user_context=None, language="en"):
         """
         Generate a conversational response based on chat history and user context.
@@ -315,10 +313,32 @@ class CoachBrain:
         try:
             logger.info("Generating professional structured plan...")
             response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-            return response.text
+            return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Failed to generate plan: {e}")
             return '{"error": "Failed to generate plan"}'
+    def _clean_json_response(self, response_text):
+        """
+        Helper to strip markdown code blocks from JSON response.
+        """
+        cleaned = response_text.strip()
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        if cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        return cleaned.strip()
+
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None):
+        # ... (keep existing prompt setup) ...
+        # (We need to jump to the return statement of generate_daily_advice)
+        pass 
+        # Wait, replace_file_content replaces a block. I should target the return statements.
+
+# Let's clean up the plan. I will first ADD the helper method at the end of the class,
+# then separately update the return statements in the methods.
+
 
 if __name__ == "__main__":
     # simple test
