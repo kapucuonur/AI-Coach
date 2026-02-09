@@ -46,8 +46,6 @@ def get_daily_briefing(user_data: GarminLoginSchema):
         # Convert df to summary string/dict for AI
         activities_summary_dict = {}
         if not weekly_summary.empty:
-            # Replace NaN with None for JSON serialization
-            weekly_summary = weekly_summary.where(pd.notnull(weekly_summary), None)
             weekly_summary.index = weekly_summary.index.astype(str)
             activities_summary_dict = weekly_summary.to_dict()
             
@@ -63,6 +61,38 @@ def get_daily_briefing(user_data: GarminLoginSchema):
             logger.warning("Failed to parse advice JSON, returning raw text")
             advice_text = raw_advice
             workout = None
+
+        # Sanitize everything before returning to avoid 422/500
+        import numpy as np
+        def sanitize_for_json(obj):
+            if isinstance(obj, pd.DataFrame):
+                return obj.to_dict(orient="records")
+            if isinstance(obj, (pd.Timestamp, date)):
+                return obj.isoformat()
+            if isinstance(obj, (np.integer, int)):
+                return int(obj)
+            if isinstance(obj, (np.floating, float)):
+                return None if pd.isna(obj) or np.isnan(obj) else float(obj)
+            if isinstance(obj, (np.ndarray, list)):
+                return [sanitize_for_json(x) for x in obj]
+            if isinstance(obj, dict):
+                return {k: sanitize_for_json(v) for k, v in obj.items()}
+            if pd.isna(obj): # Handles pd.NA, np.nan, None
+                return None
+            return obj
+
+        response_data = {
+            "advice": advice_text,
+            "workout": workout,
+            "metrics": {
+                "health": health_stats,
+                "sleep": sleep_data,
+                "weekly_volume": activities_summary_dict,
+                "recent_activities": activities 
+            }
+        }
+        
+        return sanitize_for_json(response_data)
 
         return {
             "advice": advice_text,

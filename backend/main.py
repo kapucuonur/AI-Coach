@@ -22,6 +22,20 @@ app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"]
 app.include_router(coach.router, prefix="/api/coach", tags=["Coach"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    import logging
+    logger = logging.getLogger("uvicorn")
+    logger.error(f"Validation Error: {exc.errors()}")
+    logger.error(f"Body: {await request.body()}")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": str(exc.body)},
+    )
+
 @app.on_event("startup")
 async def startup_event():
     import logging
