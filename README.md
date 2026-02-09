@@ -11,7 +11,7 @@ An AI-powered endurance sports coach that analyzes your Garmin data to provide p
 
 - **Backend:** FastAPI (Python)
 - **Frontend:** React (Vite + Tailwind)
-- **Database:** SQLite (SQLAlchemy)
+- **Database:** PostgreSQL (Production) / SQLite (Dev) (SQLAlchemy)
 - **AI:** Google Gemini 2.0 Flash
 
 ## Project Structure
@@ -19,12 +19,20 @@ An AI-powered endurance sports coach that analyzes your Garmin data to provide p
 ```
 AI-Coach/
 ├── backend/
-│   ├── routers/        # API Endpoints (auth, coach, settings)
-│   ├── services/       # Core Logic (Garmin Client, AI Brain)
-│   ├── database.py     # SQLite Configuration
-│   ├── models.py       # DB Tables
+│   ├── routers/        # API Endpoints (auth, coach, settings, dashboard)
+│   ├── services/       # Core Logic (Garmin Client, AI Brain, Data Processing)
+│   ├── database.py     # Database Configuration
+│   ├── models.py       # DB Models
 │   └── main.py         # App Entry Point
 ├── frontend/           # React Application
+│   ├── src/
+│   │   ├── api/        # Axios Client Config
+│   │   ├── components/ # Reusable UI Components
+│   │   ├── pages/      # Page Views
+│   │   ├── App.jsx     # Main Layout
+│   │   └── main.jsx    # React Entry Point
+│   ├── public/         # Static Assets
+│   └── vite.config.js  # Vite Configuration
 ├── tests/              # Unit & Integration Tests
 └── sql_app.db          # Local Database (Auto-created)
 ```
@@ -70,5 +78,17 @@ AI-Coach/
     ```
     *App runs on `http://localhost:5173` (or similar)*
 
+### Frontend Configuration
+In production (e.g., Vercel, Render), you must set the `VITE_API_URL` environment variable to your deployed backend URL.
+
+- **Local**: Defaults to `http://localhost:8000`
+- **Production**: Set `VITE_API_URL=https://your-backend-url.com` in your deployment settings.
+
 ### Database
-The application uses **SQLite**. The database file `sql_app.db` will be automatically created in the root directory upon the first backend start. No manual setup required.
+The application supports both **PostgreSQL** (Production) and **SQLite** (Development).
+
+- **Development**: By default, if no `DATABASE_URL` is provided, it defaults to `sqlite:///./sql_app.db`.
+- **Production**: Set `DATABASE_URL` in your `.env` file to your PostgreSQL connection string.
+  ```env
+  DATABASE_URL=postgresql://user:password@host:port/dbname
+  ```
