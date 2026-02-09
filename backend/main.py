@@ -22,6 +22,12 @@ app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"]
 app.include_router(coach.router, prefix="/api/coach", tags=["Coach"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 
+@app.on_event("startup")
+async def startup_event():
+    import logging
+    logger = logging.getLogger("uvicorn")
+    logger.info(">>> STARTING AI COACH API - VERSION: THREADED_MFA_FIX_CONFIRMED <<<")
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to AI Coach API"}
