@@ -8,8 +8,15 @@ import ssl
 # Database URL
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 
-# Use pg8000 driver for PostgreSQL if not specified
-if SQLALCHEMY_DATABASE_URL.startswith("postgresql://"):
+# Check for psycopg2 (preferred for production/Render)
+try:
+    import psycopg2
+    HAS_PSYCOPG2 = True
+except ImportError:
+    HAS_PSYCOPG2 = False
+
+# Use pg8000 driver for PostgreSQL ONLY if psycopg2 is missing
+if SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and not HAS_PSYCOPG2:
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 
 # Create engine
@@ -17,7 +24,7 @@ connect_args = {}
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 elif "postgresql+pg8000" in SQLALCHEMY_DATABASE_URL:
-    # Supabase/PostgreSQL requires SSL
+    # Supabase/PostgreSQL requires SSL when using pg8000
     ssl_context = ssl.create_default_context()
     ssl_context.check_hostname = False
     ssl_context.verify_mode = ssl.CERT_NONE
