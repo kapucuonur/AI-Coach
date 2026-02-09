@@ -29,20 +29,9 @@ function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  const handleLogin = async (credentials) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await client.post('/coach/daily-briefing', credentials);
-      setData(res.data);
-      setIsAuthenticated(true);
-    } catch (err) {
-      console.error(err);
-      const msg = err.response?.data?.detail || "Login failed or could not fetch plan. Check credentials.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
+  const handleLogin = (dashboardData) => {
+    setData(dashboardData);
+    setIsAuthenticated(true);
   };
 
   if (!isAuthenticated) {
