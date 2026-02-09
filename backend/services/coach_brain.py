@@ -330,14 +330,7 @@ class CoachBrain:
             cleaned = cleaned[:-3]
         return cleaned.strip()
 
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None):
-        # ... (keep existing prompt setup) ...
-        # (We need to jump to the return statement of generate_daily_advice)
-        pass 
-        # Wait, replace_file_content replaces a block. I should target the return statements.
 
-# Let's clean up the plan. I will first ADD the helper method at the end of the class,
-# then separately update the return statements in the methods.
 
 
 if __name__ == "__main__":
