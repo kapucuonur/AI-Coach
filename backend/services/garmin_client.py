@@ -13,6 +13,10 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Global in-memory store for authenticated clients (Singleton Pattern)
+# Key: email, Value: Garmin client instance
+GLOBAL_CLIENTS = {}
+
 # Global in-memory store for pending login sessions
 # Key: email, Value: LoginSession instance
 PENDING_SESSIONS = {}
@@ -38,16 +42,33 @@ class GarminClient:
         self.client = None
 
     def login(self, mfa_code=None):
-        """Authenticate with Garmin Connect using a threaded approach for MFA."""
+        """Authenticate with Garmin Connect using a threaded approach for MFA, with Caching."""
         if not self.email or not self.password:
             msg = "Garmin credentials not provided."
             logger.error(msg)
             return False, msg
 
+        # 0. Check In-Memory Cache (Fastest & Most Stable)
+        if not mfa_code and self.email in GLOBAL_CLIENTS:
+            try:
+                cached_client = GLOBAL_CLIENTS[self.email]
+                # Light verification to ensure session is still alive
+                # We use a very cheap call if possible, or just assume it works until 401
+                # get_full_name() or similar is good.
+                # Inspect internal state or try a call?
+                # Let's try to access display_name which should be cached in the object
+                if cached_client.display_name:
+                    logger.info(f"✅ Using cached session for {cached_client.display_name}")
+                    self.client = cached_client
+                    return True, "Session resumed from memory"
+            except Exception as e:
+                logger.warning(f"⚠️ Cached session invalid, clearing: {e}")
+                del GLOBAL_CLIENTS[self.email]
+
         home_dir = os.path.expanduser("~")
         garth_dir = os.path.join(home_dir, ".garth")
 
-        # 1. Check if we have a valid saved session first (Fast Path)
+        # 1. Check if we have a valid saved session on Disk (Fast Path but less reliable on Render)
         if not mfa_code and os.path.exists(garth_dir):
             try:
                 self.client = Garmin(self.email, self.password)
@@ -69,7 +90,9 @@ class GarminClient:
                              self.client.display_name = profile['displayName']
 
                     if self.client.display_name:
-                         logger.info(f"Session successfully resumed for {self.client.display_name}")
+                         logger.info(f"Session successfully resumed from disk for {self.client.display_name}")
+                         # Update Memory Cache
+                         GLOBAL_CLIENTS[self.email] = self.client
                          return True, "Session resumed"
                 except Exception as e:
                     logger.warning(f"Saved session invalid: {e}")
@@ -176,6 +199,9 @@ class GarminClient:
                         self.client.garth.save(garth_dir)
                     except:
                         pass
+                    # Update Memory Cache
+                    GLOBAL_CLIENTS[self.email] = self.client
+                    
                     del PENDING_SESSIONS[self.email]
                     return True, "Authenticated successfully"
                 if session.status == "FAILED":
