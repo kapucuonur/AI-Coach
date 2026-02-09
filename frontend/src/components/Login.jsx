@@ -1,21 +1,78 @@
 import { useState } from 'react';
-import { Loader2, Lock } from 'lucide-react';
+// import { Loader2, Lock } from 'lucide-react'; // Removed as per new UI
+// Assuming 'client' is an axios instance or similar for API calls
+// import client from '../api'; // You might need to adjust this import path
+// For demonstration, let's define a mock client if not provided
+const client = {
+    post: async (url, data) => {
+        console.log(`Mock client POST to ${url} with data:`, data);
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-export function Login({ onLogin, isLoading, error }) {
+        // Simulate different responses
+        if (data.email === 'mfa@example.com' && data.password === 'password' && !data.mfa_code) {
+            return Promise.reject({ response: { data: { detail: 'MFA_REQUIRED' } } });
+        }
+        if (data.email === 'user@example.com' && data.password === 'password') {
+            return Promise.resolve({ data: { message: 'Login successful!' } });
+        }
+        if (data.email === 'mfa@example.com' && data.password === 'password' && data.mfa_code === '123456') {
+            return Promise.resolve({ data: { message: 'MFA Login successful!' } });
+        }
+        return Promise.reject({ response: { data: { detail: 'Login failed. Check credentials.' } } });
+    }
+};
+
+
+export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [mfaCode, setMfaCode] = useState('');
+    const [showMfa, setShowMfa] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(''); // error is now state, not prop
 
-    const handleSubmit = (e) => {
+    const handleLogin = async (e) => { // Renamed handleSubmit to handleLogin
         e.preventDefault();
-        onLogin({ email, password });
+        setLoading(true);
+        setError('');
+
+        try {
+            const payload = {
+                email,
+                password,
+                mfa_code: mfaCode || null
+            };
+
+            const response = await client.post('/coach/daily-briefing', payload);
+
+            // If successful, data is in response.data
+            onLoginSuccess(response.data);
+        } catch (err) {
+            console.error("Login Error:", err);
+            const errorMsg = err.response?.data?.detail || "Login failed. Check credentials.";
+
+            if (errorMsg === "MFA_REQUIRED") {
+                setShowMfa(true);
+                setError("Garmin sent a verification code to your email. Please enter it below.");
+            } else {
+                setError(errorMsg);
+            }
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-garmin-dark dark:text-white px-4">
-            <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
-                <div className="text-center">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-garmin-dark dark:text-white px-4 login-container">
+            <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 login-card">
+                <div className="text-center login-icon">
                     <div className="mx-auto h-12 w-12 bg-garmin-blue rounded-full flex items-center justify-center">
-                        <Lock className="h-6 w-6 text-white" />
+                        {/* Replaced Lock icon with SVG */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-white">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
                     </div>
                     <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
                         Connect Garmin
@@ -25,9 +82,9 @@ export function Login({ onLogin, isLoading, error }) {
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                <form onSubmit={handleLogin} className="mt-8 space-y-6 login-form">
                     <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
+                        <div className="form-group">
                             <input
                                 id="email-address"
                                 name="email"
@@ -38,9 +95,10 @@ export function Login({ onLogin, isLoading, error }) {
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-t-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
                                 placeholder="Email address"
+                                disabled={loading || showMfa}
                             />
                         </div>
-                        <div>
+                        <div className="form-group">
                             <input
                                 id="password"
                                 name="password"

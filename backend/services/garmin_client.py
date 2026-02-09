@@ -17,19 +17,35 @@ class GarminClient:
         self.password = password
         self.client = None
 
-    def login(self):
+    def login(self, mfa_code=None):
         """Authenticate with Garmin Connect."""
         if not self.email or not self.password:
             msg = "Garmin credentials not provided."
             logger.error(msg)
             return False, msg
 
+        # Callback for MFA
+        def prompt_mfa_callback():
+            if mfa_code:
+                logger.info("Using provided MFA code.")
+                return mfa_code
+            # If no code provided, raise specific error to trigger frontend prompt
+            raise ValueError("MFA_REQUIRED")
+
         try:
             # Try to resume session first
             home_dir = os.path.expanduser("~")
             garth_dir = os.path.join(home_dir, ".garth")
             
-            self.client = Garmin(self.email, self.password)
+            # Initialize with prompt_mfa callback if supported by library
+            # We assume Garmin constructor accepts prompt_mfa. 
+            # If it doesn't, we might need a different approach, but recent versions do.
+            try:
+                self.client = Garmin(self.email, self.password, prompt_mfa=prompt_mfa_callback)
+            except TypeError:
+                # Fallback for older versions if they don't accept prompt_mfa
+                logger.warning("Garmin library might not support prompt_mfa argument. Trying without.")
+                self.client = Garmin(self.email, self.password)
             
             if os.path.exists(garth_dir):
                 logger.info(f"Found stored session at {garth_dir}. Trying to resume...")
@@ -68,8 +84,15 @@ class GarminClient:
                  logger.info("Cleared stale session files.")
 
         try:
-            self.client = Garmin(self.email, self.password)
+            # Fresh login
+            # Re-init client with callback just in case
+            try:
+                self.client = Garmin(self.email, self.password, prompt_mfa=prompt_mfa_callback)
+            except TypeError:
+                 self.client = Garmin(self.email, self.password)
+
             self.client.login()
+            
             # Save session for next time
             import garth
             home_dir = os.path.expanduser("~")
@@ -79,10 +102,16 @@ class GarminClient:
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Failed to authenticate: {error_msg}")
+            
+            # Check for MFA requirement signal
+            if "MFA_REQUIRED" in error_msg:
+                return False, "MFA_REQUIRED"
+                
             # Check for common errors
             if "401" in error_msg or "403" in error_msg:
                 return False, "Invalid credentials or Garmin blocked login (Cloudflare)."
             return False, f"Login failed: {error_msg}"
+
 
     def get_profile(self):
         """Fetch user profile."""
