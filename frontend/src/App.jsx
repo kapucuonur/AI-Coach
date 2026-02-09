@@ -5,6 +5,7 @@ import { ActivityList } from './components/ActivityList';
 import { AdviceBlock } from './components/AdviceBlock';
 import { SettingsModal } from './components/SettingsModal';
 import { Login } from './components/Login';
+import { ChatWidget } from './components/ChatWidget';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings } from 'lucide-react';
 
 function App() {
@@ -161,6 +162,7 @@ function App() {
           </div>
         </div>
       </div>
+      <ChatWidget userContext={{ health, sleep, metrics }} />
     </div>
   );
 }

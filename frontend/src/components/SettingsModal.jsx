@@ -8,7 +8,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const [age, setAge] = useState("");
     const [gender, setGender] = useState("Male");
     const [strengthDays, setStrengthDays] = useState(0);
-    const [metrics, setMetrics] = useState({ threshold_pace: "", ftp: "", max_hr: "" });
+    const [metrics, setMetrics] = useState({ threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
     const [races, setRaces] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -26,7 +26,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
             setAge(res.data.age || "");
             setGender(res.data.gender || "Male");
             setStrengthDays(res.data.strength_days || 0);
-            setMetrics(res.data.metrics || { threshold_pace: "", ftp: "", max_hr: "" });
+            setMetrics(res.data.metrics || { threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
             setRaces(res.data.races || []);
         } catch (error) {
             console.error("Failed to load settings", error);
@@ -136,13 +136,38 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                         )}
 
                         {(sport === "Cycling" || sport === "Triathlon") && (
+                            <>
+                                <div>
+                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">FTP (Watts)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g. 250"
+                                        value={metrics.ftp || ""}
+                                        onChange={(e) => setMetrics({ ...metrics, ftp: e.target.value })}
+                                        className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Power (Watts)</label>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g. 800"
+                                        value={metrics.bike_max_power || ""}
+                                        onChange={(e) => setMetrics({ ...metrics, bike_max_power: e.target.value })}
+                                        className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {(sport === "Swimming" || sport === "Triathlon") && (
                             <div>
-                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">FTP (Watts)</label>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Swim Pace (min/100m)</label>
                                 <input
-                                    type="number"
-                                    placeholder="e.g. 250"
-                                    value={metrics.ftp || ""}
-                                    onChange={(e) => setMetrics({ ...metrics, ftp: e.target.value })}
+                                    type="text"
+                                    placeholder="e.g. 1:45"
+                                    value={metrics.swim_pace_100m || ""}
+                                    onChange={(e) => setMetrics({ ...metrics, swim_pace_100m: e.target.value })}
                                     className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
                                 />
                             </div>

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import auth, dashboard, coach, settings
+from backend.routers import auth, dashboard, coach, settings, chat
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -21,6 +21,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 app.include_router(coach.router, prefix="/api/coach", tags=["Coach"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse

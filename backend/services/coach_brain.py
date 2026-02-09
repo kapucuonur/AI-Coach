@@ -75,6 +75,10 @@ class CoachBrain:
                 m_list.append(f"- Threshold Running Pace: {metrics['threshold_pace']} min/km")
             if metrics.get("ftp"):
                 m_list.append(f"- Cycling FTP: {metrics['ftp']} Watts")
+            if metrics.get("bike_max_power"):
+                m_list.append(f"- Max Cycling Power: {metrics['bike_max_power']} Watts")
+            if metrics.get("swim_pace_100m"):
+                m_list.append(f"- Swim Pace: {metrics['swim_pace_100m']} /100m")
             if metrics.get("max_hr"):
                 m_list.append(f"- Max Heart Rate: {metrics['max_hr']} bpm")
             
@@ -179,7 +183,51 @@ class CoachBrain:
             return '{"advice_text": "Sorry, I could not generate advice today.", "workout": null}'
         except Exception as e:
             logger.error(f"Failed to generate advice with Gemini: {e}")
-            return "Sorry, I couldn't generate your coaching advice today. Please check your API key and connection."
+    def generate_chat_response(self, messages, user_context=None):
+        """
+        Generate a conversational response based on chat history and user context.
+        """
+        # Context building
+        context_str = ""
+        if user_context:
+            context_str = f"User Context: {user_context}"
+            
+        system_instruction = f"""
+        You are an elite, empathetic, and data-driven sports coach.
+        Your goal is to support the athlete's training, recovery, and mental state.
+        
+        {context_str}
+        
+        **Your Personality:**
+        - Professional yet approachable.
+        - Encouraging but realistic.
+        - Data-informed (if data is provided).
+        
+        **Capabilities:**
+        - You can answer questions about training, nutrition, and recovery.
+        - You can generate training plans if requested (e.g., "Give me a 1-week structured plan").
+        - If asked for a plan, outline it clearly day-by-day.
+        
+        **Current Interaction:**
+        The user has just logged in or is engaging with you. 
+        If this is the start of the conversation, they might be answering your check-in question ("How are you feeling?").
+        
+        Respond naturally to the last message in the history. Keep responses concise unless a detailed plan is requested.
+        """
+        
+        try:
+            # Convert messages to Gemini format if needed, or just append to prompt
+            # For simplicity with this model wrapper, we'll construct a prompt history
+            conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+            
+            full_prompt = f"{system_instruction}\n\nChat History:\n{conversation_history}\n\nCoach:"
+            
+            logger.info("Sending chat request to Gemini...")
+            response = self.model.generate_content(full_prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to generate chat response: {e}")
+            return "I'm having trouble connecting right now. Let's try again in a moment."
 
 if __name__ == "__main__":
     # simple test
