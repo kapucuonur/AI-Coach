@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 class GarminClient:
-    def __init__(self, email=None, password=None):
-        self.email = email or os.getenv("GARMIN_EMAIL")
-        self.password = password or os.getenv("GARMIN_PASSWORD")
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
         self.client = None
 
     def login(self):

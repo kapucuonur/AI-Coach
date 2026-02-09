@@ -11,25 +11,22 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-def get_services():
-    email = os.getenv("GARMIN_EMAIL")
-    password = os.getenv("GARMIN_PASSWORD")
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    
-    client = GarminClient(email, password)
-    client.login()
-    
-    brain = CoachBrain(gemini_key)
-    processor = DataProcessor()
-    
-    return client, processor, brain
-
+from backend.schemas import GarminLoginSchema
 from backend.routers.settings import load_settings
 
-@router.get("/daily-briefing")
-def get_daily_briefing():
+@router.post("/daily-briefing")
+def get_daily_briefing(user_data: GarminLoginSchema):
     try:
-        client, processor, brain = get_services()
+        # Initialize services with provided credentials
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        
+        client = GarminClient(user_data.email, user_data.password)
+        if not client.login():
+             raise HTTPException(status_code=401, detail="Garmin login failed")
+             
+        brain = CoachBrain(gemini_key)
+        processor = DataProcessor()
+        
         settings = load_settings()
         user_settings_dict = settings.model_dump()
         
@@ -73,6 +70,8 @@ def get_daily_briefing():
                 "recent_activities": activities 
             }
         }
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error in daily briefing: {e}")
         traceback.print_exc()

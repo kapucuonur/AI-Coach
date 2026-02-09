@@ -27,19 +27,10 @@ def login(credentials: LoginRequest):
 
 @router.get("/status")
 def auth_status():
-    """Check if we have a valid cached session"""
-    import os
-    env_email = os.getenv("GARMIN_EMAIL")
-    env_pass = os.getenv("GARMIN_PASSWORD")
-    
-    if not env_email or not env_pass:
-         return {"authenticated": False, "message": "No credentials in env"}
-
-    try:
-        client = GarminClient(env_email, env_pass)
-        if client.login():
-             return {"authenticated": True, "user": client.client.display_name}
-    except:
-        pass
-    
+    """
+    Check authentication status.
+    Since we moved to dynamic credentials, we don't have a 'logged in' state 
+    persisted on the server in the same way (unless using sessions/tokens).
+    For now, we return False to prompt login on frontend if needed.
+    """
     return {"authenticated": False}
