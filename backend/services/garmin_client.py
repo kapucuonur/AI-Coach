@@ -49,14 +49,6 @@ class GarminClient:
             # Try to resume session first (only if NOT trying to verify MFA)
             # If we are verifying MFA, we want to skip straight to the fresh login + code
             if not mfa_code and os.path.exists(garth_dir):
-                # ... session resume logic ...
-                # We can keep the existing logic here, but let's simplify for the snippet
-                # If mfa_code is present, we assume we need to finish a login, so skip resume check
-                # to avoid potential conflicts, OR we try resume but it needs to fail first.
-                # Actually, safe to just skip resume if mfa_code is there.
-                pass 
-            
-            if not mfa_code and os.path.exists(garth_dir):
                  # Try to resume normal session
                  # Initialize with basic client first
                  self.client = Garmin(self.email, self.password)
