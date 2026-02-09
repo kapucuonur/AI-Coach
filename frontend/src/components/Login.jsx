@@ -64,12 +64,11 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-garmin-dark dark:text-white px-4 login-container">
-            <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 login-card">
-                <div className="text-center login-icon">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-garmin-dark dark:text-white px-4">
+            <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
+                <div className="text-center">
                     <div className="mx-auto h-12 w-12 bg-garmin-blue rounded-full flex items-center justify-center">
-                        {/* Replaced Lock icon with SVG */}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
@@ -82,9 +81,9 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                     </p>
                 </div>
 
-                <form onSubmit={handleLogin} className="mt-8 space-y-6 login-form">
+                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     <div className="rounded-md shadow-sm -space-y-px">
-                        <div className="form-group">
+                        <div>
                             <input
                                 id="email-address"
                                 name="email"
@@ -95,10 +94,10 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-t-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
                                 placeholder="Email address"
-                                disabled={loading || showMfa}
+                                disabled={isLoading || showMfa}
                             />
                         </div>
-                        <div className="form-group">
+                        <div>
                             <input
                                 id="password"
                                 name="password"
@@ -109,13 +108,30 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-b-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
                                 placeholder="Password"
+                                disabled={isLoading || showMfa}
                             />
                         </div>
+                        {showMfa && (
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Verification Code
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={mfaCode}
+                                    onChange={(e) => setMfaCode(e.target.value)}
+                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue sm:text-sm transition-colors"
+                                    placeholder="Enter code from email"
+                                    autoFocus
+                                />
+                            </div>
+                        )}
                     </div>
 
-                    {error && (
+                    {displayError && (
                         <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                            {error}
+                            {displayError}
                         </div>
                     )}
 
@@ -126,9 +142,15 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-garmin-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-garmin-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             {isLoading ? (
-                                <Loader2 className="animate-spin h-5 w-5" />
+                                <span className="flex items-center">
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Connecting...
+                                </span>
                             ) : (
-                                "Sign In & Generate Plan"
+                                showMfa ? "Verify & Login" : "Sign In & Generate Plan"
                             )}
                         </button>
                     </div>
