@@ -1,27 +1,7 @@
 import { useState } from 'react';
 // import { Loader2, Lock } from 'lucide-react'; // Removed as per new UI
-// Assuming 'client' is an axios instance or similar for API calls
-// import client from '../api'; // You might need to adjust this import path
-// For demonstration, let's define a mock client if not provided
-const client = {
-    post: async (url, data) => {
-        console.log(`Mock client POST to ${url} with data:`, data);
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Simulate different responses
-        if (data.email === 'mfa@example.com' && data.password === 'password' && !data.mfa_code) {
-            return Promise.reject({ response: { data: { detail: 'MFA_REQUIRED' } } });
-        }
-        if (data.email === 'user@example.com' && data.password === 'password') {
-            return Promise.resolve({ data: { message: 'Login successful!' } });
-        }
-        if (data.email === 'mfa@example.com' && data.password === 'password' && data.mfa_code === '123456') {
-            return Promise.resolve({ data: { message: 'MFA Login successful!' } });
-        }
-        return Promise.reject({ response: { data: { detail: 'Login failed. Check credentials.' } } });
-    }
-};
+// import { Loader2, Lock } from 'lucide-react'; // Removed as per new UI
+import client from '../api/client';
 
 
 export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
