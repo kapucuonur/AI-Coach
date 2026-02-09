@@ -46,6 +46,8 @@ def get_daily_briefing(user_data: GarminLoginSchema):
         # Convert df to summary string/dict for AI
         activities_summary_dict = {}
         if not weekly_summary.empty:
+            # Replace NaN with None for JSON serialization
+            weekly_summary = weekly_summary.where(pd.notnull(weekly_summary), None)
             weekly_summary.index = weekly_summary.index.astype(str)
             activities_summary_dict = weekly_summary.to_dict()
             

@@ -97,7 +97,7 @@ class GarminClient:
                 self.client = session.client
                 # Save persistent session
                 try:
-                    self.client.garth.save(garth_dir)
+                    self.client.garth.dump(garth_dir)
                 except Exception as e:
                     logger.warning(f"Failed to save session to disk: {e}")
                 
