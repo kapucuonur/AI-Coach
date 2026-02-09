@@ -81,7 +81,7 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
                     <div className="rounded-md shadow-sm -space-y-px">
                         <div>
                             <input
@@ -129,9 +129,9 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                         )}
                     </div>
 
-                    {displayError && (
+                    {error && (
                         <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                            {displayError}
+                            {error}
                         </div>
                     )}
 
