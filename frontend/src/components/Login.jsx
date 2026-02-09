@@ -94,7 +94,7 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-t-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
                                 placeholder="Email address"
-                                disabled={isLoading || showMfa}
+                                disabled={loading || showMfa}
                             />
                         </div>
                         <div>
@@ -108,7 +108,7 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-b-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
                                 placeholder="Password"
-                                disabled={isLoading || showMfa}
+                                disabled={loading || showMfa}
                             />
                         </div>
                         {showMfa && (
@@ -138,10 +138,10 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
                     <div>
                         <button
                             type="submit"
-                            disabled={isLoading}
+                            disabled={loading}
                             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-garmin-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-garmin-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            {isLoading ? (
+                            {loading ? (
                                 <span className="flex items-center">
                                     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
