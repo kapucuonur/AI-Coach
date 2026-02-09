@@ -4,7 +4,7 @@ import { useState } from 'react';
 import client from '../api/client';
 
 
-export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
+export function Login({ onLogin }) { // Reverted onLoginSuccess to onLogin to match App.jsx usage
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [mfaCode, setMfaCode] = useState('');
@@ -27,7 +27,7 @@ export function Login({ onLoginSuccess }) { // Changed onLogin to onLoginSuccess
             const response = await client.post('/coach/daily-briefing', payload);
 
             // If successful, data is in response.data
-            onLoginSuccess(response.data);
+            onLogin(response.data);
         } catch (err) {
             console.error("Login Error:", err);
             const errorMsg = err.response?.data?.detail || "Login failed. Check credentials.";
