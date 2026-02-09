@@ -4,13 +4,15 @@ import { StatsCard } from './components/StatsCard';
 import { ActivityList } from './components/ActivityList';
 import { AdviceBlock } from './components/AdviceBlock';
 import { SettingsModal } from './components/SettingsModal';
+import { Login } from './components/Login';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings } from 'lucide-react';
 
 function App() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Dark mode state - defaulting to true or system preference could be added
   const [darkMode, setDarkMode] = useState(() => {
@@ -27,48 +29,52 @@ function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // First check auth
-        const authRes = await client.get('/auth/status');
-        if (!authRes.data.authenticated) {
-          console.warn("Not authenticated, backend executing fallback...");
-        }
-
-        const res = await client.get('/coach/daily-briefing');
-        setData(res.data);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load coach data. Ensure backend is running.");
-      } finally {
-        setLoading(false);
-      }
+  const handleLogin = async (credentials) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await client.post('/coach/daily-briefing', credentials);
+      setData(res.data);
+      setIsAuthenticated(true);
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.detail || "Login failed or could not fetch plan. Check credentials.";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    fetchData();
-  }, []);
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark transition-colors duration-300">
+        {/* Simple dark mode toggle for login screen */}
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors"
+          >
+            {darkMode ? <Sun size={24} /> : <Moon size={24} />}
+          </button>
+        </div>
+        <Login onLogin={handleLogin} isLoading={loading} error={error} />
+      </div>
+    );
+  }
 
-  if (loading) {
+  // Loading state for subsequent operations if any
+  if (loading && isAuthenticated) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white transition-colors">
         <Loader2 className="w-12 h-12 animate-spin text-garmin-blue mb-4" />
-        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Contacting Coach Gemini...</p>
+        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Updating data...</p>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-garmin-dark text-red-500 transition-colors">
-        <p>{error}</p>
-      </div>
-    );
-  }
-
-  const { metrics, advice, workout } = data;
-  const health = metrics.health || {};
-  const sleep = metrics.sleep || {};
+  const { metrics, advice, workout } = data || {}; // Safe destructuring
+  const health = metrics?.health || {};
+  const sleep = metrics?.sleep || {};
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white p-4 md:p-8 transition-colors duration-300">
@@ -100,6 +106,13 @@ function App() {
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
               <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Online</span>
             </div>
+
+            <button
+              onClick={() => setIsAuthenticated(false)}
+              className="text-sm text-red-500 hover:text-red-400 ml-2"
+            >
+              Logout
+            </button>
           </div>
         </header>
 
@@ -107,12 +120,9 @@ function App() {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           onSave={() => {
-            setLoading(true);
-            // Re-fetch data to update advice with new settings
-            client.get('/coach/daily-briefing')
-              .then(res => setData(res.data))
-              .catch(err => console.error(err))
-              .finally(() => setLoading(false));
+            // Re-fetching would require saving credentials which we avoid for security in this 'stateless' flow
+            // For now, we might just close or warn user they need to relogin to see effects
+            setIsSettingsOpen(false);
           }}
         />
 
@@ -158,7 +168,7 @@ function App() {
 
           {/* Right: Activities */}
           <div className="lg:col-span-1">
-            <ActivityList activities={metrics.recent_activities} />
+            <ActivityList activities={metrics?.recent_activities || []} />
           </div>
         </div>
       </div>
