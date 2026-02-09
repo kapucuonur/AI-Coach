@@ -56,8 +56,16 @@ class GarminClient:
                     return True, "Session resumed"
                 except Exception as e:
                      logger.warning(f"Session invalid: {e}. Trying fresh login.")
+                     import shutil
+                     if os.path.exists(garth_dir):
+                         shutil.rmtree(garth_dir)
+                         logger.info("Cleared stale session files.")
         except Exception as e:
             logger.warning(f"Failed to resume session: {e}. Trying fresh login.")
+            import shutil
+            if os.path.exists(garth_dir):
+                 shutil.rmtree(garth_dir)
+                 logger.info("Cleared stale session files.")
 
         try:
             self.client = Garmin(self.email, self.password)
