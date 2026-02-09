@@ -133,47 +133,99 @@ export function TrainingPlan({ userContext, language }) {
                 </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-8">
                 {plan.weeks.map((week) => (
-                    <div key={week.week_number} className="space-y-3">
-                        <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                            Week {week.week_number} • {week.focus}
-                        </h4>
-                        <div className="grid grid-cols-1 gap-3">
-                            {week.days.map((day, idx) => (
-                                <div key={idx} className="flex gap-4 p-3 rounded-xl bg-gray-50 dark:bg-zinc-950/50 border border-gray-100 dark:border-gray-800/50 hover:border-garmin-blue/30 transition-colors">
-                                    {/* Date/Day Box */}
-                                    <div className="min-w-[4rem] flex flex-col items-center justify-center p-2 bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-gray-800">
-                                        <span className="text-xs text-gray-500 font-medium">{day.day_name.substring(0, 3)}</span>
-                                    </div>
+                    <div key={week.week_number} className="space-y-4">
+                        <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-2">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
+                                Week {week.week_number} • <span className="text-garmin-blue">{week.focus}</span>
+                            </h4>
+                            {week.total_tss && (
+                                <span className="text-xs text-gray-400 font-mono">Est. TSS: {week.total_tss}</span>
+                            )}
+                        </div>
 
-                                    {/* Content */}
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <h5 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                                {day.activity_type === 'Rest' ? (
-                                                    <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                                                ) : (
-                                                    <Activity size={14} className="text-garmin-blue" />
-                                                )}
-                                                {day.workout_title}
-                                            </h5>
-                                            {day.duration && (
-                                                <span className="text-xs bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded-full flex items-center gap-1">
-                                                    <Clock size={10} /> {day.duration}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                                            {day.description}
-                                        </p>
-                                        {day.intensity && (
-                                            <div className="mt-2 flex items-center gap-1 text-xs text-orange-500">
-                                                <Zap size={10} />
-                                                <span>Intensity: {day.intensity}</span>
+                        <div className="grid grid-cols-1 gap-4">
+                            {week.days.map((day, idx) => (
+                                <div key={idx} className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 dark:bg-zinc-950/50 border border-gray-100 dark:border-gray-800/50 hover:border-garmin-blue/30 transition-colors">
+                                    {/* Header Row */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="min-w-[3rem] text-center">
+                                                <span className="text-xs font-bold text-gray-500 uppercase">{day.day_name.substring(0, 3)}</span>
                                             </div>
+                                            <div>
+                                                <h5 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                                    {day.activity_type === 'Rest' ? (
+                                                        <span className="w-2 h-2 rounded-full bg-green-400"></span>
+                                                    ) : (
+                                                        <Activity size={16} className="text-garmin-blue" />
+                                                    )}
+                                                    {day.workout_title}
+                                                </h5>
+                                                <p className="text-xs text-gray-500">{day.overview || day.description}</p>
+                                            </div>
+                                        </div>
+                                        {day.total_duration && (
+                                            <span className="text-xs font-mono bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-gray-200 dark:border-gray-800 flex items-center gap-1">
+                                                <Clock size={12} /> {day.total_duration || day.duration}
+                                            </span>
                                         )}
                                     </div>
+
+                                    {/* Structured Workout Details */}
+                                    {day.structure && (
+                                        <div className="ml-14 mt-2 space-y-2 text-sm">
+                                            {/* Warmup */}
+                                            {day.structure.warmup && (
+                                                <div className="flex gap-3 text-gray-600 dark:text-gray-400 border-l-2 border-green-300 pl-3 py-1">
+                                                    <span className="font-semibold text-xs text-green-600 dark:text-green-400 uppercase w-16">Warmup</span>
+                                                    <div className="flex-1">
+                                                        <span>{day.structure.warmup.description}</span>
+                                                        <div className="text-xs text-gray-400 mt-0.5 font-mono">
+                                                            {day.structure.warmup.duration} • {day.structure.warmup.target}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Main Set */}
+                                            {day.structure.main_set && day.structure.main_set.length > 0 && (
+                                                <div className="flex gap-3 text-gray-900 dark:text-gray-200 border-l-2 border-garmin-blue pl-3 py-2 bg-white dark:bg-zinc-900/50 rounded-r-lg">
+                                                    <span className="font-semibold text-xs text-garmin-blue uppercase w-16">Main Set</span>
+                                                    <div className="flex-1 space-y-2">
+                                                        {day.structure.main_set.map((step, sIdx) => (
+                                                            <div key={sIdx} className="flex flex-col">
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium">
+                                                                        {step.repeats && step.repeats > 1 ? `${step.repeats}x ` : ''}
+                                                                        {step.description}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex gap-3 text-xs text-orange-600 dark:text-orange-400 font-mono mt-0.5">
+                                                                    <span className="flex items-center gap-1"><Clock size={10} /> {step.duration}</span>
+                                                                    {step.target && <span className="flex items-center gap-1"><Zap size={10} /> {step.target}</span>}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Cooldown */}
+                                            {day.structure.cooldown && (
+                                                <div className="flex gap-3 text-gray-600 dark:text-gray-400 border-l-2 border-blue-200 dark:border-blue-800 pl-3 py-1">
+                                                    <span className="font-semibold text-xs text-blue-400 uppercase w-16">Cooldown</span>
+                                                    <div className="flex-1">
+                                                        <span>{day.structure.cooldown.description}</span>
+                                                        <div className="text-xs text-gray-400 mt-0.5 font-mono">
+                                                            {day.structure.cooldown.duration} • {day.structure.cooldown.target}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>

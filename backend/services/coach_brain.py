@@ -256,7 +256,7 @@ class CoachBrain:
         # Build prompt
         prompt = f"""
         Act as an elite {sport} coach.
-        Create a **{duration_str}** training plan for this athlete.
+        Create a **{duration_str}** professional training plan for this athlete.
         
         **Athlete Context:**
         - Sport: {sport}
@@ -264,25 +264,41 @@ class CoachBrain:
         - Recovery: Resting HR {health_stats.get('restingHeartRate', 'N/A')}, Sleep {health_stats.get('sleepScore', 'N/A')}
         
         **Task:**
-        Generate a structured plan.
+        Generate a highly detailed, professional-grade training plan.
+        For every workout, you MUST provide structured steps (Warmup, Main Set, Cooldown) and specific intensity targets.
+        
+        **Targets:**
+        - Running: Prescribe Pace (min/km) or Heart Rate Zone.
+        - Cycling: Prescribe Power (Watts) or HR Zone.
+        - Swimming: Prescribe Pace per 100m.
         
         **Output Format:**
         Return ONLY valid JSON with this structure:
         {{
-            "title": "1-Week Build Phase",
-            "summary": "Focus on volume building with ...",
+            "title": "Title of the Block (e.g. Base Building 1)",
+            "summary": "Strategic overview of the focus...",
             "weeks": [
                 {{
                     "week_number": 1,
-                    "focus": "Endurance",
+                    "focus": "Endurance & Force",
+                    "total_distance": "approx 40km",
+                    "total_tss": "approx 300",
                     "days": [
                         {{
                             "day_name": "Monday",
-                            "activity_type": "Run",
-                            "workout_title": "Easy Aerobic Run",
-                            "duration": "45 min",
-                            "description": "Run at comfortable pace...",
-                            "intensity": "Low"
+                            "activity_type": "Run", 
+                            "workout_title": "4x8min Threshold Intervals",
+                            "total_duration": "60 min",
+                            "overview": "Key session to boost lactate threshold.",
+                            "tss_estimate": 65,
+                            "structure": {{
+                                "warmup": {{ "duration": "15 min", "description": "Easy jog + dynamic drills", "target": "Zone 1-2" }},
+                                "main_set": [
+                                    {{ "repeats": 4, "duration": "8 min", "description": "Run at threshold effort", "target": "Pace: 4:15-4:20 min/km" }},
+                                    {{ "repeats": 4, "duration": "2 min", "description": "Recovery jog", "target": "Zone 1" }}
+                                ],
+                                "cooldown": {{ "duration": "10 min", "description": "Easy flush", "target": "Zone 1" }}
+                            }}
                         }}
                     ]
                 }}
@@ -291,12 +307,13 @@ class CoachBrain:
         
         **CRITICAL:**
         - The `days` array must contain 7 days per week.
+        - Use "Rest" as activity_type for rest days (structure can be null).
         - Ensure the content is in **{target_language}**.
         - Do not encompass the JSON in code blocks. Just valid JSON.
         """
         
         try:
-            logger.info("Generating structured plan...")
+            logger.info("Generating professional structured plan...")
             response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
             return response.text
         except Exception as e:
