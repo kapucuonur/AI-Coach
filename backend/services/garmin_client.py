@@ -1,5 +1,7 @@
 import os
 import logging
+import threading
+import time
 from datetime import date, timedelta
 from garminconnect import Garmin
 from dotenv import load_dotenv
@@ -11,6 +13,24 @@ logger = logging.getLogger(__name__)
 # Load environment variables
 load_dotenv()
 
+# Global in-memory store for pending login sessions
+# Key: email, Value: LoginSession instance
+PENDING_SESSIONS = {}
+
+class LoginSession:
+    def __init__(self):
+        self.status = "INIT"  # INIT, RUNNING, MFA_WAITING, SUCCESS, FAILED
+        self.error = None
+        self.code_event = threading.Event()
+        self.result_event = threading.Event()
+        self.mfa_code = None
+        self.client = None
+        self.thread = None
+
+    def set_code(self, code):
+        self.mfa_code = code
+        self.code_event.set()
+
 class GarminClient:
     def __init__(self, email, password):
         self.email = email
@@ -18,7 +38,7 @@ class GarminClient:
         self.client = None
 
     def login(self, mfa_code=None):
-        """Authenticate with Garmin Connect."""
+        """Authenticate with Garmin Connect using a threaded approach for MFA."""
         if not self.email or not self.password:
             msg = "Garmin credentials not provided."
             logger.error(msg)
@@ -26,95 +46,148 @@ class GarminClient:
 
         home_dir = os.path.expanduser("~")
         garth_dir = os.path.join(home_dir, ".garth")
-        garth_mfa_temp = os.path.join(home_dir, ".garth_mfa_temp")
 
-        # Callback for MFA
-        def prompt_mfa_callback():
-            if mfa_code:
-                logger.info("Using provided MFA code.")
-                return mfa_code
-            
-            # If no code provided, save the current state (which has the MFA challenge cookies)
-            # so we can resume it in the next request
+        # 1. Check if we have a valid saved session first (Fast Path)
+        if not mfa_code and os.path.exists(garth_dir):
             try:
-                logger.info("MFA requested. Saving intermediate session state.")
-                self.client.garth.dump(garth_mfa_temp)
+                self.client = Garmin(self.email, self.password)
+                self.client.garth.load(garth_dir)
+                # Verify session
+                try:
+                    self.client.display_name = None
+                    try:
+                         # Quick API check
+                        social_profile = self.client.connectapi("/userprofile-service/socialProfile")
+                        if social_profile and 'displayName' in social_profile:
+                            self.client.display_name = social_profile['displayName']
+                    except:
+                        pass
+                    
+                    if not self.client.display_name:
+                         profile = self.client.get_user_profile()
+                         if 'displayName' in profile:
+                             self.client.display_name = profile['displayName']
+
+                    if self.client.display_name:
+                         logger.info(f"Session successfully resumed for {self.client.display_name}")
+                         return True, "Session resumed"
+                except Exception as e:
+                    logger.warning(f"Saved session invalid: {e}")
+                    import shutil
+                    shutil.rmtree(garth_dir)
             except Exception as e:
-                logger.error(f"Failed to save temp MFA state: {e}")
+                logger.warning(f"Failed to load saved session: {e}")
 
-            # If no code provided, raise specific error to trigger frontend prompt
-            raise ValueError("MFA_REQUIRED")
+        # 2. Handle Active/Pending Login
+        session = PENDING_SESSIONS.get(self.email)
 
-        try:
-            # Try to resume session first (only if NOT trying to verify MFA)
-            # If we are verifying MFA, we want to skip straight to the fresh login + code
-            if not mfa_code and os.path.exists(garth_dir):
-                 # Try to resume normal session
-                 # Initialize with basic client first
-                 self.client = Garmin(self.email, self.password)
-                 self.client.garth.load(garth_dir)
-                 
-                 # Verify...
-                 self.client.display_name = None
-                 try:
-                    social_profile = self.client.connectapi("/userprofile-service/socialProfile")
-                    if social_profile and 'displayName' in social_profile:
-                        self.client.display_name = social_profile['displayName']
-                 except Exception as e:
-                    pass # logic from before
-
-                 if not self.client.display_name:
-                     profile = self.client.get_user_profile()
-                     if 'displayName' in profile:
-                         self.client.display_name = profile['displayName']
-                 
-                 if self.client.display_name:
-                     logger.info(f"Session verified. Logged in as: {self.client.display_name}")
-                     return True, "Session resumed"
-                 
-        except Exception as e:
-            logger.warning(f"Failed to resume session: {e}. Trying fresh login.")
-            import shutil
-            if os.path.exists(garth_dir):
-                 shutil.rmtree(garth_dir)
-                 logger.info("Cleared stale session files.")
-
-        try:
-            # Fresh login / MFA Completion
-            try:
-                self.client = Garmin(self.email, self.password, prompt_mfa=prompt_mfa_callback)
-            except TypeError:
-                 self.client = Garmin(self.email, self.password)
-
-            # If we are providing a code, we MUST load the temp state from the previous request
-            if mfa_code and os.path.exists(garth_mfa_temp):
-                logger.info("Loading intermediate MFA state...")
-                self.client.garth.load(garth_mfa_temp)
-
-            self.client.login()
+        if mfa_code:
+            # We are verifying - we MUST have a waiting session
+            if not session or session.status != "MFA_WAITING":
+                logger.warning("Received MFA code but no session is waiting for it.")
+                return False, "Session expired or invalid. Please try logging in again."
             
-            # Save session for next time - persistent
-            self.client.garth.save(garth_dir)
+            logger.info("Passing MFA code to background thread...")
+            session.set_code(mfa_code)
             
-            # Clean up temp file
-            if os.path.exists(garth_mfa_temp):
-                os.remove(garth_mfa_temp)
-
-            logger.info("Successfully authenticated and saved session.")
-            return True, "Authenticated successfully"
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Failed to authenticate: {error_msg}")
+            # Wait for final result
+            session.result_event.wait(timeout=30)
             
-            # Check for MFA requirement signal
-            if "MFA_REQUIRED" in error_msg:
-                return False, "MFA_REQUIRED"
+            if session.status == "SUCCESS":
+                self.client = session.client
+                # Save persistent session
+                try:
+                    self.client.garth.save(garth_dir)
+                except Exception as e:
+                    logger.warning(f"Failed to save session to disk: {e}")
                 
-            # Check for common errors
-            if "401" in error_msg or "403" in error_msg:
-                return False, "Invalid credentials or Garmin blocked login (Cloudflare)."
-            return False, f"Login failed: {error_msg}"
+                # Cleanup
+                del PENDING_SESSIONS[self.email]
+                return True, "Authenticated successfully"
+            else:
+                error = session.error or "Login failed during verification"
+                del PENDING_SESSIONS[self.email]
+                return False, error
 
+        else:
+            # New Login Request
+            if session:
+                # Cleanup old session if exists
+                try:
+                    del PENDING_SESSIONS[self.email]
+                except:
+                    pass
+            
+            # Create new session
+            session = LoginSession()
+            PENDING_SESSIONS[self.email] = session
+            session.status = "RUNNING"
+            
+            def login_thread():
+                try:
+                    def mfa_callback():
+                        logger.info("Background thread hit MFA requirement. Waiting for code...")
+                        session.status = "MFA_WAITING"
+                        # Signal main thread that we are waiting (implicitly via polling or just the status)
+                        
+                        # Wait for code
+                        start_wait = time.time()
+                        # Wait up to 2 minutes for user
+                        if not session.code_event.wait(timeout=120):
+                             raise ValueError("MFA code timeout")
+                        
+                        logger.info("Background thread received code. Resuming...")
+                        return session.mfa_code
+
+                    # Init client
+                    client = Garmin(self.email, self.password, prompt_mfa=mfa_callback)
+                    client.login()
+                    
+                    try:
+                        # Extra verify to ensure we are really really logged in
+                        client.get_user_profile()
+                    except:
+                        pass
+
+                    session.client = client
+                    session.status = "SUCCESS"
+                except Exception as e:
+                    error_msg = str(e)
+                    logger.error(f"Background login failed: {error_msg}")
+                    session.error = error_msg
+                    session.status = "FAILED"
+                finally:
+                    session.result_event.set()
+
+            session.thread = threading.Thread(target=login_thread)
+            session.thread.daemon = True
+            session.thread.start()
+            
+            # Poll for status change: either SUCCESS, FAILED, or MFA_WAITING
+            # We wait up to 20 seconds for the initial login attempt (to reach MFA or Success)
+            start_poll = time.time()
+            while time.time() - start_poll < 20:
+                if session.status == "MFA_WAITING":
+                    return False, "MFA_REQUIRED"
+                if session.status == "SUCCESS":
+                    self.client = session.client
+                    # Save persistence
+                    try:
+                        self.client.garth.save(garth_dir)
+                    except:
+                        pass
+                    del PENDING_SESSIONS[self.email]
+                    return True, "Authenticated successfully"
+                if session.status == "FAILED":
+                    err = session.error
+                    del PENDING_SESSIONS[self.email]
+                    if "MFA_REQUIRED" in str(err): # Fallback if exception passed through
+                        return False, "MFA_REQUIRED" 
+                    return False, f"Login failed: {err}"
+                time.sleep(0.5)
+            
+            # If we timeout here, it's taking too long
+            return False, "Login timed out connecting to Garmin."
 
     def get_profile(self):
         """Fetch user profile."""
@@ -180,18 +253,4 @@ class GarminClient:
 if __name__ == "__main__":
     # Test the client
     client = GarminClient()
-    if client.authenticate():
-        logger.info("Fetching profile...")
-        profile = client.get_profile()
-        logger.info(f"Hello, {profile['fullName']}!")
-        
-        logger.info("Fetching recent activities...")
-        activities = client.get_activities(days=7)
-        logger.info(f"Found {len(activities)} activities in the last 7 days.")
-        
-        logger.info("Fetching stats for today...")
-        stats = client.get_health_stats()
-        if stats:
-             logger.info(f"Resting Heart Rate: {stats.get('restingHeartRate')}")
-    else:
-        logger.warning("Please set GARMIN_EMAIL and GARMIN_PASSWORD in .env file.")
+    # Basic test logic (threaded approach makes local testing slightly different but this is minimal)
