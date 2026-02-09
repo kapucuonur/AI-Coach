@@ -24,58 +24,62 @@ class GarminClient:
             logger.error(msg)
             return False, msg
 
+        home_dir = os.path.expanduser("~")
+        garth_dir = os.path.join(home_dir, ".garth")
+        garth_mfa_temp = os.path.join(home_dir, ".garth_mfa_temp")
+
         # Callback for MFA
         def prompt_mfa_callback():
             if mfa_code:
                 logger.info("Using provided MFA code.")
                 return mfa_code
+            
+            # If no code provided, save the current state (which has the MFA challenge cookies)
+            # so we can resume it in the next request
+            try:
+                logger.info("MFA requested. Saving intermediate session state.")
+                self.client.garth.dump(garth_mfa_temp)
+            except Exception as e:
+                logger.error(f"Failed to save temp MFA state: {e}")
+
             # If no code provided, raise specific error to trigger frontend prompt
             raise ValueError("MFA_REQUIRED")
 
         try:
-            # Try to resume session first
-            home_dir = os.path.expanduser("~")
-            garth_dir = os.path.join(home_dir, ".garth")
+            # Try to resume session first (only if NOT trying to verify MFA)
+            # If we are verifying MFA, we want to skip straight to the fresh login + code
+            if not mfa_code and os.path.exists(garth_dir):
+                # ... session resume logic ...
+                # We can keep the existing logic here, but let's simplify for the snippet
+                # If mfa_code is present, we assume we need to finish a login, so skip resume check
+                # to avoid potential conflicts, OR we try resume but it needs to fail first.
+                # Actually, safe to just skip resume if mfa_code is there.
+                pass 
             
-            # Initialize with prompt_mfa callback if supported by library
-            # We assume Garmin constructor accepts prompt_mfa. 
-            # If it doesn't, we might need a different approach, but recent versions do.
-            try:
-                self.client = Garmin(self.email, self.password, prompt_mfa=prompt_mfa_callback)
-            except TypeError:
-                # Fallback for older versions if they don't accept prompt_mfa
-                logger.warning("Garmin library might not support prompt_mfa argument. Trying without.")
-                self.client = Garmin(self.email, self.password)
-            
-            if os.path.exists(garth_dir):
-                logger.info(f"Found stored session at {garth_dir}. Trying to resume...")
-                self.client.garth.load(garth_dir)
-                try:
-                    # Verify session
-                    self.client.display_name = None
-                    try:
-                        social_profile = self.client.connectapi("/userprofile-service/socialProfile")
-                        if social_profile and 'displayName' in social_profile:
-                            self.client.display_name = social_profile['displayName']
-                    except Exception as e:
-                        logger.warning(f"Could not fetch social profile: {e}")
+            if not mfa_code and os.path.exists(garth_dir):
+                 # Try to resume normal session
+                 # Initialize with basic client first
+                 self.client = Garmin(self.email, self.password)
+                 self.client.garth.load(garth_dir)
+                 
+                 # Verify...
+                 self.client.display_name = None
+                 try:
+                    social_profile = self.client.connectapi("/userprofile-service/socialProfile")
+                    if social_profile and 'displayName' in social_profile:
+                        self.client.display_name = social_profile['displayName']
+                 except Exception as e:
+                    pass # logic from before
 
-                    if not self.client.display_name:
-                         profile = self.client.get_user_profile()
-                         if 'displayName' in profile:
-                             self.client.display_name = profile['displayName']
-                    
-                    if not self.client.display_name:
-                        raise ValueError("Could not determine display name (username).")
-
-                    logger.info(f"Session verified. Logged in as: {self.client.display_name}")
-                    return True, "Session resumed"
-                except Exception as e:
-                     logger.warning(f"Session invalid: {e}. Trying fresh login.")
-                     import shutil
-                     if os.path.exists(garth_dir):
-                         shutil.rmtree(garth_dir)
-                         logger.info("Cleared stale session files.")
+                 if not self.client.display_name:
+                     profile = self.client.get_user_profile()
+                     if 'displayName' in profile:
+                         self.client.display_name = profile['displayName']
+                 
+                 if self.client.display_name:
+                     logger.info(f"Session verified. Logged in as: {self.client.display_name}")
+                     return True, "Session resumed"
+                 
         except Exception as e:
             logger.warning(f"Failed to resume session: {e}. Trying fresh login.")
             import shutil
@@ -84,19 +88,26 @@ class GarminClient:
                  logger.info("Cleared stale session files.")
 
         try:
-            # Fresh login
-            # Re-init client with callback just in case
+            # Fresh login / MFA Completion
             try:
                 self.client = Garmin(self.email, self.password, prompt_mfa=prompt_mfa_callback)
             except TypeError:
                  self.client = Garmin(self.email, self.password)
 
+            # If we are providing a code, we MUST load the temp state from the previous request
+            if mfa_code and os.path.exists(garth_mfa_temp):
+                logger.info("Loading intermediate MFA state...")
+                self.client.garth.load(garth_mfa_temp)
+
             self.client.login()
             
-            # Save session for next time
-            import garth
-            home_dir = os.path.expanduser("~")
-            garth.save(os.path.join(home_dir, ".garth"))
+            # Save session for next time - persistent
+            self.client.garth.save(garth_dir)
+            
+            # Clean up temp file
+            if os.path.exists(garth_mfa_temp):
+                os.remove(garth_mfa_temp)
+
             logger.info("Successfully authenticated and saved session.")
             return True, "Authenticated successfully"
         except Exception as e:
