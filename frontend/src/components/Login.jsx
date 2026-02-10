@@ -1,18 +1,56 @@
-import { useState } from 'react';
-// import { Loader2, Lock } from 'lucide-react'; // Removed as per new UI
-// import { Loader2, Lock } from 'lucide-react'; // Removed as per new UI
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from "framer-motion";
+import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge } from 'lucide-react';
 import client from '../api/client';
 
+// --- PAZARLAMA İÇİN YÜKLEME MESAJLARI ---
+// Render.com waking up messages
+const LOADING_MESSAGES = [
+    "AI Coach is waking up...",
+    "Establishing secure connection to Garmin...",
+    "Analyzing your last 30 days of training...",
+    "Calculating acute training load...",
+    "Optimizing your recovery metrics...",
+    "Generating metabolic profile..."
+];
 
-export function Login({ onLogin }) { // Reverted onLoginSuccess to onLogin to match App.jsx usage
+export function Login({ onLogin }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [mfaCode, setMfaCode] = useState('');
     const [showMfa, setShowMfa] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(''); // error is now state, not prop
+    const [error, setError] = useState('');
+    const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
+    const [loadingText, setLoadingText] = useState("Authenticating...");
 
-    const handleLogin = async (e) => { // Renamed handleSubmit to handleLogin
+    const backgroundVideos = [
+        "/video-run.mp4",
+        "/video-road-cycle.mp4", // New cinematic road cycling
+        "/video-swim.mp4",
+        "/video-strength.mp4"    // New strength training
+    ];
+    const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+
+    // Auto-cycle the active video focus every 4 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentVideoIndex((prev) => (prev + 1) % backgroundVideos.length);
+        }, 4000);
+        return () => clearInterval(interval);
+    }, [backgroundVideos.length]);
+
+    // Loading message cycle
+    useEffect(() => {
+        if (loading) {
+            const interval = setInterval(() => {
+                setLoadingMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+            }, 2500);
+            return () => clearInterval(interval);
+        }
+    }, [loading]);
+
+    const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
@@ -26,9 +64,7 @@ export function Login({ onLogin }) { // Reverted onLoginSuccess to onLogin to ma
 
             const response = await client.post('/coach/daily-briefing', payload);
 
-            // If successful, data is in response.data
-            // If successful, data is in response.data
-            // Pass both data and the credentials payload to parent
+            // If successful, pass data and credentials to parent
             onLogin(response.data, payload);
         } catch (err) {
             console.error("Login Error:", err);
@@ -36,111 +72,207 @@ export function Login({ onLogin }) { // Reverted onLoginSuccess to onLogin to ma
 
             if (errorMsg === "MFA_REQUIRED") {
                 setShowMfa(true);
-                setError("Garmin sent a verification code to your email. Please enter it below.");
+                setError("Garmin sent a verification code to your email. Please into it below.");
             } else {
                 setError(errorMsg);
             }
         } finally {
+            if (!showMfa) { // Don't stop loading loop if we hit MFA, actually we should stop and let user type
+                setLoading(false);
+            }
+            // Actually, if we hit error (MFA), loading becomes false naturally in finally block?
+            // Ah, wait. If error is thrown, we enter catch, set showMfa=true. Then finally runs, setLoading(false).
+            // Correct. The UI will switch back to form (with MFA field now visible).
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-garmin-dark dark:text-white px-4">
-            <div className="max-w-md w-full space-y-8 p-8 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800">
-                <div className="text-center">
-                    <div className="mx-auto h-12 w-12 bg-garmin-blue rounded-full flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                        </svg>
-                    </div>
-                    <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-white">
-                        Connect Garmin
-                    </h2>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        Sign in with your Garmin Connect credentials to generate your AI coaching plan.
-                    </p>
+        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black font-sans text-white">
+
+            {/* --- 1. CINEMATIC ACCORDION BACKGROUND --- */}
+            <div className="absolute inset-0 z-0 flex bg-black">
+                {backgroundVideos.map((src, index) => {
+                    const isActive = index === currentVideoIndex;
+                    return (
+                        <motion.div
+                            key={index}
+                            layout
+                            onHoverStart={() => setCurrentVideoIndex(index)}
+                            initial={{ flex: 1 }}
+                            animate={{ flex: isActive ? 3 : 1 }}
+                            transition={{ duration: 0.6, ease: "easeInOut" }}
+                            className="relative h-full overflow-hidden border-r border-white/10 last:border-r-0 cursor-pointer group"
+                        >
+                            <div className={`absolute inset-0 bg-black/40 transition-opacity duration-500 ${isActive ? "opacity-0" : "opacity-60 hover:opacity-20"}`} z-10 />
+
+                            <motion.video
+                                src={src}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="h-full w-full object-cover"
+                                layout
+                            />
+
+                            {/* Sport Label */}
+                            <div className="absolute bottom-8 left-0 right-0 text-center z-20">
+                                <motion.span
+                                    animate={{ opacity: isActive ? 1 : 0.5, scale: isActive ? 1.1 : 1 }}
+                                    className="inline-block text-xs md:text-sm font-bold tracking-widest uppercase text-white drop-shadow-lg"
+                                >
+                                    {["Running", "Cycling", "Swimming", "Strength"][index]}
+                                </motion.span>
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
+
+            {/* --- 2. MAIN CONTENT --- */}
+            <div className="relative z-20 flex w-full max-w-5xl flex-col items-center gap-12 px-4 md:flex-row md:justify-between">
+
+                {/* LEFT SIDE: MARKETING COPY */}
+                <div className="flex-1 text-center md:text-left hidden md:block">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                    >
+                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md">
+                            <Zap size={16} className="text-blue-400" />
+                            <span className="text-sm font-medium text-blue-200">AI Powered Performance</span>
+                        </div>
+                        <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight md:text-7xl">
+                            Train Smarter, <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                                Not Harder.
+                            </span>
+                        </h1>
+                        <p className="mb-8 text-lg text-gray-300 md:text-xl">
+                            Turn your Garmin data into a dynamic, adaptive training plan.
+                            Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
+                        </p>
+
+                        <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-400">
+                            <div className="flex items-center gap-2"><Activity size={18} /> Adaptive Plans</div>
+                            <div className="flex items-center gap-2"><HeartPulse size={18} /> Recovery Analysis</div>
+                            <div className="flex items-center gap-2"><Gauge size={18} /> VO2 Max Optimization</div>
+                        </div>
+                    </motion.div>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
-                            <input
-                                id="email-address"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-t-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
-                                placeholder="Email address"
-                                disabled={loading || showMfa}
-                            />
-                        </div>
-                        <div>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="current-password"
-                                required
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-b-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue focus:z-10 sm:text-sm transition-colors"
-                                placeholder="Password"
-                                disabled={loading || showMfa}
-                            />
-                        </div>
-                        {showMfa && (
-                            <div className="mt-4">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Verification Code
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={mfaCode}
-                                    onChange={(e) => setMfaCode(e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 placeholder-gray-500 text-gray-900 dark:text-white dark:bg-zinc-800 rounded-md focus:outline-none focus:ring-garmin-blue focus:border-garmin-blue sm:text-sm transition-colors"
-                                    placeholder="Enter code from email"
-                                    autoFocus
-                                />
+                {/* RIGHT SIDE: LOGIN CARD (GLASSMORPHISM) */}
+                <div className="w-full max-w-md">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2, duration: 0.5 }}
+                        className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl"
+                    >
+                        <div className="p-8">
+                            <div className="mb-8 text-center">
+                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500">
+                                    <Lock className="text-white" size={20} />
+                                </div>
+                                <h2 className="text-2xl font-semibold">Connect Garmin</h2>
+                                <p className="text-sm text-gray-400">Sync your history to generate your plan</p>
                             </div>
-                        )}
-                    </div>
 
-                    {error && (
-                        <div className="text-red-500 text-sm text-center bg-red-50 dark:bg-red-900/20 p-2 rounded">
-                            {error}
+                            {/* --- FORM OR LOADING SCREEN --- */}
+                            <AnimatePresence mode="wait">
+                                {loading && !showMfa ? ( // Only show loading if not in MFA state (MFA state is technically 'not loading' but waiting for user input)
+                                    <motion.div
+                                        key="loading"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="flex flex-col items-center justify-center py-8 text-center"
+                                    >
+                                        <div className="mb-6 h-16 w-16 animate-spin rounded-full border-4 border-blue-500/30 border-t-blue-500"></div>
+                                        <h3 className="mb-2 text-lg font-medium text-white">Analyzing Data...</h3>
+                                        <p className="text-sm text-blue-300 animate-pulse">
+                                            {LOADING_MESSAGES[loadingMsgIndex]}
+                                        </p>
+                                    </motion.div>
+                                ) : (
+                                    <motion.form
+                                        key="form"
+                                        onSubmit={handleLogin}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="space-y-4"
+                                    >
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium text-gray-400">Email Address</label>
+                                            <input
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                                                placeholder="athlete@example.com"
+                                                required
+                                                disabled={loading}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-xs font-medium text-gray-400">Garmin Password</label>
+                                            <input
+                                                type="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                                                placeholder="••••••••"
+                                                required
+                                                disabled={loading}
+                                            />
+                                        </div>
+
+                                        {showMfa && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                className="mt-4"
+                                            >
+                                                <label className="mb-1 block text-xs font-medium text-yellow-400">Verification Code Required</label>
+                                                <input
+                                                    type="text"
+                                                    value={mfaCode}
+                                                    onChange={(e) => setMfaCode(e.target.value)}
+                                                    className="w-full rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-4 py-3 text-white placeholder-gray-500 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all"
+                                                    placeholder="Enter code from email"
+                                                    required
+                                                    autoFocus
+                                                />
+                                            </motion.div>
+                                        )}
+
+                                        {error && (
+                                            <div className="text-red-400 text-sm text-center bg-red-900/20 p-2 rounded border border-red-500/20">
+                                                {error}
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="group mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-all hover:bg-gray-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                                        >
+                                            {showMfa ? "Verify & Login" : "Sync & Generate Plan"}
+                                            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                                        </button>
+
+                                        <p className="mt-4 text-center text-xs text-gray-500">
+                                            Your credentials are encrypted and never stored permanently.
+                                        </p>
+                                    </motion.form>
+                                )}
+                            </AnimatePresence>
                         </div>
-                    )}
-
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-garmin-blue hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-garmin-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {loading ? (
-                                <span className="flex items-center">
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Connecting...
-                                </span>
-                            ) : (
-                                showMfa ? "Verify & Login" : "Sign In & Generate Plan"
-                            )}
-                        </button>
-                    </div>
-
-                    <p className="text-xs text-center text-gray-500 dark:text-gray-500 mt-4">
-                        Your credentials are sent securely to the backend and are not stored.
-                    </p>
-                </form>
+                    </motion.div>
+                </div>
             </div>
         </div>
     );
