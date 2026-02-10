@@ -19,7 +19,7 @@ class CoachBrain:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None):
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
@@ -27,6 +27,20 @@ class CoachBrain:
         # Prepare context strings
         activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
         
+        # Format Today's Activities
+        today_context = "No activities recorded today yet."
+        if todays_activities and len(todays_activities) > 0:
+            today_details = []
+            for act in todays_activities:
+                # Safely access dict keys or object attributes
+                a_name = act.get('activityName', 'Unknown Activity')
+                a_type = act.get('activityType', {}).get('typeKey', 'exercise') if isinstance(act.get('activityType'), dict) else 'exercise'
+                a_dist = f"{act.get('distance', 0) / 1000:.2f} km"
+                a_dur = f"{act.get('duration', 0) / 60:.0f} min"
+                today_details.append(f"- {a_name} ({a_type}): {a_dist}, {a_dur}")
+            
+            today_context = "\n".join(today_details)
+
         # Extract specific data points safely
         name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
         vo2max = user_profile.get('vo2MaxRunning', 'N/A') if user_profile else 'N/A'
@@ -120,6 +134,9 @@ class CoachBrain:
 
         **Race Schedule:**
         {race_context}
+        
+        **Activities Completed TODAY:**
+        {today_context}
 
         **Recent Training Load (Last Week):**
         {activities_str}
@@ -132,18 +149,24 @@ class CoachBrain:
         **Task:**
         Based on the data above, provide a concise daily briefing in {target_language}.
         1. Analyze their recovery status (Green/Yellow/Red).
-        2. Evaluate their recent training load in context of their sport, metrics, and upcoming races.
-        3. Recommend a specific workout for today (or rest if needed).
+        2. Evaluate their recent training load.
+        3. **CRITICAL:** Check "Activities Completed TODAY". 
+           - If they have ALREADY trained today (list is not empty), acknowledge the workout (e.g., "Great job on that run!").
+           - If they trained, do NOT recommend another hard workout. Suggest recovery or "Optional double session" ONLY if they are elite.
+           - If they haven't trained, recommend a specific workout for today.
         4. **Nutrition Strategy:**
             - **Pre-workout:** What to consume before the session.
             - **During:** Hydration and fueling needs (if applicable).
             - **Post-workout:** Recovery meal suggestion.
         5. Give a short motivational quote or tip.
+        6. **MANDATORY FOOTER:** You MUST end the `advice_text` with this exact line (translated if needed): 
+           *"Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!"*
 
         **Guidelines:**
-        - Use the user's performance metrics (Pace/Mac HR/FTP) to prescribe specific intensities (e.g., "Run at {metrics.get('threshold_pace', 'threshold')} pace" or "Ride at {metrics.get('ftp', '')} Watts").
+        - Use the user's performance metrics (Pace/Mac HR/FTP) to prescribe specific intensities.
         - {strength_context}
         - Output ONLY in {target_language}.
+
 
         **Format:**
         Return a JSON object with this structure:

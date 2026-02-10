@@ -42,6 +42,16 @@ def get_daily_briefing(user_data: GarminLoginSchema):
         df = processor.process_activities(activities)
         weekly_summary = processor.calculate_weekly_summary(df)
         
+        # Filter for TODAY'S activities
+        todays_activities = []
+        if not df.empty:
+            # df['date'] is datetime64[ns], compare with python date
+            today = date.today()
+            todays_df = df[df['date'].dt.date == today]
+            if not todays_df.empty:
+                # Convert timestamps to string for JSON serialization/AI context
+                todays_activities = todays_df.to_dict(orient='records')
+
         # 3. AI Generation
         # Convert df to summary string/dict for AI
         activities_summary_dict = {}
@@ -49,7 +59,7 @@ def get_daily_briefing(user_data: GarminLoginSchema):
             weekly_summary.index = weekly_summary.index.astype(str)
             activities_summary_dict = weekly_summary.to_dict()
             
-        raw_advice = brain.generate_daily_advice(profile, activities_summary_dict, health_stats, sleep_data, user_settings_dict)
+        raw_advice = brain.generate_daily_advice(profile, activities_summary_dict, health_stats, sleep_data, user_settings_dict, todays_activities)
         
         # Parse the JSON string from Gemini
         import json
