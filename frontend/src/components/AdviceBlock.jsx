@@ -21,20 +21,40 @@ export function AdviceBlock({ advice, workout }) {
         }
     };
 
-    return (
-        <div className="bg-white dark:bg-garmin-card rounded-xl p-6 border border-gray-200 dark:border-white/10 shadow-lg relative overflow-hidden group hover:border-garmin-blue/30 transition-all duration-300">
-            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity text-garmin-blue dark:text-white">
-                <Bot size={64} />
-            </div>
+    // Determine primary sport for icon
+    const getSportIcon = () => {
+        if (!workout) return <Bot size={24} className="text-garmin-blue" />;
+        const type = workout.sportType?.sportTypeKey || '';
+        // keywords check
+        if (type === 'running' || advice.includes('run')) return <div className="text-2xl">🏃</div>;
+        if (type === 'cycling' || advice.includes('ride') || advice.includes('cycle')) return <div className="text-2xl">🚴</div>;
+        if (type === 'swimming' || advice.includes('swim')) return <div className="text-2xl">🏊</div>;
+        if (type === 'strength_training' || advice.includes('gym') || advice.includes('lift')) return <div className="text-2xl">🏋️</div>;
+        return <Bot size={24} className="text-garmin-blue" />;
+    };
 
-            <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-2">
-                        <Sparkles className="text-garmin-blue dark:text-yellow-400" size={20} />
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Coach's Daily Briefing</h2>
+    return (
+        <div className="bg-white dark:bg-garmin-card rounded-2xl p-0 border border-gray-200 dark:border-white/10 shadow-xl relative overflow-hidden group hover:border-garmin-blue/30 transition-all duration-300">
+            {/* Header / Coach Profile */}
+            <div className="bg-gradient-to-r from-gray-50 to-white dark:from-white/5 dark:to-transparent p-6 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-garmin-blue to-cyan-500 flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-white/10">
+                        <span className="text-xl">🤖</span>
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">AI Performance Coach</h2>
+                        <div className="flex items-center gap-1 text-xs font-medium text-garmin-blue dark:text-blue-400 uppercase tracking-wider">
+                            <Sparkles size={12} />
+                            <span>Daily Briefing</span>
+                        </div>
                     </div>
                 </div>
+                <div className="opacity-80">
+                    {getSportIcon()}
+                </div>
+            </div>
 
+            <div className="p-6 relative z-10">
                 <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 font-sans leading-relaxed mb-6 dark:prose-invert">
                     <ReactMarkdown>{advice}</ReactMarkdown>
                 </div>

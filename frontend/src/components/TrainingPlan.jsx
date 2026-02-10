@@ -118,116 +118,124 @@ export function TrainingPlan({ userContext, language }) {
         );
     }
 
+    const getActivityTheme = (type, title) => {
+        const t = (type || "").toLowerCase();
+        const ti = (title || "").toLowerCase();
+
+        if (t === 'swim' || ti.includes('swim')) return { color: 'blue', icon: '🏊', bg: 'bg-blue-500', text: 'text-blue-500', border: 'border-blue-200 dark:border-blue-900', light: 'bg-blue-50 dark:bg-blue-900/20' };
+        if (t === 'bike' || t === 'cycle' || ti.includes('ride') || ti.includes('cycle')) return { color: 'orange', icon: '🚴', bg: 'bg-orange-500', text: 'text-orange-500', border: 'border-orange-200 dark:border-orange-900', light: 'bg-orange-50 dark:bg-orange-900/20' };
+        if (t === 'run' || ti.includes('run')) return { color: 'emerald', icon: '🏃', bg: 'bg-emerald-500', text: 'text-emerald-500', border: 'border-emerald-200 dark:border-emerald-900', light: 'bg-emerald-50 dark:bg-emerald-900/20' };
+        if (t === 'strength' || ti.includes('gym') | ti.includes('lift')) return { color: 'purple', icon: '🏋️', bg: 'bg-purple-500', text: 'text-purple-500', border: 'border-purple-200 dark:border-purple-900', light: 'bg-purple-50 dark:bg-purple-900/20' };
+
+        return { color: 'gray', icon: '⚡', bg: 'bg-gray-500', text: 'text-gray-500', border: 'border-gray-200 dark:border-gray-800', light: 'bg-gray-50 dark:bg-zinc-800' };
+    };
+
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
-            <div className="flex justify-between items-start mb-6">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-0 shadow-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-start bg-gray-50/50 dark:bg-white/5">
                 <div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.title}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        📅 {plan.title}
+                    </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{plan.summary}</p>
                 </div>
-                <button
-                    onClick={() => setPlan(null)}
-                    className="text-sm text-garmin-blue hover:underline"
-                >
-                    Reset
+                <button onClick={() => setPlan(null)} className="text-xs font-medium text-red-500 hover:text-red-400 uppercase tracking-wide px-3 py-1 rounded-full border border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                    Reset Plan
                 </button>
             </div>
 
-            <div className="space-y-8">
+            <div className="p-6 space-y-12">
                 {plan.weeks.map((week) => (
-                    <div key={week.week_number} className="space-y-4">
-                        <div className="flex justify-between items-end border-b border-gray-100 dark:border-gray-800 pb-2">
-                            <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                                Week {week.week_number} • <span className="text-garmin-blue">{week.focus}</span>
+                    <div key={week.week_number} className="space-y-6">
+                        <div className="flex items-center gap-4">
+                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
+                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest text-center">
+                                Week {week.week_number} <span className="text-garmin-blue mx-2">•</span> {week.focus}
                             </h4>
-                            {week.total_tss && (
-                                <span className="text-xs text-gray-400 font-mono">Est. TSS: {week.total_tss}</span>
-                            )}
+                            <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-4">
-                            {week.days.map((day, idx) => (
-                                <div key={idx} className="flex flex-col gap-3 p-4 rounded-xl bg-gray-50 dark:bg-zinc-950/50 border border-gray-100 dark:border-gray-800/50 hover:border-garmin-blue/30 transition-colors">
-                                    {/* Header Row */}
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="min-w-[3rem] text-center">
-                                                <span className="text-xs font-bold text-gray-500 uppercase">{day.day_name.substring(0, 3)}</span>
-                                            </div>
-                                            <div>
-                                                <h5 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                                    {day.activity_type === 'Rest' ? (
-                                                        <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                                                    ) : (
-                                                        <Activity size={16} className="text-garmin-blue" />
-                                                    )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+                            {week.days.map((day, idx) => {
+                                const isRest = day.activity_type === 'Rest';
+                                const theme = getActivityTheme(day.activity_type, day.workout_title);
+
+                                return (
+                                    <div key={idx} className={`relative flex flex-col md:flex-row gap-0 rounded-2xl border transition-all hover:shadow-md ${isRest ? 'bg-gray-50/50 dark:bg-zinc-900/30 border-dashed border-gray-300 dark:border-gray-700 opacity-80' : `bg-white dark:bg-zinc-950/80 ${theme.border} border-l-4 border-l-${theme.color}-500`}`}>
+
+                                        {/* Day Info Column */}
+                                        <div className="p-4 md:w-32 flex md:flex-col items-center md:items-start justify-between md:justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5">
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{day.day_name}</span>
+                                            <div className="text-2xl mt-1">{isRest ? '😴' : theme.icon}</div>
+                                            {day.total_duration && (
+                                                <span className="hidden md:inline-block text-xs font-mono text-gray-500 mt-2 bg-white dark:bg-black/20 px-1.5 py-0.5 rounded">
+                                                    {day.total_duration}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Main Content */}
+                                        <div className="p-4 flex-1">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h5 className={`font-bold text-lg ${isRest ? 'text-gray-500' : 'text-gray-900 dark:text-white'}`}>
                                                     {day.workout_title}
                                                 </h5>
-                                                <p className="text-xs text-gray-500">{day.overview || day.description}</p>
+                                                {day.total_duration && <span className="md:hidden text-xs font-mono text-gray-500">{day.total_duration}</span>}
                                             </div>
-                                        </div>
-                                        {day.total_duration && (
-                                            <span className="text-xs font-mono bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-gray-200 dark:border-gray-800 flex items-center gap-1">
-                                                <Clock size={12} /> {day.total_duration || day.duration}
-                                            </span>
-                                        )}
-                                    </div>
 
-                                    {/* Structured Workout Details */}
-                                    {day.structure && (
-                                        <div className="ml-14 mt-2 space-y-2 text-sm">
-                                            {/* Warmup */}
-                                            {day.structure.warmup && (
-                                                <div className="flex gap-3 text-gray-600 dark:text-gray-400 border-l-2 border-green-300 pl-3 py-1">
-                                                    <span className="font-semibold text-xs text-green-600 dark:text-green-400 uppercase w-16">Warmup</span>
-                                                    <div className="flex-1">
-                                                        <span>{day.structure.warmup.description}</span>
-                                                        <div className="text-xs text-gray-400 mt-0.5 font-mono">
-                                                            {day.structure.warmup.duration} • {day.structure.warmup.target}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{day.overview || day.description}</p>
 
-                                            {/* Main Set */}
-                                            {day.structure.main_set && day.structure.main_set.length > 0 && (
-                                                <div className="flex gap-3 text-gray-900 dark:text-gray-200 border-l-2 border-garmin-blue pl-3 py-2 bg-white dark:bg-zinc-900/50 rounded-r-lg">
-                                                    <span className="font-semibold text-xs text-garmin-blue uppercase w-16">Main Set</span>
-                                                    <div className="flex-1 space-y-2">
-                                                        {day.structure.main_set.map((step, sIdx) => (
-                                                            <div key={sIdx} className="flex flex-col">
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-medium">
-                                                                        {step.repeats && step.repeats > 1 ? `${step.repeats}x ` : ''}
-                                                                        {step.description}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex gap-3 text-xs text-orange-600 dark:text-orange-400 font-mono mt-0.5">
-                                                                    <span className="flex items-center gap-1"><Clock size={10} /> {step.duration}</span>
-                                                                    {step.target && <span className="flex items-center gap-1"><Zap size={10} /> {step.target}</span>}
-                                                                </div>
+                                            {/* Structured Steps Visuals */}
+                                            {day.structure && (
+                                                <div className="space-y-2">
+                                                    {/* Warmup */}
+                                                    {day.structure.warmup && (
+                                                        <div className="flex items-center gap-3 text-xs">
+                                                            <div className="w-16 shrink-0 font-bold text-gray-400 uppercase text-right">Warm Up</div>
+                                                            <div className="flex-1 bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 px-3 py-1.5 rounded-lg border border-yellow-200 dark:border-yellow-900/30 flex justify-between">
+                                                                <span>{day.structure.warmup.description}</span>
+                                                                <span className="font-mono opacity-80">{day.structure.warmup.duration}</span>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Cooldown */}
-                                            {day.structure.cooldown && (
-                                                <div className="flex gap-3 text-gray-600 dark:text-gray-400 border-l-2 border-blue-200 dark:border-blue-800 pl-3 py-1">
-                                                    <span className="font-semibold text-xs text-blue-400 uppercase w-16">Cooldown</span>
-                                                    <div className="flex-1">
-                                                        <span>{day.structure.cooldown.description}</span>
-                                                        <div className="text-xs text-gray-400 mt-0.5 font-mono">
-                                                            {day.structure.cooldown.duration} • {day.structure.cooldown.target}
                                                         </div>
-                                                    </div>
+                                                    )}
+
+                                                    {/* Main Set */}
+                                                    {day.structure.main_set && day.structure.main_set.length > 0 && (
+                                                        <div className="flex items-start gap-3 text-xs">
+                                                            <div className="w-16 shrink-0 font-bold text-garmin-blue uppercase text-right pt-2">Main Set</div>
+                                                            <div className="flex-1 space-y-1">
+                                                                {day.structure.main_set.map((step, sIdx) => (
+                                                                    <div key={sIdx} className={`px-3 py-2 rounded-lg border flex justify-between items-center ${theme.light} ${theme.text} ${theme.border}`}>
+                                                                        <span className="font-medium">
+                                                                            {step.repeats > 1 && <span className="bg-white dark:bg-black/20 px-1.5 rounded text-[10px] mr-2 border border-current opacity-70">{step.repeats}x</span>}
+                                                                            {step.description}
+                                                                        </span>
+                                                                        <div className="flex gap-2 font-mono text-[10px] opacity-90">
+                                                                            <span>{step.duration}</span>
+                                                                            {step.target && <span className="hidden sm:inline">• {step.target}</span>}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Cooldown */}
+                                                    {day.structure.cooldown && (
+                                                        <div className="flex items-center gap-3 text-xs">
+                                                            <div className="w-16 shrink-0 font-bold text-gray-400 uppercase text-right">Cool Down</div>
+                                                            <div className="flex-1 bg-blue-50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900/20 flex justify-between">
+                                                                <span>{day.structure.cooldown.description}</span>
+                                                                <span className="font-mono opacity-80">{day.structure.cooldown.duration}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
-                                    )}
-                                </div>
-                            ))}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 ))}
