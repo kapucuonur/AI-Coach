@@ -2,17 +2,21 @@
 
 An AI-powered endurance sports coach that analyzes your Garmin data to provide personalized training plans and daily insights.
 
-## Features (Planned)
+## Features
 - **Data Integration**: Fetches activities, sleep, and health metrics from Garmin Connect.
-- **AI Coaching**: Uses LLMs to generate personalized training advice based on recovery and load.
-- **Adaptive Planning**: Adjusts your schedule based on daily biometrics (HRV, Sleep).
+- **AI Coaching**: Uses Google Gemini 2.0 to generate personalized training advice based on recovery and load.
+- **Professional Training Plans**: Generates detailed 1-Week/1-Month plans with specific paces, watts, and heart rate zones.
+- **Structured Workouts**: breakdown of Warmup, Main Set, and Cooldown for every session.
+- **Multilingual Support**: Fully localized in English, Turkish, German, French, Spanish, Russian, and Italian.
+- **Smart Caching**: Implements a Singleton pattern for Garmin connections to prevent rate limiting (429 errors) and ensure stability on ephemeral servers (Render).
 
 ## Architecture
 
 - **Backend:** FastAPI (Python)
-- **Frontend:** React (Vite + Tailwind)
+- **Frontend:** React (Vite + Tailwind + Lucide Icons)
 - **Database:** PostgreSQL (Production) / SQLite (Dev) (SQLAlchemy)
 - **AI:** Google Gemini 2.0 Flash
+- **Authentication:** Garmin Connect (Session Caching in RAM)
 
 ## Project Structure
 
