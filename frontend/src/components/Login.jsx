@@ -131,31 +131,31 @@ export function Login({ onLogin }) {
             </div>
 
             {/* --- 2. MAIN CONTENT --- */}
-            <div className="relative z-20 flex w-full max-w-5xl flex-col items-center gap-12 px-4 md:flex-row md:justify-between">
+            <div className="relative z-20 flex w-full max-w-3xl flex-col items-center gap-8 px-4">
 
-                {/* LEFT SIDE: MARKETING COPY */}
-                <div className="flex-1 text-center md:text-left hidden md:block">
+                {/* VISUAL HEADER: MARKETING COPY (Centered) */}
+                <div className="text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                     >
-                        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md">
+                        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md mx-auto">
                             <Zap size={16} className="text-blue-400" />
                             <span className="text-sm font-medium text-blue-200">AI Powered Performance</span>
                         </div>
-                        <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight md:text-7xl">
+                        <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight md:text-6xl">
                             Train Smarter, <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                 Not Harder.
                             </span>
                         </h1>
-                        <p className="mb-8 text-lg text-gray-300 md:text-xl">
+                        <p className="mb-6 text-lg text-gray-300 md:text-xl max-w-2xl mx-auto">
                             Turn your Garmin data into a dynamic, adaptive training plan.
                             Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
                         </p>
 
-                        <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-400">
+                        <div className="flex flex-wrap gap-4 justify-center text-sm text-gray-400 mb-8">
                             <div className="flex items-center gap-2"><Activity size={18} /> Adaptive Plans</div>
                             <div className="flex items-center gap-2"><HeartPulse size={18} /> Recovery Analysis</div>
                             <div className="flex items-center gap-2"><Gauge size={18} /> VO2 Max Optimization</div>
