@@ -19,10 +19,29 @@ class CoachBrain:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-2.0-flash')
 
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None):
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
+        
+        # Calculate time context
+        current_hour = 9 # Default to morning if unknown
+        time_context_str = "Unknown time of day"
+        if client_local_time:
+            try:
+                # Basic ISO parsing (e.g., 2026-02-12T19:47:28.000Z)
+                from datetime import datetime
+                # Handle potential trailing Z or offsets rudimentarily if needed, 
+                # but valid ISO from JS usually works with fromisoformat in recent Python
+                cleaned_time = client_local_time.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(cleaned_time)
+                current_hour = dt.hour
+                time_context_str = f"{current_hour:02d}:{dt.minute:02d}"
+            except Exception as e:
+                logger.warning(f"Could not parse client time {client_local_time}: {e}")
+                pass
+
+        is_evening = current_hour >= 18
         
         # Prepare context strings
         activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
@@ -35,8 +54,8 @@ class CoachBrain:
                 # Safely access dict keys or object attributes
                 a_name = act.get('activityName', 'Unknown Activity')
                 a_type = act.get('activityType', {}).get('typeKey', 'exercise') if isinstance(act.get('activityType'), dict) else 'exercise'
-                a_dist = f"{act.get('distance', 0) / 1000:.2f} km"
-                a_dur = f"{act.get('duration', 0) / 60:.0f} min"
+                a_dist = f"{float(act.get('distance', 0) or 0) / 1000:.2f} km"
+                a_dur = f"{float(act.get('duration', 0) or 0) / 60:.0f} min"
                 today_details.append(f"- {a_name} ({a_type}): {a_dist}, {a_dur}")
             
             today_context = "\n".join(today_details)
@@ -138,6 +157,8 @@ class CoachBrain:
         **Activities Completed TODAY:**
         {today_context}
 
+        **Current Local Time:** {time_context_str}
+
         **Recent Training Load (Last Week):**
         {activities_str}
 
@@ -150,10 +171,14 @@ class CoachBrain:
         Based on the data above, provide a concise daily briefing in {target_language}.
         1. Analyze their recovery status (Green/Yellow/Red).
         2. Evaluate their recent training load.
-        3. **CRITICAL:** Check "Activities Completed TODAY". 
-           - If they have ALREADY trained today (list is not empty), acknowledge the workout (e.g., "Great job on that run!").
-           - If they trained, do NOT recommend another hard workout. Suggest recovery or "Optional double session" ONLY if they are elite.
-           - If they haven't trained, recommend a specific workout for today.
+        3. **CRITICAL: Workout Recommendation Logic**:
+           - **IF User has ALREADY trained today** (list is not empty):
+                - If current time is **EVENING (18:00+)**: You MUST recommend REST. Do NOT suggest a workout. Say "Great job today, now relax."
+                - If it is early: Suggest a second session ONLY if they are elite, otherwise suggest rest.
+           - **IF User has NOT trained today**:
+                - If current time is **LATE EVENING (20:00+)**: Suggest a very short session (e.g., Yoga, Stretching, or 20min Treadmill) or just Rest.
+                - Otherwise, recommend a specific workout.
+        
         4. **Nutrition Strategy:**
             - **Pre-workout:** What to consume before the session.
             - **During:** Hydration and fueling needs (if applicable).
@@ -345,94 +370,103 @@ class CoachBrain:
         """
         Analyze a specific activity in detail.
         """
-        # Extract key metrics
-        # 'get_activity' usually returns the top level dict as the summary
-        summary = activity_data
-        if 'summaryDTO' in activity_data:
-             summary = activity_data['summaryDTO']
-        
-        name = summary.get('activityName', 'Activity')
-        type_key = summary.get('activityType', {}).get('typeKey', 'exercise') if isinstance(summary.get('activityType'), dict) else 'exercise'
-        dist = summary.get('distance', 0) or 0
-        dist_km = dist / 1000
-        duration = summary.get('duration', 0) or 0
-        duration_min = duration / 60
-        avg_hr = summary.get('averageHR', 'N/A')
-        max_hr = summary.get('maxHR', 'N/A')
-        avg_speed = summary.get('averageSpeed', 0) or 0 # m/s usually
-        
-        # approximate pace calculation (min/km)
-        avg_pace_str = "N/A"
-        if avg_speed > 0:
-             pace_per_km_sec = 1000 / avg_speed
-             p_min = int(pace_per_km_sec // 60)
-             p_sec = int(pace_per_km_sec % 60)
-             avg_pace_str = f"{p_min}:{p_sec:02d} /km"
-
-        # Laps/Splits context
-        splits_context = ""
-        splits_data = activity_data.get('splits', {})
-        laps = []
-        if isinstance(splits_data, dict) and 'lapDTOs' in splits_data:
-             laps = splits_data['lapDTOs']
-        elif isinstance(splits_data, list):
-             laps = splits_data
-             
-        if laps:
-             splits_context = "Splits/Laps (First 10):\n"
-             for i, lap in enumerate(laps[:10]):
-                  l_dur = lap.get('duration', 0)
-                  l_dist = lap.get('distance', 0)
-                  l_hr = lap.get('averageHR', 'N/A')
-                  l_speed = lap.get('averageSpeed', 0)
-                  l_pace = "N/A"
-                  if l_speed > 0:
-                      l_p_sec = 1000 / l_speed
-                      l_pace = f"{int(l_p_sec//60)}:{int(l_p_sec%60):02d}"
-                  
-                  splits_context += f"- Lap {i+1}: {l_dist:.0f}m in {l_dur:.0f}s, Avg HR {l_hr}, Pace {l_pace}\n"
-
-        # Settings for personalization
-        sport_context = "Endurance Sports"
-        language_code = "en"
-        if user_settings:
-            sport_context = user_settings.get("primary_sport", "Endurance Sports")
-            language_code = user_settings.get("language", "en")
-            
-        language_map = {
-            "en": "English", "tr": "Turkish", "de": "German", 
-            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
-        }
-        target_language = language_map.get(language_code, "English")
-
-        prompt = f"""
-        Act as an elite {sport_context} coach.
-        Analyze this specific workout: "{name}" ({type_key}).
-        
-        **Data for {name}:**
-        - Total Distance: {dist_km:.2f} km
-        - Total Duration: {duration_min:.1f} min
-        - Avg HR: {avg_hr} bpm (Max: {max_hr})
-        - Avg Pace/Speed: {avg_pace_str}
-        
-        {splits_context}
-        
-        **Task:**
-        Provide a short, high-value analysis of this session in {target_language}.
-        1. **Effort Analysis:** Was it executed well? (e.g. "Solid steady state", "Good interval execution", "Recovery pace maintained").
-        2. **Physiological Insight:** Comment on Heart Rate vs Pace/Power if possible.
-        3. **Key Takeaway:** One specific thing to improve or maintain.
-        
-        Keep it concise (3-5 sentences). Do not use markdown headers like ##. Just paragraphs.
-        """
-        
         try:
+            # Extract key metrics
+            # 'get_activity' usually returns the top level dict as the summary
+            summary = activity_data
+            if 'summaryDTO' in activity_data:
+                 summary = activity_data['summaryDTO']
+            
+            name = summary.get('activityName', 'Activity')
+            type_key = summary.get('activityType', {}).get('typeKey', 'exercise') if isinstance(summary.get('activityType'), dict) else 'exercise'
+            
+            # Helper for safe float conversion
+            def safe_float(val):
+                try: return float(val) if val is not None else 0.0
+                except: return 0.0
+
+            dist = safe_float(summary.get('distance'))
+            dist_km = dist / 1000
+            
+            duration = safe_float(summary.get('duration'))
+            duration_min = duration / 60
+            
+            avg_hr = summary.get('averageHR', 'N/A')
+            max_hr = summary.get('maxHR', 'N/A')
+            
+            avg_speed = safe_float(summary.get('averageSpeed'))
+            
+            # approximate pace calculation (min/km)
+            avg_pace_str = "N/A"
+            if avg_speed > 0:
+                 pace_per_km_sec = 1000 / avg_speed
+                 p_min = int(pace_per_km_sec // 60)
+                 p_sec = int(pace_per_km_sec % 60)
+                 avg_pace_str = f"{p_min}:{p_sec:02d} /km"
+
+            # Laps/Splits context
+            splits_context = ""
+            splits_data = activity_data.get('splits', {})
+            laps = []
+            if isinstance(splits_data, dict) and 'lapDTOs' in splits_data:
+                 laps = splits_data['lapDTOs']
+            elif isinstance(splits_data, list):
+                 laps = splits_data
+                 
+            if laps:
+                 splits_context = "Splits/Laps (First 10):\n"
+                 for i, lap in enumerate(laps[:10]):
+                      l_dur = safe_float(lap.get('duration'))
+                      l_dist = safe_float(lap.get('distance'))
+                      l_hr = lap.get('averageHR', 'N/A')
+                      l_speed = safe_float(lap.get('averageSpeed'))
+                      l_pace = "N/A"
+                      if l_speed > 0:
+                          l_p_sec = 1000 / l_speed
+                          l_pace = f"{int(l_p_sec//60)}:{int(l_p_sec%60):02d}"
+                      
+                      splits_context += f"- Lap {i+1}: {l_dist:.0f}m in {l_dur:.0f}s, Avg HR {l_hr}, Pace {l_pace}\n"
+
+            # Settings for personalization
+            sport_context = "Endurance Sports"
+            language_code = "en"
+            if user_settings:
+                sport_context = user_settings.get("primary_sport", "Endurance Sports")
+                language_code = user_settings.get("language", "en")
+                
+            language_map = {
+                "en": "English", "tr": "Turkish", "de": "German", 
+                "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
+            }
+            target_language = language_map.get(language_code, "English")
+
+            prompt = f"""
+            Act as an elite {sport_context} coach.
+            Analyze this specific workout: "{name}" ({type_key}).
+            
+            **Data for {name}:**
+            - Total Distance: {dist_km:.2f} km
+            - Total Duration: {duration_min:.1f} min
+            - Avg HR: {avg_hr} bpm (Max: {max_hr})
+            - Avg Pace/Speed: {avg_pace_str}
+            
+            {splits_context}
+            
+            **Task:**
+            Provide a short, high-value analysis of this session in {target_language}.
+            1. **Effort Analysis:** Was it executed well? (e.g. "Solid steady state", "Good interval execution", "Recovery pace maintained").
+            2. **Physiological Insight:** Comment on Heart Rate vs Pace/Power if possible.
+            3. **Key Takeaway:** One specific thing to improve or maintain.
+            
+            Keep it concise (3-5 sentences). Do not use markdown headers like ##. Just paragraphs.
+            """
+            
             logger.info(f"Analyzing activity {name} with Gemini...")
             response = self.model.generate_content(prompt)
             return response.text
         except Exception as e:
             logger.error(f"Failed to analyze activity: {e}")
-            return "Could not analyze activity."
+            return "Could not analyze activity due to an internal error."
 
     def _clean_json_response(self, response_text):
         """

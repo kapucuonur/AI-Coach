@@ -74,7 +74,8 @@ export function Login({ onLogin }) {
             const payload = {
                 email,
                 password,
-                mfa_code: mfaCode || null
+                mfa_code: mfaCode || null,
+                client_local_time: new Date().toISOString()
             };
 
             const response = await client.post('/coach/daily-briefing', payload);

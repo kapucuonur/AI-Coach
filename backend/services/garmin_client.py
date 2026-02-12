@@ -310,6 +310,19 @@ class GarminClient:
         # Using 0 as start index to get most recent
         return self.client.get_activities_by_date(start_date.isoformat(), date.today().isoformat())
 
+    def get_activity_details(self, activity_id):
+        """Fetch detailed activity data (splits, streams, etc)."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return None
+        try:
+            # Check if we can get details. 
+            # The garminconnect library has `get_activity(activity_id)`
+            return self.client.get_activity(activity_id)
+        except Exception as e:
+            logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
+            return None
+
     def get_health_stats(self, date_str=None):
         """Fetch health stats for a specific date (YYYY-MM-DD). Defaults to today."""
         if not self.client:

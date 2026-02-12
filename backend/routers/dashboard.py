@@ -5,7 +5,13 @@ from backend.services.coach_brain import CoachBrain
 from backend.routers.settings import load_settings
 from backend.database import get_db
 import os
+import traceback
+import logging
 from datetime import date
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -59,17 +65,28 @@ def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_gar
 @router.get("/activities/{activity_id}/details")
 def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):
     try:
+        logger.info(f"Fetching details for activity {activity_id}")
+        
         # 1. Fetch details from Garmin
         details = client.get_activity_details(activity_id)
         if not details:
+            logger.warning(f"Activity {activity_id} not found in Garmin.")
             raise HTTPException(status_code=404, detail="Activity not found")
             
         # 2. AI Analysis
         gemini_key = os.getenv("GEMINI_API_KEY")
+        if not gemini_key:
+            logger.error("GEMINI_API_KEY missing")
+            raise HTTPException(status_code=500, detail="Server config error: GEMINI_API_KEY missing")
+
         brain = CoachBrain(gemini_key)
         
-        settings = load_settings()
-        user_settings_dict = settings.model_dump()
+        try:
+            settings = load_settings()
+            user_settings_dict = settings.model_dump()
+        except Exception as se:
+            logger.warning(f"Failed to load settings: {se}")
+            user_settings_dict = {}
         
         analysis = brain.analyze_activity(details, user_settings_dict)
         
@@ -80,4 +97,7 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
     except HTTPException as he:
         raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_trace = traceback.format_exc()
+        logger.error(f"Error fetching activity details: {error_trace}")
+        # Return the trace in the detail for debugging (in production usually hidden, but we need it here)
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}\n\nTrace:\n{error_trace}")

@@ -66,7 +66,15 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
             weekly_summary.index = weekly_summary.index.astype(str)
             activities_summary_dict = weekly_summary.to_dict()
             
-        raw_advice = brain.generate_daily_advice(profile, activities_summary_dict, health_stats, sleep_data, user_settings_dict, todays_activities)
+        raw_advice = brain.generate_daily_advice(
+            profile, 
+            activities_summary_dict, 
+            health_stats, 
+            sleep_data, 
+            user_settings_dict, 
+            todays_activities,
+            client_local_time=user_data.client_local_time
+        )
         
         # Parse the JSON string from Gemini
         import json
