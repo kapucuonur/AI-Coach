@@ -7,7 +7,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { TrainingPlan } from './components/TrainingPlan';
 import { Login } from './components/Login';
 import { ChatWidget } from './components/ChatWidget';
-import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings } from 'lucide-react';
+import { ActivityAnalysis } from './components/ActivityAnalysis';
+import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
 
 function App() {
   const [loading, setLoading] = useState(false);
@@ -15,6 +16,7 @@ function App() {
   const [error, setError] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedActivityId, setSelectedActivityId] = useState(null);
 
   // Dark mode state - defaulting to true or system preference could be added
   const [darkMode, setDarkMode] = useState(() => {
@@ -33,8 +35,6 @@ function App() {
 
   const [credentials, setCredentials] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
-
-  // ... (darkMode effect existing)
 
   const handleLogin = async (briefingData, creds) => {
     setLoading(true);
@@ -91,6 +91,7 @@ function App() {
   const { metrics, advice, workout } = data || {}; // Safe destructuring
   const health = metrics?.health || {};
   const sleep = metrics?.sleep || {};
+  const profile = metrics?.profile || {};
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white p-4 md:p-8 transition-colors duration-300">
@@ -136,20 +137,25 @@ function App() {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           onSave={() => {
-            // Re-fetching would require saving credentials which we avoid for security in this 'stateless' flow
-            // For now, we might just close or warn user they need to relogin to see effects
             setIsSettingsOpen(false);
           }}
         />
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatsCard
             title="Resting HR"
             value={health.restingHeartRate || '--'}
             unit="bpm"
             icon={Heart}
             className="border-red-500/20"
+          />
+          <StatsCard
+            title="VO2 Max"
+            value={profile.vo2MaxRunning || '--'}
+            unit="ml/kg"
+            icon={Zap}
+            className="border-yellow-500/20"
           />
           <StatsCard
             title="Stress"
@@ -186,10 +192,22 @@ function App() {
 
           {/* Right: Activities */}
           <div className="lg:col-span-1">
-            <ActivityList activities={metrics?.recent_activities || []} />
+            <ActivityList
+              activities={metrics?.recent_activities || []}
+              onSelect={setSelectedActivityId}
+            />
           </div>
         </div>
       </div>
+
+      {/* Activity Analysis Modal */}
+      {selectedActivityId && (
+        <ActivityAnalysis
+          activityId={selectedActivityId}
+          onClose={() => setSelectedActivityId(null)}
+        />
+      )}
+
       <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
     </div>
   );

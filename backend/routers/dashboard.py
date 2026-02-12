@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from backend.services.garmin_client import GarminClient
+from backend.services.coach_brain import CoachBrain
+from backend.routers.settings import load_settings
 from backend.database import get_db
 import os
 from datetime import date
@@ -51,5 +53,31 @@ def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_gar
     try:
         activities = client.get_activities(limit)
         return activities
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/activities/{activity_id}/details")
+def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):
+    try:
+        # 1. Fetch details from Garmin
+        details = client.get_activity_details(activity_id)
+        if not details:
+            raise HTTPException(status_code=404, detail="Activity not found")
+            
+        # 2. AI Analysis
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        brain = CoachBrain(gemini_key)
+        
+        settings = load_settings()
+        user_settings_dict = settings.model_dump()
+        
+        analysis = brain.analyze_activity(details, user_settings_dict)
+        
+        return {
+            "details": details,
+            "analysis": analysis
+        }
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

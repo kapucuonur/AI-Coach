@@ -204,6 +204,7 @@ class CoachBrain:
         except Exception as e:
             logger.error(f"Failed to generate advice with Gemini: {e}")
             return '{"advice_text": "Sorry, I could not generate advice today.", "workout": null}'
+
     def generate_chat_response(self, messages, user_context=None, language="en"):
         """
         Generate a conversational response based on chat history and user context.
@@ -245,7 +246,6 @@ class CoachBrain:
         
         try:
             # Convert messages to Gemini format if needed, or just append to prompt
-            # For simplicity with this model wrapper, we'll construct a prompt history
             conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
             
             full_prompt = f"{system_instruction}\n\nChat History:\n{conversation_history}\n\nCoach:"
@@ -261,7 +261,7 @@ class CoachBrain:
         """
         Generate a structured training plan (JSON) for the dashboard.
         """
-        # Prepare context (similar to daily advice but focused on planning)
+        # Prepare context
         activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
         
         # Extract settings
@@ -340,6 +340,100 @@ class CoachBrain:
         except Exception as e:
             logger.error(f"Failed to generate plan: {e}")
             return '{"error": "Failed to generate plan"}'
+
+    def analyze_activity(self, activity_data, user_settings=None):
+        """
+        Analyze a specific activity in detail.
+        """
+        # Extract key metrics
+        # 'get_activity' usually returns the top level dict as the summary
+        summary = activity_data
+        if 'summaryDTO' in activity_data:
+             summary = activity_data['summaryDTO']
+        
+        name = summary.get('activityName', 'Activity')
+        type_key = summary.get('activityType', {}).get('typeKey', 'exercise') if isinstance(summary.get('activityType'), dict) else 'exercise'
+        dist = summary.get('distance', 0) or 0
+        dist_km = dist / 1000
+        duration = summary.get('duration', 0) or 0
+        duration_min = duration / 60
+        avg_hr = summary.get('averageHR', 'N/A')
+        max_hr = summary.get('maxHR', 'N/A')
+        avg_speed = summary.get('averageSpeed', 0) or 0 # m/s usually
+        
+        # approximate pace calculation (min/km)
+        avg_pace_str = "N/A"
+        if avg_speed > 0:
+             pace_per_km_sec = 1000 / avg_speed
+             p_min = int(pace_per_km_sec // 60)
+             p_sec = int(pace_per_km_sec % 60)
+             avg_pace_str = f"{p_min}:{p_sec:02d} /km"
+
+        # Laps/Splits context
+        splits_context = ""
+        splits_data = activity_data.get('splits', {})
+        laps = []
+        if isinstance(splits_data, dict) and 'lapDTOs' in splits_data:
+             laps = splits_data['lapDTOs']
+        elif isinstance(splits_data, list):
+             laps = splits_data
+             
+        if laps:
+             splits_context = "Splits/Laps (First 10):\n"
+             for i, lap in enumerate(laps[:10]):
+                  l_dur = lap.get('duration', 0)
+                  l_dist = lap.get('distance', 0)
+                  l_hr = lap.get('averageHR', 'N/A')
+                  l_speed = lap.get('averageSpeed', 0)
+                  l_pace = "N/A"
+                  if l_speed > 0:
+                      l_p_sec = 1000 / l_speed
+                      l_pace = f"{int(l_p_sec//60)}:{int(l_p_sec%60):02d}"
+                  
+                  splits_context += f"- Lap {i+1}: {l_dist:.0f}m in {l_dur:.0f}s, Avg HR {l_hr}, Pace {l_pace}\n"
+
+        # Settings for personalization
+        sport_context = "Endurance Sports"
+        language_code = "en"
+        if user_settings:
+            sport_context = user_settings.get("primary_sport", "Endurance Sports")
+            language_code = user_settings.get("language", "en")
+            
+        language_map = {
+            "en": "English", "tr": "Turkish", "de": "German", 
+            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
+        }
+        target_language = language_map.get(language_code, "English")
+
+        prompt = f"""
+        Act as an elite {sport_context} coach.
+        Analyze this specific workout: "{name}" ({type_key}).
+        
+        **Data for {name}:**
+        - Total Distance: {dist_km:.2f} km
+        - Total Duration: {duration_min:.1f} min
+        - Avg HR: {avg_hr} bpm (Max: {max_hr})
+        - Avg Pace/Speed: {avg_pace_str}
+        
+        {splits_context}
+        
+        **Task:**
+        Provide a short, high-value analysis of this session in {target_language}.
+        1. **Effort Analysis:** Was it executed well? (e.g. "Solid steady state", "Good interval execution", "Recovery pace maintained").
+        2. **Physiological Insight:** Comment on Heart Rate vs Pace/Power if possible.
+        3. **Key Takeaway:** One specific thing to improve or maintain.
+        
+        Keep it concise (3-5 sentences). Do not use markdown headers like ##. Just paragraphs.
+        """
+        
+        try:
+            logger.info(f"Analyzing activity {name} with Gemini...")
+            response = self.model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to analyze activity: {e}")
+            return "Could not analyze activity."
+
     def _clean_json_response(self, response_text):
         """
         Helper to strip markdown code blocks from JSON response.
@@ -352,9 +446,6 @@ class CoachBrain:
         if cleaned.endswith("```"):
             cleaned = cleaned[:-3]
         return cleaned.strip()
-
-
-
 
 if __name__ == "__main__":
     # simple test

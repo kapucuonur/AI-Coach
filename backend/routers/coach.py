@@ -105,7 +105,8 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
                 "health": health_stats,
                 "sleep": sleep_data,
                 "weekly_volume": activities_summary_dict,
-                "recent_activities": activities 
+                "recent_activities": activities,
+                "profile": profile
             }
         }
         
