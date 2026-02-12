@@ -2,9 +2,14 @@ import os
 import logging
 import threading
 import time
+import json
+import tempfile
+import shutil
 from datetime import date, timedelta
 from garminconnect import Garmin
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from backend.models import UserSetting
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -41,74 +46,159 @@ class GarminClient:
         self.password = password
         self.client = None
 
-    def login(self, mfa_code=None):
-        """Authenticate with Garmin Connect using a threaded approach for MFA, with Caching."""
+    def _get_db_session_key(self):
+        return f"garmin_session_{self.email}"
+
+    def load_session_from_db(self, db: Session):
+        """Load session tokens from the database."""
+        try:
+            key = self._get_db_session_key()
+            setting = db.query(UserSetting).filter(UserSetting.key == key).first()
+            if setting and setting.value:
+                logger.info(f"Found persistent session in DB for {self.email}")
+                return setting.value
+        except Exception as e:
+            logger.error(f"Failed to load session from DB: {e}")
+        return None
+
+    def save_session_to_db(self, db: Session):
+        """Save the current session tokens to the database."""
+        if not self.client or not self.client.garth:
+            return
+        
+        try:
+            # Use a temporary directory to dump garth tokens
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                self.client.garth.dump(tmpdirname)
+                # Read all files and store them in a dict
+                saved_state = {}
+                for filename in os.listdir(tmpdirname):
+                    file_path = os.path.join(tmpdirname, filename)
+                    if os.path.isfile(file_path):
+                        with open(file_path, 'r') as f:
+                            saved_state[filename] = f.read()
+                
+                # Save 'saved_state' to DB
+                key = self._get_db_session_key()
+                setting = db.query(UserSetting).filter(UserSetting.key == key).first()
+                if not setting:
+                    setting = UserSetting(key=key, value=saved_state)
+                    db.add(setting)
+                else:
+                    setting.value = saved_state
+                db.commit()
+                logger.info(f"Saved session to DB for {self.email}")
+                
+        except Exception as e:
+            logger.error(f"Failed to save session to DB: {e}")
+
+    def restore_session_from_data(self, session_data):
+        """Restore garth session from data dict."""
+        try:
+            # Create a client instance
+            self.client = Garmin(self.email, self.password)
+            
+            # Use temp dir to load
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                for filename, content in session_data.items():
+                    with open(os.path.join(tmpdirname, filename), 'w') as f:
+                        f.write(content)
+                
+                self.client.garth.load(tmpdirname)
+            
+            # Verify validity
+            try:
+                self.client.display_name = None
+                # Lightweight check
+                social_profile = self.client.connectapi("/userprofile-service/socialProfile")
+                if social_profile and 'displayName' in social_profile:
+                     self.client.display_name = social_profile['displayName']
+            except:
+                pass
+                
+            if not self.client.display_name:
+                profile = self.client.get_user_profile()
+                if 'displayName' in profile:
+                    self.client.display_name = profile['displayName']
+            
+            if self.client.display_name:
+                logger.info(f"Session successfully resumed from DB data for {self.client.display_name}")
+                GLOBAL_CLIENTS[self.email] = self.client
+                return True
+        except Exception as e:
+            logger.warning(f"Failed to restore session from data: {e}")
+            self.client = None
+        return False
+
+    def login(self, db: Session = None, mfa_code=None):
+        """
+        Authenticate with Garmin Connect using a threaded approach for MFA, with Caching and DB Persistence.
+        Returns: (success: bool, status: str, message: str)
+        status can be: "SUCCESS", "MFA_REQUIRED", "FAILED"
+        """
         if not self.email or not self.password:
             msg = "Garmin credentials not provided."
             logger.error(msg)
-            return False, msg
+            return False, "FAILED", msg
 
-        # 0. Check In-Memory Cache (Fastest & Most Stable)
+        # 0. Check In-Memory Cache (Fastest)
         if not mfa_code and self.email in GLOBAL_CLIENTS:
             try:
                 cached_client = GLOBAL_CLIENTS[self.email]
-                # Light verification to ensure session is still alive
-                # We use a very cheap call if possible, or just assume it works until 401
-                # get_full_name() or similar is good.
-                # Inspect internal state or try a call?
-                # Let's try to access display_name which should be cached in the object
                 if cached_client.display_name:
                     logger.info(f"✅ Using cached session for {cached_client.display_name}")
                     self.client = cached_client
-                    return True, "Session resumed from memory"
+                    return True, "SUCCESS", "Session resumed from memory"
             except Exception as e:
                 logger.warning(f"⚠️ Cached session invalid, clearing: {e}")
                 del GLOBAL_CLIENTS[self.email]
 
+        # 1. Check DB Persistence (If DB session provided)
+        if not mfa_code and db:
+            session_data = self.load_session_from_db(db)
+            if session_data:
+                if self.restore_session_from_data(session_data):
+                    return True, "SUCCESS", "Session resumed from database"
+
+        # 2. Filesystem Fallback (Legacy/Local dev) - Keep attempting just in case
         home_dir = os.path.expanduser("~")
         garth_dir = os.path.join(home_dir, ".garth")
-
-        # 1. Check if we have a valid saved session on Disk (Fast Path but less reliable on Render)
         if not mfa_code and os.path.exists(garth_dir):
-            try:
+             try:
                 self.client = Garmin(self.email, self.password)
                 self.client.garth.load(garth_dir)
-                # Verify session
+                # ... (verification logic same as above) ...
                 try:
                     self.client.display_name = None
                     try:
-                         # Quick API check
                         social_profile = self.client.connectapi("/userprofile-service/socialProfile")
-                        if social_profile and 'displayName' in social_profile:
-                            self.client.display_name = social_profile['displayName']
-                    except:
-                        pass
+                        if social_profile: self.client.display_name = social_profile.get('displayName')
+                    except: pass
                     
                     if not self.client.display_name:
                          profile = self.client.get_user_profile()
-                         if 'displayName' in profile:
-                             self.client.display_name = profile['displayName']
+                         if 'displayName' in profile: self.client.display_name = profile['displayName']
 
                     if self.client.display_name:
-                         logger.info(f"Session successfully resumed from disk for {self.client.display_name}")
-                         # Update Memory Cache
+                         logger.info(f"Session resumed from disk")
                          GLOBAL_CLIENTS[self.email] = self.client
-                         return True, "Session resumed"
-                except Exception as e:
-                    logger.warning(f"Saved session invalid: {e}")
-                    import shutil
-                    shutil.rmtree(garth_dir)
-            except Exception as e:
-                logger.warning(f"Failed to load saved session: {e}")
+                         # Opportunistically save to DB if we have it
+                         if db: self.save_session_to_db(db)
+                         return True, "SUCCESS", "Session resumed from disk"
+                except:
+                     pass # Fall through to real login
+             except:
+                pass
 
-        # 2. Handle Active/Pending Login
+
+        # 3. Handle Active/Pending Login (For MFA flow)
         session = PENDING_SESSIONS.get(self.email)
 
         if mfa_code:
             # We are verifying - we MUST have a waiting session
             if not session or session.status != "MFA_WAITING":
                 logger.warning("Received MFA code but no session is waiting for it.")
-                return False, "Session expired or invalid. Please try logging in again."
+                return False, "FAILED", "Session expired or invalid. Please try logging in again."
             
             logger.info("Passing MFA code to background thread...")
             session.set_code(mfa_code)
@@ -119,27 +209,27 @@ class GarminClient:
             if session.status == "SUCCESS":
                 self.client = session.client
                 # Save persistent session
-                try:
-                    self.client.garth.dump(garth_dir)
-                except Exception as e:
-                    logger.warning(f"Failed to save session to disk: {e}")
+                if db:
+                    self.save_session_to_db(db)
+                else:
+                    try:
+                        self.client.garth.dump(garth_dir)
+                    except: pass
                 
+                GLOBAL_CLIENTS[self.email] = self.client
                 # Cleanup
                 del PENDING_SESSIONS[self.email]
-                return True, "Authenticated successfully"
+                return True, "SUCCESS", "Authenticated successfully"
             else:
                 error = session.error or "Login failed during verification"
                 del PENDING_SESSIONS[self.email]
-                return False, error
+                return False, "FAILED", error
 
         else:
             # New Login Request
             if session:
-                # Cleanup old session if exists
-                try:
-                    del PENDING_SESSIONS[self.email]
-                except:
-                    pass
+                try: del PENDING_SESSIONS[self.email]
+                except: pass
             
             # Create new session
             session = LoginSession()
@@ -151,14 +241,9 @@ class GarminClient:
                     def mfa_callback():
                         logger.info("Background thread hit MFA requirement. Waiting for code...")
                         session.status = "MFA_WAITING"
-                        # Signal main thread that we are waiting (implicitly via polling or just the status)
-                        
                         # Wait for code
-                        start_wait = time.time()
-                        # Wait up to 2 minutes for user
                         if not session.code_event.wait(timeout=120):
                              raise ValueError("MFA code timeout")
-                        
                         logger.info("Background thread received code. Resuming...")
                         return session.mfa_code
 
@@ -167,10 +252,8 @@ class GarminClient:
                     client.login()
                     
                     try:
-                        # Extra verify to ensure we are really really logged in
                         client.get_user_profile()
-                    except:
-                        pass
+                    except: pass
 
                     session.client = client
                     session.status = "SUCCESS"
@@ -186,34 +269,29 @@ class GarminClient:
             session.thread.daemon = True
             session.thread.start()
             
-            # Poll for status change: either SUCCESS, FAILED, or MFA_WAITING
-            # We wait up to 20 seconds for the initial login attempt (to reach MFA or Success)
+            # Poll for status change
             start_poll = time.time()
             while time.time() - start_poll < 20:
                 if session.status == "MFA_WAITING":
-                    return False, "MFA_REQUIRED"
+                    return False, "MFA_REQUIRED", "Please enter the authentication code sent to your email."
                 if session.status == "SUCCESS":
                     self.client = session.client
-                    # Save persistence
-                    try:
-                        self.client.garth.save(garth_dir)
-                    except:
-                        pass
-                    # Update Memory Cache
-                    GLOBAL_CLIENTS[self.email] = self.client
+                    if db:
+                        self.save_session_to_db(db)
+                    else:
+                        try: self.client.garth.dump(garth_dir)
+                        except: pass
                     
+                    GLOBAL_CLIENTS[self.email] = self.client
                     del PENDING_SESSIONS[self.email]
-                    return True, "Authenticated successfully"
+                    return True, "SUCCESS", "Authenticated successfully"
                 if session.status == "FAILED":
                     err = session.error
                     del PENDING_SESSIONS[self.email]
-                    if "MFA_REQUIRED" in str(err): # Fallback if exception passed through
-                        return False, "MFA_REQUIRED" 
-                    return False, f"Login failed: {err}"
+                    return False, "FAILED", f"Login failed: {err}"
                 time.sleep(0.5)
             
-            # If we timeout here, it's taking too long
-            return False, "Login timed out connecting to Garmin."
+            return False, "FAILED", "Login timed out connecting to Garmin."
 
     def get_profile(self):
         """Fetch user profile."""
@@ -260,15 +338,7 @@ class GarminClient:
             return False
         
         try:
-            # We assume workout_json is already in the correct format for the library
-            # or we construct it here. For now, let's try to pass it directly 
-            # or map it if the library needs specific arguments.
-            # The garminconnect library has a create_workout method.
-            
-            # Simple wrapper for now
             logger.info("Creating workout in Garmin Connect...")
-            # Note: garminconnect library might strictly require a specific object structure.
-            # If AI generates the correct JSON structure for the API, we can send it.
             status = self.client.create_workout(workout_json)
             logger.info(f"Workout created: {status}")
             return True
@@ -277,6 +347,4 @@ class GarminClient:
             return False
 
 if __name__ == "__main__":
-    # Test the client
-    client = GarminClient()
-    # Basic test logic (threaded approach makes local testing slightly different but this is minimal)
+    pass

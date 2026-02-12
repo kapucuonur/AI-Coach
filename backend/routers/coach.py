@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from backend.services.garmin_client import GarminClient
 from backend.services.data_processor import DataProcessor
 from backend.services.coach_brain import CoachBrain
+from backend.database import get_db
+from sqlalchemy.orm import Session
 import os
 from datetime import date
 import pandas as pd
@@ -15,15 +17,20 @@ from backend.schemas import GarminLoginSchema
 from backend.routers.settings import load_settings
 
 @router.post("/daily-briefing")
-def get_daily_briefing(user_data: GarminLoginSchema):
+def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_db)):
     try:
         # Initialize services with provided credentials
         gemini_key = os.getenv("GEMINI_API_KEY")
         
         client = GarminClient(user_data.email, user_data.password)
-        success, error_msg = client.login(mfa_code=user_data.mfa_code)
+        
+        # Pass DB session to login for persistence
+        success, status, error_msg = client.login(db=db, mfa_code=user_data.mfa_code)
+        
         if not success:
-             print(f"Login failed details: {error_msg}") # Stdout for Render logs
+             logger.warning(f"Login failed: {status} - {error_msg}")
+             if status == "MFA_REQUIRED":
+                 raise HTTPException(status_code=401, detail="MFA_REQUIRED")
              raise HTTPException(status_code=401, detail=error_msg)
              
         brain = CoachBrain(gemini_key)
@@ -104,16 +111,6 @@ def get_daily_briefing(user_data: GarminLoginSchema):
         
         return sanitize_for_json(response_data)
 
-        return {
-            "advice": advice_text,
-            "workout": workout,
-            "metrics": {
-                "health": health_stats,
-                "sleep": sleep_data,
-                "weekly_volume": activities_summary_dict,
-                "recent_activities": activities 
-            }
-        }
     except HTTPException as he:
         raise he
     except Exception as e:

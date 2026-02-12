@@ -22,7 +22,6 @@ export function Login({ onLogin }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
-    const [loadingText, setLoadingText] = useState("Authenticating...");
 
     const backgroundVideos = [
         {
@@ -75,12 +74,13 @@ export function Login({ onLogin }) {
             const payload = {
                 email,
                 password,
-                mfaCode: mfaCode || null
+                mfa_code: mfaCode || null
             };
 
             const response = await client.post('/coach/daily-briefing', payload);
 
             // If successful, pass data and credentials to parent
+            // Also pass payload so App.jsx knows the credentials used
             onLogin(response.data, payload);
         } catch (err) {
             console.error("Login Error:", err);
@@ -89,17 +89,11 @@ export function Login({ onLogin }) {
             if (errorMsg === "MFA_REQUIRED") {
                 setShowMfa(true);
                 setError("Garmin sent a verification code to your email. Please into it below.");
+                setLoading(false);
             } else {
                 setError(errorMsg);
-            }
-        } finally {
-            if (!showMfa) { // Don't stop loading loop if we hit MFA, actually we should stop and let user type
                 setLoading(false);
             }
-            // Actually, if we hit error (MFA), loading becomes false naturally in finally block?
-            // Ah, wait. If error is thrown, we enter catch, set showMfa=true. Then finally runs, setLoading(false).
-            // Correct. The UI will switch back to form (with MFA field now visible).
-            setLoading(false);
         }
     };
 
@@ -248,7 +242,7 @@ export function Login({ onLogin }) {
 
                             {/* --- FORM OR LOADING SCREEN --- */}
                             <AnimatePresence mode="wait">
-                                {loading && !showMfa ? ( // Only show loading if not in MFA state (MFA state is technically 'not loading' but waiting for user input)
+                                {loading ? (
                                     <motion.div
                                         key="loading"
                                         initial={{ opacity: 0 }}
