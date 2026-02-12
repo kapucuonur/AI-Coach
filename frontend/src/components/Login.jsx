@@ -25,10 +25,26 @@ export function Login({ onLogin }) {
     const [loadingText, setLoadingText] = useState("Authenticating...");
 
     const backgroundVideos = [
-        "/video-run.mp4",
-        "/video-road-cycle.mp4", // New cinematic road cycling
-        "/video-swim.mp4",
-        "/video-strength.mp4"    // New strength training
+        {
+            src: "/video-run.mp4",
+            label: "RUNNING",
+            sub: "5K • 10K • Half Marathon • Marathon"
+        },
+        {
+            src: "/video-road-cycle.mp4",
+            label: "CYCLING",
+            sub: "Road • Gravel • Time Trial • FTP"
+        },
+        {
+            src: "/video-swim.mp4",
+            label: "TRIATHLON",
+            sub: "Sprint • Olympic • 70.3 • 140.6"
+        },
+        {
+            src: "/video-strength.mp4",
+            label: "STRENGTH",
+            sub: "Hypertrophy • Power • Mobility • Hyrox"
+        }
     ];
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
 
@@ -59,7 +75,7 @@ export function Login({ onLogin }) {
             const payload = {
                 email,
                 password,
-                mfa_code: mfaCode || null
+                mfaCode: mfaCode || null
             };
 
             const response = await client.post('/coach/daily-briefing', payload);
@@ -88,11 +104,11 @@ export function Login({ onLogin }) {
     };
 
     return (
-        <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-black font-sans text-white">
+        <div className="relative min-h-screen w-full flex items-center justify-center overflow-y-auto md:overflow-hidden bg-black font-sans text-white">
 
             {/* --- 1. CINEMATIC ACCORDION BACKGROUND --- */}
-            <div className="absolute inset-0 z-0 flex bg-black">
-                {backgroundVideos.map((src, index) => {
+            <div className="fixed inset-0 z-0 flex flex-col md:flex-row bg-black">
+                {backgroundVideos.map((video, index) => {
                     const isActive = index === currentVideoIndex;
                     return (
                         <motion.div
@@ -100,14 +116,14 @@ export function Login({ onLogin }) {
                             layout
                             onHoverStart={() => setCurrentVideoIndex(index)}
                             initial={{ flex: 1 }}
-                            animate={{ flex: isActive ? 3 : 1 }}
+                            animate={{ flex: isActive ? 6 : 1 }}
                             transition={{ duration: 0.6, ease: "easeInOut" }}
-                            className="relative h-full overflow-hidden border-r border-white/10 last:border-r-0 cursor-pointer group"
+                            className="relative w-full md:w-auto h-auto md:h-full overflow-hidden border-b md:border-b-0 md:border-r border-white/10 last:border-b-0 last:border-r-0 cursor-pointer group"
                         >
-                            <div className={`absolute inset-0 bg-black/40 transition-opacity duration-500 ${isActive ? "opacity-0" : "opacity-60 hover:opacity-20"}`} z-10 />
+                            <div className={`absolute inset-0 bg-black/40 transition-opacity duration-500 z-10 ${isActive ? "opacity-0" : "opacity-60 hover:opacity-20"}`} />
 
                             <motion.video
-                                src={src}
+                                src={video.src}
                                 autoPlay
                                 loop
                                 muted
@@ -116,14 +132,43 @@ export function Login({ onLogin }) {
                                 layout
                             />
 
-                            {/* Sport Label */}
-                            <div className="absolute bottom-8 left-0 right-0 text-center z-20">
-                                <motion.span
-                                    animate={{ opacity: isActive ? 1 : 0.5, scale: isActive ? 1.1 : 1 }}
-                                    className="inline-block text-xs md:text-sm font-bold tracking-widest uppercase text-white drop-shadow-lg"
+                            {/* Sport Label & Sub-disciplines Overlay (Desktop Only) */}
+                            <div className={`hidden md:flex absolute inset-0 flex-col items-center z-20 pointer-events-none transition-all duration-500
+                                ${isActive
+                                    ? 'justify-end pb-24 md:pb-24 md:justify-end'
+                                    : 'justify-center md:justify-end md:pb-24'}
+                            `}>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{
+                                        opacity: isActive ? 1 : 0.7,
+                                        y: isActive ? 0 : 0,
+                                        scale: isActive ? 1 : 0.9
+                                    }}
+                                    transition={{ duration: 0.5 }}
+                                    className="flex flex-col items-center gap-2 md:gap-0"
                                 >
-                                    {["Running", "Cycling", "Swimming", "Strength"][index]}
-                                </motion.span>
+                                    {/* Main Title - Responsive sizing */}
+                                    <h3 className={`font-black tracking-tighter uppercase text-white/90 drop-shadow-xl transition-all duration-500 text-center
+                                        ${isActive ? 'text-4xl md:text-7xl mb-2' : 'text-xl md:text-2xl mb-0 rotate-0 md:rotate-0 md:-rotate-90 origin-center md:origin-bottom md:mb-12 opacity-80'}
+                                    `}>
+                                        {video.label}
+                                    </h3>
+
+                                    {/* Sub-disciplines - Visible only when active */}
+                                    {isActive && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="overflow-hidden"
+                                        >
+                                            <p className="text-[10px] md:text-sm font-light tracking-[0.2em] text-blue-100 uppercase bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10 shadow-lg">
+                                                {video.sub}
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </motion.div>
                             </div>
                         </motion.div>
                     );
@@ -131,10 +176,10 @@ export function Login({ onLogin }) {
             </div>
 
             {/* --- 2. MAIN CONTENT --- */}
-            <div className="relative z-20 flex w-full max-w-3xl flex-col items-center gap-8 px-4">
+            <div className="relative z-20 flex w-full max-w-3xl flex-col items-center justify-between md:justify-center gap-8 px-4 py-8 md:py-0 h-full md:h-auto min-h-screen md:min-h-0 pointer-events-none md:-mt-24">
 
-                {/* VISUAL HEADER: MARKETING COPY (Centered) */}
-                <div className="text-center">
+                {/* VISUAL HEADER: MARKETING COPY */}
+                <div className="text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -144,13 +189,13 @@ export function Login({ onLogin }) {
                             <Zap size={16} className="text-blue-400" />
                             <span className="text-sm font-medium text-blue-200">AI Powered Performance</span>
                         </div>
-                        <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight md:text-6xl">
+                        <h1 className="mb-4 text-2xl font-bold leading-tight tracking-tight md:text-6xl">
                             Train Smarter, <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                 Not Harder.
                             </span>
                         </h1>
-                        <p className="mb-6 text-lg text-gray-300 md:text-xl max-w-2xl mx-auto">
+                        <p className="mb-6 text-sm text-gray-300 md:text-xl max-w-2xl mx-auto">
                             Turn your Garmin data into a dynamic, adaptive training plan.
                             Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
                         </p>
@@ -163,8 +208,29 @@ export function Login({ onLogin }) {
                     </motion.div>
                 </div>
 
+                {/* ACTIVE SPORT LABEL - MOBILE ONLY (Centered in the gap) */}
+                <div className="flex-1 flex flex-col items-center justify-center w-full md:hidden pointer-events-none z-30">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={currentVideoIndex}
+                            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+                            transition={{ duration: 0.4 }}
+                            className="flex flex-col items-center text-center px-4"
+                        >
+                            <h2 className="text-5xl font-black tracking-tighter uppercase text-white drop-shadow-2xl mb-3">
+                                {backgroundVideos[currentVideoIndex].label}
+                            </h2>
+                            <p className="text-xs font-light tracking-[0.2em] text-blue-100 uppercase bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg">
+                                {backgroundVideos[currentVideoIndex].sub}
+                            </p>
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+
                 {/* RIGHT SIDE: LOGIN CARD (GLASSMORPHISM) */}
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-md pointer-events-auto mb-4 md:mb-0">
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
