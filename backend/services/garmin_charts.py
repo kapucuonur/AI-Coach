@@ -1,7 +1,32 @@
-"""
 garmin_charts.py - Advanced Data Visualization for Coach-AI
-Integrates with Garmin Connect to fetch and visualize athlete data
+Integrates with Garmin Connect to fetch and visualize athlete data.
+Now includes support for Stream-based advanced analytics.
 """
+
+import matplotlib
+matplotlib.use('Agg') # Use non-interactive backend for server
+import matplotlib.pyplot as plt
+# Remove unused imports if desired, but keep for safety
+import matplotlib.dates as mdates
+from matplotlib.patches import Rectangle
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+import io
+import base64
+from garminconnect import Garmin
+import logging
+
+try:
+    from .garmin_charts_advanced import AdvancedGarminCharts
+except ImportError:
+    # Fallback if running as script or path issues
+    try:
+        from garmin_charts_advanced import AdvancedGarminCharts
+    except ImportError:
+        AdvancedGarminCharts = None
+        print("Warning: AdvancedGarminCharts module not found.")
 
 import matplotlib
 matplotlib.use('Agg') # Use non-interactive backend for server
@@ -35,6 +60,9 @@ class GarminChartManager:
             raise ValueError("Either 'client' or 'email'/'password' must be provided.")
             
         self.cache = {}
+        
+        # Initialize Advanced Charts renderer
+        self.advanced_charts = AdvancedGarminCharts() if AdvancedGarminCharts else None
         
     # ==================== DATA FETCHING ====================
     
@@ -102,6 +130,57 @@ class GarminChartManager:
     def fetch_activity_details(self, activity_id: int) -> Dict:
         """Fetch detailed activity data including laps"""
         return self.client.get_activity_details(activity_id)
+
+    def _get_activity_streams_data(self, activity_id: int) -> Dict[str, List[float]]:
+        """
+        Fetch and format activity streams (Power, HR, Cadence, etc.)
+        Returns a dict suitable for AdvancedGarminCharts
+        """
+        try:
+            # Request all relevant streams
+            keys = "watts,heartRate,cadence,time" 
+            # Note: Garmin API keys might be 'watts', 'heart_rate', 'cadence', 'time' or similar. 
+            # 'watts' is usually power.
+            
+            streams = self.client.get_activity_streams(activity_id, keys=keys)
+            # streams is typically a list/dict structure.
+            
+            data = {
+                'power': [],
+                'heart_rate': [],
+                'cadence': [],
+                'seconds': []
+            }
+            
+            # Map stream keys to our data keys
+            for key, values in streams.items():
+                # The 'values' is usually the list of data points
+                # Sometimes it's a dict with 'values' key
+                # Adjust based on observation of GarminConnect library output
+                # Typical library output: { 'watts': [...], 'heartRate': [...] }
+                
+                vals = values # assuming simple dict of lists from library wrapper
+                
+                if key == 'watts':
+                    data['power'] = [v for v in vals if v is not None]
+                elif key == 'heartRate':
+                    data['heart_rate'] = [v for v in vals if v is not None]
+                elif key == 'cadence':
+                    data['cadence'] = [v for v in vals if v is not None]
+                elif key == 'time':
+                    # Time stream usually seconds from start
+                    data['seconds'] = [v for v in vals if v is not None]
+            
+            # Ensure all are same length for safety, or at least exist
+            # If time is missing, generate it
+            if not data['seconds'] and data['power']:
+                data['seconds'] = list(range(len(data['power'])))
+                
+            return data
+            
+        except Exception as e:
+            logger.warning(f"Could not fetch streams for {activity_id}: {e}")
+            return {}
     
     # ==================== CHART GENERATION ====================
     
@@ -263,6 +342,21 @@ class GarminChartManager:
 
     def create_cycling_power_analysis(self, activity, laps, ftp=250):
         """Generate 8-panel advanced cycling power analysis"""
+        
+        # 1. Try Advanced Stream-based Analysis first
+        if self.advanced_charts:
+            try:
+                activity_id = activity.get('activityId')
+                stream_data = self._get_activity_streams_data(activity_id)
+                
+                # Check if we have enough data (at least power)
+                if stream_data.get('power') and len(stream_data['power']) > 10:
+                    stream_data['name'] = activity.get('activityName', 'Ride')
+                    return self.advanced_charts.create_cycling_power_analysis(stream_data, ftp=ftp)
+            except Exception as e:
+                 logger.warning(f"Failed to create advanced cycling chart: {e}. Falling back to lap analysis.")
+
+        # 2. Fallback to Lap-based Analysis
         if not laps:
             return ""
 
@@ -371,6 +465,30 @@ class GarminChartManager:
 
     def create_swim_analysis(self, activity, laps):
         """Generate 6-panel swim efficiency analysis"""
+        
+        # 1. Try Advanced Swim Analysis (via Laps - we essentially enhance the lap data)
+        # Advanced module expects list of dicts with: time, distance, stroke_rate, heart_rate
+        if self.advanced_charts and laps:
+            try:
+                # Prepare data for advanced charts
+                formatted_laps = []
+                for i, lap in enumerate(laps):
+                    formatted_laps.append({
+                        'lap': i + 1,
+                        'time': lap.get('duration', 0),
+                        'distance': lap.get('distance', 0),
+                        'stroke_rate': lap.get('averageStrokeRate', 0),
+                        'heart_rate': lap.get('averageHR', 0),
+                        # Simple classification logic if not present
+                        'type': 'main_set' if (1 < i < len(laps)-1) else 'warmup' if i <= 1 else 'cooldown',
+                        'interval_num': i // 4 + 1 # Pseudo interval grouping
+                    })
+                
+                return self.advanced_charts.create_swim_analysis(formatted_laps)
+            except Exception as e:
+                logger.warning(f"Failed to create advanced swim chart: {e}")
+
+        # 2. Fallback to Basic Lap Analysis
         if not laps:
             return ""
 
