@@ -8,7 +8,18 @@ from backend.database import get_db
 import os
 import traceback
 import logging
+import math
 from datetime import date
+
+def sanitize_json(obj):
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    if isinstance(obj, dict):
+        return {k: sanitize_json(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_json(v) for v in obj]
+    return obj
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -68,7 +79,7 @@ def get_dashboard_charts(date: str = None, client: GarminClient = Depends(get_ga
     try:
         # date format YYYY-MM-DD, defaults to today in client
         data = client.get_detailed_charts(date)
-        return jsonable_encoder(data)
+        return sanitize_json(jsonable_encoder(data))
     except Exception as e:
         logger.error(f"Error fetching charts: {e}")
         raise HTTPException(status_code=500, detail=f"Chart Error: {str(e)}")
@@ -101,10 +112,10 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
         
         analysis = brain.analyze_activity(details, user_settings_dict)
         
-        return jsonable_encoder({
+        return sanitize_json(jsonable_encoder({
             "details": details,
             "analysis": analysis
-        })
+        }))
     except HTTPException as he:
         raise he
     except Exception as e:
