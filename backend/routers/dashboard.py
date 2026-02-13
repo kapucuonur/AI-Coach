@@ -238,3 +238,47 @@ def get_dashboard_data(
         "advice": advice,
         "metrics": metrics_context # Return metrics to frontend too if needed
     }))
+
+@router.get("/debug-garmin")
+def debug_garmin_connection(db: Session = Depends(get_db)):
+    """
+    Diagnostic endpoint to test Garmin connection and return detailed errors.
+    """
+    import traceback
+    import os
+    
+    report = {
+        "env_email_set": bool(os.getenv("GARMIN_EMAIL")),
+        "env_password_set": bool(os.getenv("GARMIN_PASSWORD")),
+        "test_results": []
+    }
+    
+    try:
+        email = os.getenv("GARMIN_EMAIL")
+        password = os.getenv("GARMIN_PASSWORD")
+        
+        if not email or not password:
+            return {"error": "Credentials missing in environment variables", "details": report}
+            
+        client = GarminClient(email, password)
+        report["test_results"].append("GarminClient instantiated")
+        
+        # Try login
+        try:
+            success, status, msg = client.login(db=db)
+            report["login_success"] = success
+            report["login_status"] = status
+            report["login_message"] = msg
+            
+            if success:
+                profile = client.get_profile()
+                report["profile_name"] = profile.get("displayName") if profile else "Unknown"
+        except Exception as e:
+            report["login_error"] = str(e)
+            report["login_traceback"] = traceback.format_exc()
+            
+    except Exception as e:
+        report["critical_error"] = str(e)
+        report["critical_traceback"] = traceback.format_exc()
+        
+    return report
