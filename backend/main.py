@@ -80,6 +80,33 @@ def health_check():
     """Health check endpoint for monitoring"""
     return {"status": "healthy", "service": "ai-coach-api"}
 
+@app.get("/api/health/db")
+async def db_health_check():
+    from backend.database import test_connection, engine
+    import os
+    
+    is_connected = test_connection()
+    url_str = str(engine.url) if engine else "None"
+    
+    # Hide password
+    if ":" in url_str and "@" in url_str:
+        try:
+            part1 = url_str.split(":")[0] # driver
+            part2 = url_str.split("@")[1] # host
+            safe_url = f"{part1}://***@{part2}"
+        except:
+            safe_url = "masked"
+    else:
+        safe_url = url_str
+
+    return {
+        "status": "healthy" if is_connected else "unhealthy",
+        "database_connected": is_connected,
+        "url_type": "supabase" if "supabase" in safe_url else "other", 
+        "engine_url": safe_url,
+        "environment": os.getenv("ENVIRONMENT", "unknown")
+    }
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database and verify connections"""
