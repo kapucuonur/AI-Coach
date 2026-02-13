@@ -49,6 +49,8 @@ def get_garmin_client(db: Session = Depends(get_db)):
     try:
         success, status, msg = client.login(db=db)
     except Exception as e:
+        import traceback
+        logger.error(f"Login unexpected error: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
     
     if not success:
