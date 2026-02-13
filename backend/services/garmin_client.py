@@ -321,9 +321,6 @@ class GarminClient:
             return self.client.get_activity(activity_id)
         except Exception as e:
             logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
-            return self.client.get_activity(activity_id)
-        except Exception as e:
-            logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
             return None
 
     def get_activity_streams(self, activity_id):
