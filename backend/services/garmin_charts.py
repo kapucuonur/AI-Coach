@@ -686,7 +686,7 @@ class GarminChartManager:
         return colors
     
     def _add_hr_zones(self, ax):
-        """Add HR zone backgrounds"""
+        # Add HR zone backgrounds
         zones = [
             (0, 114, '#e8f5e9', 'Zone 1'),
             (114, 133, '#fff3e0', 'Zone 2'),
