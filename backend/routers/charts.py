@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from backend.services.garmin_client import GarminClient
 from backend.services.garmin_charts import GarminChartManager
+from backend.services.advanced_analytics import AdvancedAnalyticsManager
 from backend.routers.dashboard import get_garmin_client # Reuse helper
 import logging
 from datetime import datetime
@@ -53,4 +54,42 @@ async def get_health_data(days: int = 30, client: GarminClient = Depends(get_gar
         return []
     except Exception as e:
         logger.error(f"Error fetching health data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== ADVANCED ANALYTICS ENDPOINTS ====================
+
+@router.get("/analytics/injury-risk")
+async def get_injury_risk_chart(client: GarminClient = Depends(get_garmin_client)):
+    """Get Injury Risk Analysis Dashboard"""
+    try:
+        # For now, we use simulated data in the manager, or we could pass real history if implemented
+        # To get real history, we'd fetching activities and parse them
+        manager = AdvancedAnalyticsManager()
+        # Passing None triggers data simulation
+        img_data = manager.create_injury_risk_dashboard(df=None) 
+        return {"chart": img_data, "format": "base64_png"}
+    except Exception as e:
+        logger.error(f"Error generating injury risk chart: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/analytics/race-pace")
+async def get_race_pace_chart(client: GarminClient = Depends(get_garmin_client)):
+    """Get Race Pace Calculator"""
+    try:
+        manager = AdvancedAnalyticsManager()
+        img_data = manager.create_race_pace_calculator()
+        return {"chart": img_data, "format": "base64_png"}
+    except Exception as e:
+        logger.error(f"Error generating race pace chart: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/analytics/swim-analysis")
+async def get_advanced_swim_chart(client: GarminClient = Depends(get_garmin_client)):
+    """Get Advanced Swim Stroke Analysis"""
+    try:
+        manager = AdvancedAnalyticsManager()
+        img_data = manager.create_advanced_swim_analysis()
+        return {"chart": img_data, "format": "base64_png"}
+    except Exception as e:
+        logger.error(f"Error generating swim analysis chart: {e}")
         raise HTTPException(status_code=500, detail=str(e))
