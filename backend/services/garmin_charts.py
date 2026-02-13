@@ -674,7 +674,7 @@ class GarminChartManager:
         ax.set_ylabel('ml/kg/min')
     
     def _pace_color_codes(self, paces):
-        """Return colors based on pace zones"""
+        # Return colors based on pace zones
         colors = []
         for pace in paces:
             if pace < 5.0:
