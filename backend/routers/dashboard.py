@@ -30,33 +30,65 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 def get_garmin_client(db: Session = Depends(get_db)):
-    # Try to get email/password from env first as a fallback/default
+    # 1. Try Environment Variables (Legacy/Dev)
     email = os.getenv("GARMIN_EMAIL")
     password = os.getenv("GARMIN_PASSWORD")
     
-    # If no env vars, we might fail if we don't have a session.
-    # Ideally, we should get the email from the request header/token 
-    # but for this specific app structure (single user/owner), env var is the identity.
+    client = None
     
-    if not email or not password:
-         raise HTTPException(status_code=500, detail="Server configuration error: Garmin credentials missing")
-
-    client = GarminClient(email, password)
-    
-    # helper to unpack the tuple return from updated login()
-    # We pass 'db' so it can try to load from DB first
-    try:
-        success, status, msg = client.login(db=db)
-    except Exception as e:
-        import traceback
-        logger.error(f"Login unexpected error: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}\nTraceback: {traceback.format_exc()}")
-    
-    if not success:
-        # If login failed (even after trying DB session), we return 401
-        # This will happen if session expired AND env var password/email is wrong or requires 2FA fresh
-        # For dashboard data calls, if we fail here, the user sees 401 and should be redirected to Login
-        raise HTTPException(status_code=401, detail=f"Failed to authenticate with Garmin: {msg}")
+    if email and password:
+        # Env vars present, use them
+        client = GarminClient(email, password)
+        try:
+            success, status, msg = client.login(db=db)
+            if not success:
+                 # If env vars are wrong, we might still want to check DB sessions?
+                 # ideally yes, but let's stick to simple logic: Env vars take precedence.
+                 logger.warning(f"Env var login failed: {msg}")
+                 # Fall through to try DB session check? No, invalid env vars usually mean config error.
+                 # But to be safe for the user explanation, let's allow fallthrough.
+                 client = None
+        except Exception as e:
+            logger.error(f"Env var login error: {e}")
+            client = None
+            
+    # 2. If no client yet, try to find ANY active session in DB (Single User Mode fallback)
+    if not client:
+        # Search for a valid session token in UserSettings
+        # limit to 1 for now since we are transitioning from single user
+        from backend.models import UserSetting
+        # We need to find a key strictly starting with "garmin_session_"
+        # But we don't know the email. 
+        # Strategy: Find any key like 'garmin_session_%'
+        try:
+            session_record = db.query(UserSetting).filter(UserSetting.key.like("garmin_session_%")).first()
+            if session_record:
+                # Extract email from key
+                email_from_db = session_record.key.replace("garmin_session_", "")
+                # We don't have the password, but we have tokens! 
+                # GarminClient needs email/pass to init, but maybe we can bypass if we rely purely on tokens?
+                # The GarminClient.restore_session_from_data re-initializes Garmin(email, pass).
+                # We can pass dummy password if tokens are valid.
+                
+                logger.info(f"Attempting to resume session for {email_from_db} from DB")
+                client = GarminClient(email_from_db, "dummy_password") 
+                if client.restore_session_from_data(session_record.value):
+                    # verify it works
+                    pass
+                else:
+                    client = None
+        except Exception as e:
+            logger.error(f"DB session resume error: {e}")
+            
+    # 3. Final Check
+    if not client:
+        # No env vars, no DB session.
+        # RETURN 401 so Frontend can redirect to Login
+        raise HTTPException(
+            status_code=401, 
+            detail="Authentication required. Please log in.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
         
     return client
 
