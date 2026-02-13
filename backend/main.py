@@ -42,7 +42,13 @@ async def validation_exception_handler(request, exc):
 async def startup_event():
     import logging
     logger = logging.getLogger("uvicorn")
-    logger.info(">>> STARTING AI COACH API - VERSION: THREADED_MFA_FIX_CONFIRMED <<<")
+    logger.info(">>> STARTING AI COACH API - VERSION: ADVANCED_METRICS_V1 <<<")
+    
+    # Ensure tables are created
+    from backend.database import engine, Base
+    from backend import models # Make sure models are imported
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables verified.")
 
 @app.get("/")
 def read_root():
