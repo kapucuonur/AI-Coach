@@ -3,7 +3,6 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from backend.services.garmin_client import GarminClient
 from backend.services.coach_brain import CoachBrain
-from backend.services.garmin_client import GarminClient
 from backend.services.metrics_engine import MetricsEngine
 from backend.models import DailyMetric
 from backend.database import get_db
@@ -51,7 +50,7 @@ def get_garmin_client(db: Session = Depends(get_db)):
     except Exception as e:
         import traceback
         logger.error(f"Login unexpected error: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}\nTraceback: {traceback.format_exc()}")
     
     if not success:
         # If login failed (even after trying DB session), we return 401

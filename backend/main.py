@@ -38,6 +38,19 @@ async def validation_exception_handler(request, exc):
     return JSONResponse(
         status_code=422,
         content={"detail": exc.errors(), "body": str(exc.body)},
+        content={"detail": exc.errors(), "body": str(exc.body)},
+    )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    import traceback
+    error_trace = traceback.format_exc()
+    import logging
+    logger = logging.getLogger("uvicorn")
+    logger.error(f"Global Exception: {error_trace}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc), "traceback": error_trace}
     )
 
 @app.on_event("startup")
