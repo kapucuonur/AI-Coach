@@ -23,6 +23,8 @@ app.include_router(coach.router, prefix="/api/coach", tags=["Coach"])
 app.include_router(settings.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
+from backend.routers import charts
+app.include_router(charts.router, prefix="/api/charts", tags=["Charts"])
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
