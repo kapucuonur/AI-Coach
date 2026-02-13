@@ -28,20 +28,6 @@ except ImportError:
         AdvancedGarminCharts = None
         print("Warning: AdvancedGarminCharts module not found.")
 
-import matplotlib
-matplotlib.use('Agg') # Use non-interactive backend for server
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.patches import Rectangle
-import numpy as np
-import pandas as pd
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-import io
-import base64
-from garminconnect import Garmin
-import logging
-
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -84,6 +70,10 @@ class GarminChartManager:
                 # otherwise stick to the user's logic but handle errors gracefully.
                 
                 stats = self.client.get_user_summary(date_str)
+                if not stats:
+                    # Skip days with no summary (blocks crash if library returns None)
+                    current += timedelta(days=1)
+                    continue
                 # sleep = self.client.get_sleep_data(date_str) # This is heavy
                 # stress = self.client.get_stress_data(date_str) # This is heavy
                 

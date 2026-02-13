@@ -84,8 +84,10 @@ def get_dashboard_charts(date: str = None, client: GarminClient = Depends(get_ga
         data = client.get_detailed_charts(date)
         return sanitize_json(jsonable_encoder(data))
     except Exception as e:
-        logger.error(f"Error fetching charts: {e}")
-        raise HTTPException(status_code=500, detail=f"Chart Error: {str(e)}")
+    except Exception as e:
+        error_trace = traceback.format_exc()
+        logger.error(f"Error fetching charts: {error_trace}")
+        raise HTTPException(status_code=500, detail=f"Chart Error: {str(e)}\n\nTraceback:\n{error_trace}")
 
 @router.get("/activities/{activity_id}/details")
 def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):

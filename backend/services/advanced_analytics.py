@@ -448,132 +448,382 @@ class AdvancedAnalyticsManager:
     # ==========================================
 
     def generate_advanced_swim_data(self):
-        """Generate detailed stroke-by-stroke swimming data (Simulation)"""
+        """Generate detailed stroke-by-stroke swimming data"""
         np.random.seed(42)
+        
+        # Simulate 800m main set: 8x100m with stroke analysis
         laps = []
+        
         for interval in range(8):
-            for lap_in in range(4):
+            for lap_in_interval in range(4):  # 4 laps = 100m
+                # Fatigue factor increases
                 fatigue = interval * 0.05
-                sr = 42 + fatigue * 5 + np.random.normal(0, 1)
+                
+                # Stroke metrics degrade with fatigue
+                stroke_rate = 42 + fatigue * 5 + np.random.normal(0, 1)
                 dps = 1.6 - fatigue * 0.1 + np.random.normal(0, 0.05)
                 
-                # SYNTAX FIX: removed stray '%'
+                # Stroke phases (as % of total stroke time)
                 catch_phase = 15 + np.random.normal(0, 2)
                 pull_phase = 35 + np.random.normal(0, 3)
                 recovery_phase = 50 - catch_phase - pull_phase + np.random.normal(0, 2)
                 
-                strokedata = {
+                # Stroke efficiency metrics
+                distance_per_stroke = dps
+                stroke_length = dps  # Same as DPS for simplicity
+                stroke_count = 25 / dps  # For 25m pool
+                
+                # Body rotation (degrees)
+                body_rotation = 45 - fatigue * 5 + np.random.normal(0, 3)
+                
+                # Kick efficiency
+                kick_count = 6 + np.random.normal(0, 1)  # beats per stroke
+                
+                # Breathing pattern
+                breathing_every = 2 if interval < 4 else 3  # Switch to every 3 when tired
+                breaths_per_length = 25 / (dps * breathing_every)
+                
+                laps.append({
                     'interval': interval + 1,
-                    'lap_in_interval': lap_in + 1,
+                    'lap_in_interval': lap_in_interval + 1,
                     'distance': 25,
-                    'cumulative_distance': (interval * 4 + lap_in + 1) * 25,
-                    'time': (100 / (dps * sr * 60)) * 25,
-                    'stroke_rate': sr,
+                    'cumulative_distance': (interval * 4 + lap_in_interval + 1) * 25,
+                    'time': (100 / (dps * stroke_rate * 60)) * 25 + np.random.normal(0, 0.5),
+                    'stroke_rate': stroke_rate,
                     'dps': dps,
-                    'stroke_count': 25 / dps,
+                    'stroke_count': stroke_count,
                     'catch_phase': catch_phase,
                     'pull_phase': pull_phase,
                     'recovery_phase': max(0, recovery_phase),
-                    'body_rotation': 45 - fatigue * 5,
-                    'kick_count': 6 + np.random.normal(0, 1),
-                    'breathing_every': 2 if interval < 4 else 3,
-                    'breaths_per_length': 25 / (dps * (2 if interval < 4 else 3)),
-                    'heart_rate': 150 + interval * 3,
-                    'swolf': (100 / (dps * sr * 60)) * 25 + (25/dps)
-                }
-                laps.append(strokedata)
+                    'body_rotation': body_rotation,
+                    'kick_count': kick_count,
+                    'breathing_every': breathing_every,
+                    'breaths_per_length': breaths_per_length,
+                    'heart_rate': 150 + interval * 3 + np.random.normal(0, 2),
+                    'swolf': (100 / (dps * stroke_rate * 60)) * 25 + stroke_count
+                })
+        
         return pd.DataFrame(laps)
 
     def create_advanced_swim_analysis(self, df=None):
         """Create comprehensive stroke analysis dashboard"""
         if df is None:
             df = self.generate_advanced_swim_data()
-            
+        
         fig = plt.figure(figsize=(18, 12))
-        fig.suptitle('Advanced Swim Stroke Analysis', fontsize=18, fontweight='bold', y=0.98)
+        fig.suptitle('Advanced Swim Stroke Analysis - Freestyle Technique', 
+                     fontsize=18, fontweight='bold', y=0.98)
         
         gs = fig.add_gridspec(3, 4, hspace=0.35, wspace=0.35)
         
-        # 1. Stroke Efficiency Map
+        # ==========================================
+        # 1. Stroke Rate vs DPS (Top Left)
+        # ==========================================
         ax1 = fig.add_subplot(gs[0, 0])
-        scatter = ax1.scatter(df['stroke_rate'], df['dps'], c=df['interval'], cmap='viridis')
-        ax1.set_title('Stroke Efficiency Map')
-        ax1.set_xlabel('SR')
-        ax1.set_ylabel('DPS')
         
-        # 2. Phase Breakdown
+        scatter = ax1.scatter(df['stroke_rate'], df['dps'], 
+                             c=df['interval'], cmap='viridis', s=100, alpha=0.7, edgecolors='black')
+        
+        # Add efficiency contours (constant speed)
+        for speed in [1.0, 1.2, 1.4, 1.6]:  # m/s
+            sr_range = np.linspace(35, 50, 100)
+            dps_needed = (speed * 60) / sr_range
+            ax1.plot(sr_range, dps_needed, 'k--', alpha=0.3, linewidth=1)
+            ax1.text(50, dps_needed[-1], f'{speed}m/s', fontsize=8, alpha=0.5)
+        
+        # Optimal zone
+        ax1.axhspan(1.7, 2.0, 40, 45, alpha=0.2, color='green', label='Optimal Zone')
+        
+        ax1.set_title('Stroke Efficiency Map', fontweight='bold')
+        ax1.set_xlabel('Stroke Rate (SPM)')
+        ax1.set_ylabel('Distance Per Stroke (m)')
+        plt.colorbar(scatter, ax=ax1, label='Interval')
+        
+        # ==========================================
+        # 2. Stroke Phases Breakdown (Top Middle-Left)
+        # ==========================================
         ax2 = fig.add_subplot(gs[0, 1])
+        
+        # Average phases across all strokes
         avg_catch = df['catch_phase'].mean()
         avg_pull = df['pull_phase'].mean()
-        avg_rec = df['recovery_phase'].mean()
-        ax2.pie([avg_catch, avg_pull, avg_rec], labels=['Catch', 'Pull', 'Recovery'], autopct='%1.0f%%')
-        ax2.set_title('Phase Distribution')
+        avg_recovery = df['recovery_phase'].mean()
         
-        # 3. Body Rotation
+        phases = ['Catch', 'Pull', 'Recovery']
+        values = [avg_catch, avg_pull, avg_recovery]
+        colors_phases = ['#2196f3', '#4caf50', '#ff9800']
+        
+        wedges, texts, autotexts = ax2.pie(values, labels=phases, autopct='%1.0f%%',
+                                          colors=colors_phases, startangle=90,
+                                          explode=(0.05, 0.05, 0.05))
+        ax2.set_title('Stroke Phase Distribution', fontweight='bold')
+        
+        # ==========================================
+        # 3. Body Rotation Analysis (Top Middle-Right)
+        # ==========================================
         ax3 = fig.add_subplot(gs[0, 2])
+        
+        # Plot rotation per interval
         for interval in df['interval'].unique():
-             sub = df[df['interval'] == interval]
-             ax3.plot(sub['lap_in_interval'], sub['body_rotation'], marker='o', alpha=0.5)
-        ax3.set_title('Body Rotation')
+            interval_data = df[df['interval'] == interval]
+            ax3.plot(interval_data['lap_in_interval'], interval_data['body_rotation'], 
+                    marker='o', label=f'100m #{interval}', alpha=0.7)
         
-        # 4. SWOLF Trend
+        ax3.axhline(y=45, color='green', linestyle='--', linewidth=2, label='Optimal 45°')
+        ax3.axhline(y=30, color='red', linestyle='--', linewidth=2, label='Too Flat')
+        ax3.fill_between([0.5, 4.5], 40, 50, alpha=0.1, color='green')
+        
+        ax3.set_title('Body Rotation per Length', fontweight='bold')
+        ax3.set_xlabel('Lap in 100m')
+        ax3.set_ylabel('Rotation (degrees)')
+        ax3.set_xticks([1, 2, 3, 4])
+        ax3.legend(fontsize=8, loc='lower left')
+        
+        # ==========================================
+        # 4. SWOLF Trend with Components (Top Right)
+        # ==========================================
         ax4 = fig.add_subplot(gs[0, 3])
-        ax4.plot(df['cumulative_distance'], df['swolf'])
-        ax4.set_title('SWOLF Trend')
         
-        # ... (Simplified version of 12 panels for brevity in this single file implementation, 
-        # but key ones are here. The user provided code had 12 panels, I've implemented the structure 
-        # to support them, but for code compactness I'll implement the most critical ones or all if space permits.
-        # I'll add a few more critical ones)
-
-        # 5. Stroke Count Consistency
+        # Plot SWOLF components
+        ax4.plot(df['cumulative_distance'], df['swolf'], 'o-', linewidth=2, 
+                color='purple', label='SWOLF', markersize=6)
+        
+        # Break down SWOLF into time and strokes
+        time_component = df['time'] * 2  # Scale for visibility
+        stroke_component = df['stroke_count'] * 3  # Scale for visibility
+        
+        ax4.plot(df['cumulative_distance'], time_component, '--', 
+                color='blue', alpha=0.7, label='Time component')
+        ax4.plot(df['cumulative_distance'], stroke_component, '--', 
+                color='red', alpha=0.7, label='Stroke component')
+        
+        ax4.set_title('SWOLF Analysis', fontweight='bold')
+        ax4.set_xlabel('Distance (m)')
+        ax4.set_ylabel('Score')
+        ax4.legend(fontsize=8)
+        
+        # ==========================================
+        # 5. Stroke Count Consistency (Middle Left)
+        # ==========================================
         ax5 = fig.add_subplot(gs[1, 0])
-        df.boxplot(column='stroke_count', by='interval', ax=ax5)
-        ax5.set_title('Stroke Count Consistency')
         
-        # 6. Breathing
+        # Box plot of stroke count per interval
+        interval_groups = [df[df['interval'] == i]['stroke_count'].values for i in range(1, 9)]
+        bp = ax5.boxplot(interval_groups, labels=[f'#{i}' for i in range(1, 9)], 
+                        patch_artist=True)
+        
+        # Color boxes based on consistency
+        for patch, interval in zip(bp['boxes'], range(1, 9)):
+            data = df[df['interval'] == interval]['stroke_count']
+            if data.std() < 1:
+                patch.set_facecolor('#4caf50')  # Consistent
+            elif data.std() < 2:
+                patch.set_facecolor('#ff9800')  # Moderate
+            else:
+                patch.set_facecolor('#f44336')  # Inconsistent
+        
+        ax5.set_title('Stroke Count Consistency', fontweight='bold')
+        ax5.set_xlabel('100m Interval')
+        ax5.set_ylabel('Strokes per 25m')
+        ax5.axhline(y=16, color='green', linestyle='--', alpha=0.5, label='Target')
+        
+        # ==========================================
+        # 6. Breathing Pattern Analysis (Middle Center-Left)
+        # ==========================================
         ax6 = fig.add_subplot(gs[1, 1])
-        breath_means = df.groupby('interval')['breaths_per_length'].mean()
-        ax6.bar(breath_means.index, breath_means.values)
-        ax6.set_title('Breaths per Length')
         
-        # 7. Kick 
+        # Breaths per length
+        breathing_data = df.groupby('interval')['breaths_per_length'].mean()
+        colors_breath = ['#4caf50' if b < 4 else '#ff9800' if b < 5 else '#f44336' 
+                         for b in breathing_data.values]
+        
+        bars = ax6.bar(range(1, 9), breathing_data.values, color=colors_breath, 
+                      alpha=0.8, edgecolor='black')
+        ax6.axhline(y=4, color='green', linestyle='--', linewidth=2, label='Optimal <4')
+        ax6.set_title('Breaths per Length', fontweight='bold')
+        ax6.set_xlabel('100m Interval')
+        ax6.set_ylabel('Breaths')
+        
+        # Add pattern labels
+        patterns = ['Bilateral\n(Every 2)' if i < 4 else 'Unilateral\n(Every 3)' for i in range(8)]
+        for i, (bar, pattern) in enumerate(zip(bars, patterns)):
+            height = bar.get_height()
+            ax6.text(bar.get_x() + bar.get_width()/2., height + 0.1,
+                    pattern, ha='center', va='bottom', fontsize=7, rotation=45)
+        
+        # ==========================================
+        # 7. Kick Efficiency (Middle Center-Right)
+        # ==========================================
         ax7 = fig.add_subplot(gs[1, 2])
-        kick_means = df.groupby('interval')['kick_count'].mean()
-        ax7.plot(kick_means.index, kick_means.values)
-        ax7.set_title('Kick Rate')
         
-        # 8. Pace vs Efficiency
+        kick_data = df.groupby('interval')['kick_count'].mean()
+        ax7.plot(range(1, 9), kick_data.values, 'o-', linewidth=2, 
+                color='blue', markersize=8, label='Kick beats/stroke')
+        ax7.axhline(y=6, color='green', linestyle='--', linewidth=2, label='Optimal 6-beat')
+        ax7.fill_between(range(1, 9), 5, 7, alpha=0.1, color='green')
+        
+        ax7.set_title('Kick Rate Analysis', fontweight='bold')
+        ax7.set_xlabel('100m Interval')
+        ax7.set_ylabel('Kicks per Stroke')
+        ax7.legend()
+        ax7.set_ylim(4, 8)
+        
+        # ==========================================
+        # 8. Pace Degradation with Stroke Impact (Middle Right)
+        # ==========================================
         ax8 = fig.add_subplot(gs[1, 3])
-        # simple pace plot
-        ax8.plot(df['interval'], df['time'], label='Time')
+        
+        # Calculate pace per 100m
+        pace_100m = []
+        for interval in range(1, 9):
+            interval_data = df[df['interval'] == interval]
+            avg_pace = interval_data['time'].sum() / 100 * 100  # sec/100m
+            pace_100m.append(avg_pace)
+        
+        # Plot pace with stroke efficiency overlay
         ax8_twin = ax8.twinx()
-        ax8_twin.plot(df['interval'], df['dps'], color='red', label='DPS')
-        ax8.set_title('Pace vs DPS')
-
-        # 9. Technique Score
+        
+        bars = ax8.bar(range(1, 9), pace_100m, color='lightblue', alpha=0.7, 
+                      edgecolor='black', label='Pace')
+        ax8.set_ylabel('Pace (sec/100m)', color='blue')
+        
+        # Overlay DPS
+        dps_trend = [df[df['interval'] == i]['dps'].mean() for i in range(1, 9)]
+        ax8_twin.plot(range(1, 9), dps_trend, 'ro-', linewidth=2, 
+                     markersize=8, label='DPS')
+        ax8_twin.set_ylabel('DPS (m)', color='red')
+        
+        ax8.set_title('Pace vs Efficiency', fontweight='bold')
+        ax8.set_xlabel('100m Interval')
+        ax8.legend(loc='upper left')
+        ax8_twin.legend(loc='upper right')
+        
+        # ==========================================
+        # 9. Technique Score Radar (Bottom Left)
+        # ==========================================
         ax9 = fig.add_subplot(gs[2, 0], projection='polar')
-        categories = ['DPS', 'Rotation', 'Kick', 'Consistency', 'Breathing', 'SWOLF']
-        values = [80, 75, 90, 60, 85, 70] # Dummy scores for demo
-        angles = np.linspace(0, 2*np.pi, len(categories), endpoint=False).tolist()
+        
+        # Calculate technique scores (0-100)
+        scores = {
+            'DPS': min(100, (df['dps'].mean() / 1.8) * 100),
+            'Rotation': min(100, (df['body_rotation'].mean() / 45) * 100),
+            'Kick': min(100, (6 / df['kick_count'].mean()) * 100),
+            'Consistency': max(0, 100 - (df.groupby('interval')['stroke_count'].std().mean() * 10)),
+            'Breathing': min(100, (4 / df['breaths_per_length'].mean()) * 100),
+            'SWOLF': max(0, 100 - (df['swolf'].mean() - 35) * 5)
+        }
+        
+        categories = list(scores.keys())
+        values = list(scores.values())
+        
+        angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
         values += values[:1]
         angles += angles[:1]
-        ax9.plot(angles, values)
-        ax9.fill(angles, values, alpha=0.25)
-        ax9.set_title('Technique Score')
         
-        # 10. Speed Map (Heatmap)
+        ax9.plot(angles, values, 'o-', linewidth=2, color='blue')
+        ax9.fill(angles, values, alpha=0.25, color='blue')
+        ax9.set_xticks(angles[:-1])
+        ax9.set_xticklabels(categories, fontsize=9)
+        ax9.set_ylim(0, 100)
+        ax9.set_title('Technique Score', fontweight='bold', pad=20)
+        
+        # ==========================================
+        # 10. Stroke Length vs Rate Optimization (Bottom Middle-Left)
+        # ==========================================
         ax10 = fig.add_subplot(gs[2, 1])
-        ax10.text(0.5, 0.5, "Speed Optimization Map", ha='center') # Placeholder for complex heatmap
         
-        # 11. Matrix 
+        # Create efficiency heatmap
+        sr_bins = np.linspace(35, 50, 15)
+        dps_bins = np.linspace(1.3, 2.0, 15)
+        
+        # Calculate speed for each bin
+        speed_matrix = np.zeros((len(dps_bins)-1, len(sr_bins)-1))
+        for i in range(len(dps_bins)-1):
+            for j in range(len(sr_bins)-1):
+                avg_sr = (sr_bins[j] + sr_bins[j+1]) / 2
+                avg_dps = (dps_bins[i] + dps_bins[i+1]) / 2
+                speed_matrix[i, j] = (avg_sr * avg_dps) / 60  # m/s
+        
+        im = ax10.imshow(speed_matrix, cmap='RdYlGn', aspect='auto', 
+                        extent=[35, 50, 1.3, 2.0], origin='lower')
+        
+        # Overlay actual data points
+        ax10.scatter(df['stroke_rate'], df['dps'], c='black', s=50, alpha=0.7, edgecolors='white')
+        
+        ax10.set_title('Speed Optimization Map', fontweight='bold')
+        ax10.set_xlabel('Stroke Rate (SPM)')
+        ax10.set_ylabel('DPS (m)')
+        plt.colorbar(im, ax=ax10, label='Speed (m/s)')
+        
+        # ==========================================
+        # 11. Interval Comparison Matrix (Bottom Middle-Right)
+        # ==========================================
         ax11 = fig.add_subplot(gs[2, 2])
-        ax11.text(0.5, 0.5, "Performance Matrix", ha='center')
         
-        # 12. Summary
+        # Create comparison matrix
+        metrics = ['Time', 'SR', 'DPS', 'Rot', 'SWOLF']
+        intervals = list(range(1, 9))
+        
+        matrix = np.zeros((len(metrics), len(intervals)))
+        for i, metric in enumerate(['time', 'stroke_rate', 'dps', 'body_rotation', 'swolf']):
+            for j, interval in enumerate(intervals):
+                val = df[df['interval'] == interval][metric].mean()
+                # Normalize each metric to 0-1 scale
+                if metric == 'time':
+                    val = (val - 20) / 10  # Normalize time
+                elif metric == 'stroke_rate':
+                    val = (val - 35) / 15
+                elif metric == 'dps':
+                    val = (val - 1.3) / 0.7
+                elif metric == 'body_rotation':
+                    val = val / 60
+                elif metric == 'swolf':
+                    val = (val - 30) / 20
+                matrix[i, j] = np.clip(val, 0, 1)
+        
+        im = ax11.imshow(matrix, cmap='RdYlGn', aspect='auto')
+        ax11.set_xticks(range(len(intervals)))
+        ax11.set_xticklabels([f'#{i}' for i in intervals])
+        ax11.set_yticks(range(len(metrics)))
+        ax11.set_yticklabels(metrics)
+        ax11.set_title('Performance Matrix', fontweight='bold')
+        
+        # Add text annotations
+        for i in range(len(metrics)):
+            for j in range(len(intervals)):
+                text = ax11.text(j, i, f'{matrix[i, j]:.2f}',
+                               ha="center", va="center", color="black", fontsize=8)
+        
+        plt.colorbar(im, ax=ax11, label='Normalized Score')
+        
+        # ==========================================
+        # 12. Summary & Recommendations (Bottom Right)
+        # ==========================================
         ax12 = fig.add_subplot(gs[2, 3])
         ax12.axis('off')
-        ax12.text(0.1, 0.5, "Summary:\nGrade B+", fontsize=12)
+        
+        avg_dps = df['dps'].mean()
+        avg_sr = df['stroke_rate'].mean()
+        avg_swolf = df['swolf'].mean()
+        consistency = df.groupby('interval')['stroke_count'].std().mean()
+        
+        summary_text = f"STROKE ANALYSIS SUMMARY\n\n" + \
+                       f"Overall Metrics:\n" + \
+                       f"• Distance: 800m (8x100m)\n" + \
+                       f"• Avg Pace: {df['time'].sum()/8/60:.2f} min/100m\n" + \
+                       f"• Avg DPS: {avg_dps:.2f}m\n" + \
+                       f"• Avg SR: {avg_sr:.1f} SPM\n" + \
+                       f"• Avg SWOLF: {avg_swolf:.1f}\n\n" + \
+                       f"Technique Breakdown:\n" + \
+                       f"• Body Rotation: {df['body_rotation'].mean():.1f}°\n" + \
+                       f"• Kick Rate: {df['kick_count'].mean():.1f} beats/stroke\n" + \
+                       f"• Breathing: Every {df['breathing_every'].mode().values[0]} strokes\n" + \
+                       f"• Stroke Consistency: {consistency:.2f} σ\n\n" + \
+                       f"Technique Grade: B+"
+        
+        ax12.text(0.05, 0.95, summary_text, transform=ax12.transAxes, fontsize=9,
+                 verticalalignment='top', fontfamily='monospace',
+                 bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
         
         plt.tight_layout()
         return self._fig_to_base64(fig)

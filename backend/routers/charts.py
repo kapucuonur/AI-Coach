@@ -27,8 +27,10 @@ async def get_dashboard_chart(days: int = 30, client: GarminClient = Depends(get
             "generated_at": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f"Error generating dashboard chart: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Error generating dashboard chart: {error_trace}")
+        raise HTTPException(status_code=500, detail=f"Chart Error: {str(e)}\n\nTraceback:\n{error_trace}")
 
 @router.get("/activity/{activity_id}")
 async def get_activity_chart(activity_id: int, client: GarminClient = Depends(get_garmin_client)):

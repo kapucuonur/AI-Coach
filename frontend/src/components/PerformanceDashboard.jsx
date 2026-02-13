@@ -28,79 +28,137 @@ const PerformanceDashboard = () => {
     // Instance Refs to destroy charts
     const chartInstances = useRef({});
 
+    // Data State
+    const [healthData, setHealthData] = useState([]);
+
     useEffect(() => {
-        fetchDashboard();
-        // Mock data fetching for metrics/activities - in real app would come from API
-        // For now using user's mock values from Vue component
-        setRecentActivities([
-            { id: 1, type: 'running', name: 'Morning Run', distance: 5000, duration: 1800, avg_hr: 145, load: 45 },
-            { id: 2, type: 'cycling', name: 'Evening Ride', distance: 20000, duration: 3600, avg_hr: 130, load: 60 },
-            { id: 3, type: 'strength', name: 'Gym Session', distance: 0, duration: 2700, avg_hr: 110, load: 30 },
-            { id: 4, type: 'running', name: 'Intervals', distance: 8000, duration: 2400, avg_hr: 165, load: 120 },
-        ]);
+        const loadAllData = async () => {
+            setLoading(true);
+            try {
+                await Promise.all([
+                    fetchDashboard(),
+                    fetchActivities(),
+                    fetchHealthData()
+                ]);
+            } catch (error) {
+                console.error("Error loading dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadAllData();
     }, [days]);
 
     useEffect(() => {
-        // Initialize charts when component mounts or updates
-        // We need a slight delay to ensure canvas is rendered
-        if (!loading) {
+        if (!loading && healthData.length > 0) {
             initCharts();
         }
         return () => {
-            // Cleanup charts
-            Object.values(chartInstances.current).forEach(chart => chart.destroy());
+            Object.values(chartInstances.current).forEach(chart => chart?.destroy());
         };
-    }, [loading]);
+    }, [loading, healthData]);
 
     const fetchDashboard = async () => {
         try {
-            setLoading(true);
             const response = await axiosClient.get(`/charts/dashboard?days=${days}`);
             if (response.data && response.data.chart) {
                 setDashboardChart(`data:image/png;base64,${response.data.chart}`);
             }
-            setLoading(false);
         } catch (error) {
-            console.error('Failed to fetch dashboard:', error);
-            setLoading(false);
+            console.error('Failed to fetch dashboard chart:', error);
         }
     };
 
-    const viewActivity = async (activityId) => {
+    const fetchActivities = async () => {
         try {
-            const response = await axiosClient.get(`/charts/activity/${activityId}`);
-            setActivityChart(`data:image/png;base64,${response.data.chart}`);
-            // TODO: Open modal or similar
-            alert("Activity chart fetched (see console/network for now, modal TODO)");
+            // Fetch more activities for larger date ranges to fill the list
+            const limit = days > 7 ? 20 : 10;
+            const response = await axiosClient.get(`/dashboard/activities?limit=${limit}`);
+            if (response.data) {
+                // Transform Garmin activity data to our frontend model
+                const mapped = response.data.map(act => ({
+                    id: act.activityId,
+                    type: act.activityType.typeKey || 'other',
+                    name: act.activityName,
+                    distance: act.distance,
+                    duration: act.duration,
+                    avg_hr: act.averageHR || 0,
+                    load: Math.round(act.averageHR * (act.duration / 3600)) // Crude TSS est if missing
+                }));
+                setRecentActivities(mapped);
+            }
         } catch (error) {
-            console.error('Failed to fetch activity:', error);
+            console.error('Failed to fetch activities:', error);
+        }
+    };
+
+    const fetchHealthData = async () => {
+        try {
+            const response = await axiosClient.get(`/charts/data/health?days=${days}`);
+            if (response.data) {
+                setHealthData(response.data);
+
+                // Update summary metrics from latest data point
+                if (response.data.length > 0) {
+                    const latest = response.data[response.data.length - 1];
+                    // Calculate trends (simple comparison with previous if exists)
+                    const prev = response.data.length > 1 ? response.data[response.data.length - 2] : latest;
+
+                    setMetrics({
+                        recovery_score: latest.body_battery || 0, // Using Body Battery as proxy for recovery score
+                        recovery_trend: latest.body_battery >= prev.body_battery ? 'Stable' : 'Declining',
+                        ctl: 0, // Need dedicated endpoint for these TSS metrics
+                        ctl_change: 0,
+                        atl: 0,
+                        sleep_avg: Math.round(response.data.reduce((acc, curr) => acc + (curr.sleep_score || 0), 0) / response.data.length),
+                        sleep_trend: 'Stable'
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch health data:', error);
         }
     };
 
     const initCharts = () => {
         // Cleanup old charts
-        Object.values(chartInstances.current).forEach(chart => chart.destroy());
+        Object.values(chartInstances.current).forEach(chart => chart?.destroy());
 
-        // 1. Recovery Chart
+        if (healthData.length === 0) return;
+
+        const labels = healthData.map(d => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' }));
+        const sleepScores = healthData.map(d => d.sleep_score || 0);
+        const bodyBattery = healthData.map(d => d.body_battery || 0);
+        const stressScores = healthData.map(d => d.stress_score || 0);
+        const rhr = healthData.map(d => d.resting_hr || 0);
+        const hrv = healthData.map(d => d.hrv || 0);
+
+        // 1. Recovery Chart (Body Battery vs Stress)
         if (recoveryChartRef.current) {
             const ctx = recoveryChartRef.current.getContext('2d');
             chartInstances.current.recovery = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    labels: labels,
                     datasets: [{
                         label: 'Body Battery',
-                        data: [85, 78, 92, 88, 75, 95, 90],
+                        data: bodyBattery,
                         borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.4
+                        tension: 0.4,
+                        yAxisID: 'y'
                     }, {
                         label: 'Stress',
-                        data: [25, 35, 20, 28, 42, 18, 22],
+                        data: stressScores,
                         borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.4
+                        tension: 0.4,
+                        yAxisID: 'y'
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { min: 0, max: 100 } }
+                }
             });
         }
 
@@ -110,14 +168,11 @@ const PerformanceDashboard = () => {
             chartInstances.current.sleep = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    labels: labels,
                     datasets: [{
                         label: 'Sleep Score',
-                        data: [78, 85, 72, 88, 91, 95, 82],
-                        backgroundColor: [
-                            '#ffcc80', '#81c784', '#ff8a65',
-                            '#81c784', '#66bb6a', '#4caf50', '#81c784'
-                        ]
+                        data: sleepScores,
+                        backgroundColor: sleepScores.map(s => s >= 80 ? '#4caf50' : s >= 60 ? '#ff9800' : '#f44336')
                     }]
                 },
                 options: {
@@ -134,15 +189,15 @@ const PerformanceDashboard = () => {
             chartInstances.current.hr = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    labels: labels,
                     datasets: [{
                         label: 'Resting HR',
-                        data: [48, 47, 46, 45],
+                        data: rhr,
                         borderColor: 'rgb(239, 83, 80)',
                         yAxisID: 'y'
                     }, {
                         label: 'HRV',
-                        data: [125, 128, 132, 135],
+                        data: hrv,
                         borderColor: 'rgb(126, 87, 194)',
                         yAxisID: 'y1'
                     }]
@@ -158,16 +213,23 @@ const PerformanceDashboard = () => {
             });
         }
 
-        // 4. Weekly Chart
+        // 4. Weekly Chart (Activity Counts) (Simplified for now based on recent activities list logic if we had full history)
+        // For now, keep mock or remove? Let's hide it if no data or keep simplified.
         if (weeklyChartRef.current) {
+            // We can calculate this from fetched activities if we fetch enough
+            const typeCounts = recentActivities.reduce((acc, curr) => {
+                acc[curr.type] = (acc[curr.type] || 0) + 1;
+                return acc;
+            }, {});
+
             const ctx = weeklyChartRef.current.getContext('2d');
             chartInstances.current.weekly = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Running', 'Cycling', 'Swimming', 'Strength'],
+                    labels: Object.keys(typeCounts).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
                     datasets: [{
-                        data: [45, 30, 15, 10],
-                        backgroundColor: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24']
+                        data: Object.values(typeCounts),
+                        backgroundColor: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a55eea']
                     }]
                 },
                 options: { responsive: true, maintainAspectRatio: false }
