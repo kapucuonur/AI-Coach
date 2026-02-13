@@ -130,7 +130,6 @@ class GarminChartManager:
         return self.client.get_activity_details(activity_id)
 
     def _get_activity_streams_data(self, activity_id: int) -> Dict[str, List[float]]:
-    def _get_activity_streams_data(self, activity_id: int) -> Dict[str, List[float]]:
         # Fetch and format activity streams (Power, HR, Cadence, etc.)
         # Returns a dict suitable for AdvancedGarminCharts
         try:
@@ -181,7 +180,6 @@ class GarminChartManager:
     
     # ==================== CHART GENERATION ====================
     
-    def create_performance_dashboard(self, days: int = 30, save_path: Optional[str] = None) -> str:
     def create_performance_dashboard(self, days: int = 30, save_path: Optional[str] = None) -> str:
         # Create comprehensive performance dashboard
         # Returns: Base64 encoded PNG image
