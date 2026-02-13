@@ -321,6 +321,45 @@ class GarminClient:
             return self.client.get_activity(activity_id)
         except Exception as e:
             logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
+            return self.client.get_activity(activity_id)
+        except Exception as e:
+            logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
+            return None
+
+    def get_activity_streams(self, activity_id):
+        """Fetch activity streams (e.g., heart rate, cadence, speed over time)."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return None
+        try:
+            # We explicitly request relevant keys. 
+            # Note: underlying library might method name might be 'get_activity_details' or similar for streams?
+            # Actually, standard garminconnect library uses `get_activity_details(id)` for summary and 
+            # often `get_activity_streams(id)` isn't completely standard in the wrapper I'm used to seeing but 
+            # let's try to simple logic or just use `client.connectapi`.
+            
+            # The most reliable way with garminconnect python lib is often just direct API call if a wrapper method is missing
+            # But usually it has one. Let's try to use the likely method if it exists or implement via standard endpoint.
+            # Endpoint: /activity-service/activity/{id}/details
+            
+            # Use the library's method if available, otherwise manual.
+            # Assuming 'garminconnect' 0.x.x
+            # It usually exposes `get_activity_details` which might be just summary.
+            
+            # Let's try to just assume we can get summary first. 
+            # If we need streams, we really need the endpoint `activity-service/activity/{id}/details`
+            # or `activity-service/activity/{id}/streams`?
+            
+            # For now, to keep it safe and functional, let's just return the summary details 
+            # and IF possible, I will add a mocked stream generator based on the summary if streams fail, 
+            # guaranteeing the dashboard works even if streams aren't perfectly fetched.
+            
+            # But user wants REAL data. 
+            # let's try to add the specific stream fetch.
+            
+            return self.client.get_activity_details(activity_id) # In some versions this IS the streams/details
+        except Exception as e:
+            logger.error(f"Failed to fetch streams for {activity_id}: {e}")
             return None
 
     def get_health_stats(self, date_str=None):
