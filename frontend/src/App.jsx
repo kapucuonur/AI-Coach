@@ -9,7 +9,7 @@ import { Login } from './components/Login';
 import { ChatWidget } from './components/ChatWidget';
 import { ActivityAnalysis } from './components/ActivityAnalysis';
 import { MetricDetailModal } from './components/MetricDetailModal';
-import { PerformanceDashboard } from './components/PerformanceDashboard';
+import PerformanceDashboard from './components/PerformanceDashboard';
 import {
   Activity,
   Calendar,
