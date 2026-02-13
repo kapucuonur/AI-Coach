@@ -172,6 +172,15 @@ class GarminChartManager:
             
         laps = activity.get('lapDTOs', [])
         
+        
+        # Determine sport type and route to specialized method
+        sport_type = activity.get('activityType', {}).get('typeKey', 'other')
+        if sport_type == 'cycling' or sport_type == 'virtual_cycling':
+             return self.create_cycling_power_analysis(activity, laps)
+        elif sport_type == 'swimming' or sport_type == 'lap_swimming' or sport_type == 'open_water_swimming':
+             return self.create_swim_analysis(activity, laps)
+
+        # Default Generic Analysis (Running/Other)
         fig, axes = plt.subplots(2, 2, figsize=(14, 8))
         fig.suptitle(f'Workout Analysis: {activity.get("activityName", "Activity")}', 
                      fontsize=14, fontweight='bold')
@@ -226,7 +235,7 @@ class GarminChartManager:
         ax2.set_title('Heart Rate')
         ax2.set_ylabel('BPM')
         
-        # Power (if cycling)
+        # Power (if cycling/running power)
         ax3 = axes[1, 0]
         if any(lap_data['power']):
             ax3.bar(lap_data['lap'], lap_data['power'], color='purple', alpha=0.7)
@@ -251,6 +260,213 @@ class GarminChartManager:
         buf.seek(0)
         plt.close()
         return base64.b64encode(buf.read()).decode('utf-8')
+
+    def create_cycling_power_analysis(self, activity, laps, ftp=250):
+        """Generate 8-panel advanced cycling power analysis"""
+        if not laps:
+            return ""
+
+        fig = plt.figure(figsize=(16, 10))
+        fig.suptitle(f'🚴 Cycling Power Analysis: {activity.get("activityName", "Ride")}', 
+                     fontsize=16, fontweight='bold')
+        
+        gs = fig.add_gridspec(2, 4, hspace=0.4, wspace=0.4)
+        
+        # Extract data
+        lap_powers = [lap.get('averagePower', 0) or 0 for lap in laps]
+        lap_hrs = [lap.get('averageHR', 0) or 0 for lap in laps]
+        lap_cadences = [lap.get('averageCadence', 0) or 0 for lap in laps]
+        lap_indices = range(1, len(laps) + 1)
+        
+        # 1. Power Distribution (Histogram)
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.hist(lap_powers, bins=10, color='purple', alpha=0.7)
+        ax1.set_title('Power Distribution')
+        ax1.set_xlabel('Watts')
+        
+        # 2. Power Zones (Bar)
+        ax2 = fig.add_subplot(gs[0, 1])
+        zones = [0.55, 0.75, 0.90, 1.05, 1.20, 1.50] # % of FTP
+        zone_counts = [0] * 7
+        for p in lap_powers:
+            if p < ftp * zones[0]: zone_counts[0] += 1
+            elif p < ftp * zones[1]: zone_counts[1] += 1
+            elif p < ftp * zones[2]: zone_counts[2] += 1
+            elif p < ftp * zones[3]: zone_counts[3] += 1
+            elif p < ftp * zones[4]: zone_counts[4] += 1
+            elif p < ftp * zones[5]: zone_counts[5] += 1
+            else: zone_counts[6] += 1
+            
+        ax2.bar(['Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6', 'Z7'], zone_counts, color=['grey', 'blue', 'green', 'yellow', 'orange', 'red', 'purple'])
+        ax2.set_title('Time in Zones')
+        
+        # 3. Power vs HR (Scatter - Aerobic Decoupling check)
+        ax3 = fig.add_subplot(gs[0, 2])
+        sc = ax3.scatter(lap_powers, lap_hrs, c=lap_indices, cmap='plasma')
+        ax3.set_title('Power vs HR')
+        ax3.set_xlabel('Watts')
+        ax3.set_ylabel('HR')
+        
+        # 4. Quadrant Analysis (Force vs Cadence proxy)
+        # Force approx = Power / Cadence (simplified)
+        ax4 = fig.add_subplot(gs[0, 3])
+        forces = []
+        valid_cadences = []
+        for p, c in zip(lap_powers, lap_cadences):
+            if c > 0:
+                forces.append(p/c)
+                valid_cadences.append(c)
+        
+        if forces:
+            ax4.scatter(valid_cadences, forces, alpha=0.6)
+            ax4.axvline(x=85, linestyle='--', color='gray') # typical cadence pivot
+            ax4.axhline(y=np.mean(forces), linestyle='--', color='gray') 
+            ax4.set_title('Quadrant Analysis (Proxy)')
+            ax4.set_xlabel('Cadence')
+            ax4.set_ylabel('Force (W/rpm)')
+            
+        # 5. Power Curve (Laps)
+        ax5 = fig.add_subplot(gs[1, 0:2]) # Span 2 cols
+        ax5.plot(lap_indices, lap_powers, marker='o', color='purple')
+        ax5.fill_between(lap_indices, lap_powers, color='purple', alpha=0.2)
+        ax5.axhline(y=ftp, color='red', linestyle='--', label='FTP')
+        ax5.set_title('Lap Power Stream')
+        ax5.set_ylabel('Watts')
+        ax5.legend()
+        
+        # 6. Summary Stats
+        ax6 = fig.add_subplot(gs[1, 2])
+        np_est = np.mean([p**4 for p in lap_powers])**0.25 if lap_powers else 0 # Normalized Power estimate from laps
+        if_val = np_est / ftp if ftp else 0
+        tss = (len(laps) * 300 * np_est * if_val) / (ftp * 3600) * 100 if ftp else 0 # Assuming 5min laps for calc? No, need duration.
+        # Let's just list metrics
+        cols = ['Metric', 'Value']
+        cell_text = [
+            ['Avg Power', f"{int(np.mean(lap_powers))} W"],
+            ['Norm Power', f"{int(np_est)} W"],
+            ['Intensity (IF)', f"{if_val:.2f}"],
+            ['Variability (VI)', f"{np_est/np.mean(lap_powers):.2f}" if np.mean(lap_powers) > 0 else "N/A"]
+        ]
+        table = ax6.table(cellText=cell_text, colLabels=cols, loc='center')
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1.2, 1.5)
+        ax6.axis('off')
+        ax6.set_title('Key Metrics')
+
+        # 7. Radar Chart (Profile)
+        # Needs radial axes, skipping for simplicity in this grid, using simple bar for now
+        ax7 = fig.add_subplot(gs[1, 3])
+        # Peaks (simulated from laps for demo)
+        peaks = [max(lap_powers), np.mean(sorted(lap_powers)[-3:]), np.mean(lap_powers)]
+        ax7.bar(['Peak', 'Top 3', 'Avg'], peaks, color=['red', 'orange', 'blue'])
+        ax7.set_title('Power Profile')
+        
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        buf.seek(0)
+        plt.close()
+        return base64.b64encode(buf.read()).decode('utf-8')
+
+    def create_swim_analysis(self, activity, laps):
+        """Generate 6-panel swim efficiency analysis"""
+        if not laps:
+            return ""
+
+        fig = plt.figure(figsize=(16, 10))
+        fig.suptitle(f'🏊 Swim Analysis: {activity.get("activityName", "Swim")}', 
+                     fontsize=16, fontweight='bold')
+        
+        gs = fig.add_gridspec(2, 3, hspace=0.3, wspace=0.3)
+        
+        # Data extraction
+        paces_sec = []
+        strokes = []
+        swolf = []
+        hrs = []
+        
+        for lap in laps:
+            dist = lap.get('distance', 0)
+            dur = lap.get('duration', 0)
+            count = lap.get('strokeCount', 0)
+            
+            if dist > 0:
+                pace = (dur / dist) * 100 # sec/100m
+                paces_sec.append(pace)
+            else:
+                paces_sec.append(0)
+                
+            strokes.append(count)
+            # SWOLF = time for 25m + strokes for 25m (approx)
+            # Garmin gives avg swolf usually, but let's calc roughly per lap if pool length known
+            # Assuming 25m pool for SWOLF estimate or using Garmin's field if present
+            s_score = lap.get('averageSwolf', 0)
+            swolf.append(s_score)
+            hrs.append(lap.get('averageHR', 0) or 0)
+            
+        lap_indices = range(1, len(laps) + 1)
+        
+        # 1. Pace per 100m
+        ax1 = fig.add_subplot(gs[0, 0])
+        ax1.bar(lap_indices, paces_sec, color='cyan', edgecolor='blue', alpha=0.6)
+        ax1.set_title('Pace (sec/100m)')
+        ax1.invert_yaxis() # Lower is faster
+        
+        # 2. SWOLF Trends
+        ax2 = fig.add_subplot(gs[0, 1])
+        ax2.plot(lap_indices, swolf, marker='o', color='green')
+        ax2.set_title('SWOLF (Efficiency)')
+        ax2.set_ylabel('Score (Lower is Better)')
+        
+        # 3. Stroke Count vs Pace
+        ax3 = fig.add_subplot(gs[0, 2])
+        # Efficiency scatter
+        sc = ax3.scatter(strokes, paces_sec, c=lap_indices, cmap='winter')
+        ax3.set_title('Stroke Count vs Pace')
+        ax3.set_xlabel('Strokes per Length')
+        ax3.set_ylabel('Pace (s/100m)')
+        
+        # 4. HR Analysis
+        ax4 = fig.add_subplot(gs[1, 0])
+        ax4.plot(lap_indices, hrs, color='red', marker='x')
+        ax4.fill_between(lap_indices, hrs, color='red', alpha=0.1)
+        ax4.set_title('Heart Rate')
+        
+        # 5. Interval Consistency (Box Plot if enough data, else Line)
+        ax5 = fig.add_subplot(gs[1, 1])
+        ax5.plot(lap_indices, paces_sec, label='Pace')
+        ax5.axhline(y=np.mean(paces_sec), color='orange', linestyle='--', label='Avg')
+        ax5.set_title('Consistency Check')
+        ax5.invert_yaxis()
+        ax5.legend()
+        
+        # 6. Summary Metrics
+        ax6 = fig.add_subplot(gs[1, 2])
+        avg_swolf = np.mean([s for s in swolf if s > 0]) if swolf else 0
+        avg_pace = np.mean([p for p in paces_sec if p > 0]) if paces_sec else 0
+        mins = int(avg_pace // 60)
+        secs = int(avg_pace % 60)
+        
+        cols = ['Metric', 'Value']
+        cell_text = [
+            ['Avg Pace', f"{mins}:{secs:02d} /100m"],
+            ['Avg SWOLF', f"{int(avg_swolf)}"],
+            ['Efficiency', "Excellent" if avg_swolf < 35 else "Good" if avg_swolf < 45 else "Average"],
+            ['Total Laps', f"{len(laps)}"]
+        ]
+        table = ax6.table(cellText=cell_text, colLabels=cols, loc='center')
+        table.scale(1.2, 1.5)
+        ax6.axis('off')
+        ax6.set_title('Swim Summary')
+        
+        plt.tight_layout()
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        buf.seek(0)
+        plt.close()
+        return base64.b64encode(buf.read()).decode('utf-8')
+
     
     # ==================== HELPER METHODS ====================
     
