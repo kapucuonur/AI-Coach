@@ -47,9 +47,8 @@ logger = logging.getLogger(__name__)
 
 class GarminChartManager:
     def __init__(self, client=None, email: str = None, password: str = None):
-        if True:
-            # Initialize Garmin connection.
-            # Can accept an existing Garmin client OR credentials to create a new one.
+        # Initialize Garmin connection.
+        # Can accept an existing Garmin client OR credentials to create a new one.
         if client:
             self.client = client
         elif email and password:
