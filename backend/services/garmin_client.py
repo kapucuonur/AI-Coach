@@ -341,6 +341,51 @@ class GarminClient:
         target_date = date_str if date_str else date.today().isoformat()
         return self.client.get_sleep_data(target_date)
 
+    def get_detailed_charts(self, date_str=None):
+        """Fetch detailed time-series data for charts."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return {}
+
+        target_date = date_str if date_str else date.today().isoformat()
+        data = {}
+
+        # 1. Heart Rate (All Day)
+        try:
+            hr = self.client.get_heart_rates(target_date)
+            data['heart_rate'] = hr
+        except Exception as e:
+            logger.warning(f"Failed to fetch HR data: {e}")
+
+        # 2. Body Battery
+        try:
+            # Try specific method first, fallback to generic if library version differs
+            if hasattr(self.client, 'get_body_battery'):
+                bb = self.client.get_body_battery(target_date)
+                data['body_battery'] = bb
+            else:
+                 # Fallback manual endpoint if needed, or skip
+                 pass
+        except Exception as e:
+            logger.warning(f"Failed to fetch Body Battery: {e}")
+
+        # 3. Stress
+        try:
+            if hasattr(self.client, 'get_stress_data'):
+                stress = self.client.get_stress_data(target_date)
+                data['stress'] = stress
+        except Exception as e:
+            logger.warning(f"Failed to fetch Stress: {e}")
+
+        # 4. Sleep (Detailed)
+        try:
+            sleep = self.client.get_sleep_data(target_date)
+            data['sleep'] = sleep
+        except Exception as e:
+            logger.warning(f"Failed to fetch Sleep: {e}")
+            
+        return data
+
     def create_workout(self, workout_json):
         """
         Create a structured workout in Garmin Connect.

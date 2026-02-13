@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from backend.services.garmin_client import GarminClient
 from backend.services.coach_brain import CoachBrain
@@ -62,6 +63,15 @@ def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_gar
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/charts")
+def get_dashboard_charts(date: str = None, client: GarminClient = Depends(get_garmin_client)):
+    try:
+        # date format YYYY-MM-DD, defaults to today in client
+        data = client.get_detailed_charts(date)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/activities/{activity_id}/details")
 def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):
     try:
@@ -90,10 +100,10 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
         
         analysis = brain.analyze_activity(details, user_settings_dict)
         
-        return {
+        return jsonable_encoder({
             "details": details,
             "analysis": analysis
-        }
+        })
     except HTTPException as he:
         raise he
     except Exception as e:

@@ -8,6 +8,7 @@ import { TrainingPlan } from './components/TrainingPlan';
 import { Login } from './components/Login';
 import { ChatWidget } from './components/ChatWidget';
 import { ActivityAnalysis } from './components/ActivityAnalysis';
+import { MetricDetailModal } from './components/MetricDetailModal';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState(null);
+  const [selectedMetric, setSelectedMetric] = useState(null); // 'heart_rate', 'sleep', 'stress', 'body_battery'
 
   // Dark mode state - defaulting to true or system preference could be added
   const [darkMode, setDarkMode] = useState(() => {
@@ -149,13 +151,15 @@ function App() {
             unit="bpm"
             icon={Heart}
             className="border-red-500/20"
+            onClick={() => setSelectedMetric('heart_rate')}
           />
           <StatsCard
             title="VO2 Max"
-            value={profile.vo2MaxRunning || '--'}
+            value={profile.vo2MaxRunning || profile.vo2Max || profile.vO2MaxValue || '--'}
             unit="ml/kg"
             icon={Zap}
             className="border-yellow-500/20"
+          // onClick={() => setSelectedMetric('vo2_max')} // No detailed chart for VO2 yet
           />
           <StatsCard
             title="Stress"
@@ -163,6 +167,7 @@ function App() {
             unit="/100"
             icon={Activity}
             className="border-orange-500/20"
+            onClick={() => setSelectedMetric('stress')}
           />
           <StatsCard
             title="Body Battery"
@@ -170,6 +175,7 @@ function App() {
             unit="%"
             icon={Battery}
             className="border-blue-500/20"
+            onClick={() => setSelectedMetric('body_battery')}
           />
           <StatsCard
             title="Sleep"
@@ -177,6 +183,7 @@ function App() {
             unit="hrs"
             icon={Moon}
             className="border-purple-500/20"
+            onClick={() => setSelectedMetric('sleep')}
           />
         </div>
 
@@ -205,6 +212,14 @@ function App() {
         <ActivityAnalysis
           activityId={selectedActivityId}
           onClose={() => setSelectedActivityId(null)}
+        />
+      )}
+
+      {selectedMetric && (
+        <MetricDetailModal
+          metricType={selectedMetric}
+          onClose={() => setSelectedMetric(null)}
+          date={null} // defaulting to today inside modal handling
         />
       )}
 

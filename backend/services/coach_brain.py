@@ -184,8 +184,7 @@ class CoachBrain:
             - **During:** Hydration and fueling needs (if applicable).
             - **Post-workout:** Recovery meal suggestion.
         5. Give a short motivational quote or tip.
-        6. **MANDATORY FOOTER:** You MUST end the `advice_text` with this exact line (translated if needed): 
-           *"Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!"*
+        
 
         **Guidelines:**
         - Use the user's performance metrics (Pace/Mac HR/FTP) to prescribe specific intensities.

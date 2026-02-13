@@ -57,6 +57,9 @@ export function AdviceBlock({ advice, workout }) {
             <div className="p-6 relative z-10">
                 <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 font-sans leading-relaxed mb-6 dark:prose-invert">
                     <ReactMarkdown>{advice}</ReactMarkdown>
+                    <p className="mt-4 text-sm font-bold text-red-500 uppercase tracking-wide border-t border-gray-100 dark:border-white/10 pt-4">
+                        Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!
+                    </p>
                 </div>
 
                 {/* Visual Workout Builder */}
