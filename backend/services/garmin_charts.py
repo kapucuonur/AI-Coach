@@ -596,25 +596,32 @@ class GarminChartManager:
             df['body_battery'].fillna(70) * 0.2
         )
         
+        # Determine colors based on score
         colors = ['#ff4444' if x < 50 else '#ffaa00' if x < 70 else '#44ff44' 
-                  for x in df['recovery_score']]
-        ax.bar(df['date'], df['recovery_score'], color=colors, alpha=0.8)
+                  for x in df['recovery_score'].fillna(50)] # Safe access
+        
+        ax.bar(df['date'], df['recovery_score'].fillna(0), color=colors, alpha=0.8)
         ax.axhline(y=70, color='green', linestyle='--', alpha=0.5)
         ax.set_title('Recovery Status')
         ax.set_ylabel('Score')
     
     def _plot_sleep_analysis(self, ax, df):
         # Plot sleep trends
+        # Ensure sleep_score has no NaNs for list comprehension
+        sleep_scores = df['sleep_score'].fillna(0)
+        
         colors = ['red' if x < 60 else 'orange' if x < 75 else 'green' 
-                  for x in df['sleep_score'].fillna(0)]
-        ax.bar(df['date'], df['sleep_score'], color=colors, alpha=0.7)
+                  for x in sleep_scores]
+        
+        # CRITICAL FIX: Fill None/NaN with 0 for plotting
+        ax.bar(df['date'], sleep_scores, color=colors, alpha=0.7)
         ax.axhline(y=80, color='green', linestyle='--', alpha=0.5)
         ax.set_title('Sleep Score')
         ax.set_ylim(0, 100)
     
     def _plot_hr_trends(self, ax, df):
         # Plot RHR and HRV
-        ax.plot(df['date'], df['resting_hr'], marker='o', label='RHR', color='red')
+        ax.plot(df['date'], df['resting_hr'].fillna(0), marker='o', label='RHR', color='red')
         # Check if HRV exists
         if 'hrv' in df.columns and df['hrv'].notna().any():
             ax_twin = ax.twinx()
