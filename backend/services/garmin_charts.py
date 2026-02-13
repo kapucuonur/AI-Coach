@@ -1,7 +1,7 @@
-garmin_charts.py - Advanced Data Visualization for Coach-AI
-Integrates with Garmin Connect to fetch and visualize athlete data.
-Now includes support for Stream-based advanced analytics.
-"""
+# garmin_charts.py - Advanced Data Visualization for Coach-AI
+# Integrates with Garmin Connect to fetch and visualize athlete data.
+# Now includes support for Stream-based advanced analytics.
+#
 
 import matplotlib
 matplotlib.use('Agg') # Use non-interactive backend for server
@@ -47,10 +47,9 @@ logger = logging.getLogger(__name__)
 
 class GarminChartManager:
     def __init__(self, client=None, email: str = None, password: str = None):
-        """
-        Initialize Garmin connection.
-        Can accept an existing Garmin client OR credentials to create a new one.
-        """
+        if True:
+            # Initialize Garmin connection.
+            # Can accept an existing Garmin client OR credentials to create a new one.
         if client:
             self.client = client
         elif email and password:
@@ -67,7 +66,7 @@ class GarminChartManager:
     # ==================== DATA FETCHING ====================
     
     def fetch_health_data(self, days: int = 30) -> pd.DataFrame:
-        """Fetch comprehensive health metrics from Garmin"""
+        # Fetch comprehensive health metrics from Garmin
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days)
         
@@ -124,18 +123,17 @@ class GarminChartManager:
         return df.sort_values('date')
     
     def fetch_activities(self, limit: int = 50) -> List[Dict]:
-        """Fetch recent activities"""
+        # Fetch recent activities
         return self.client.get_activities(0, limit)
     
     def fetch_activity_details(self, activity_id: int) -> Dict:
-        """Fetch detailed activity data including laps"""
+        # Fetch detailed activity data including laps
         return self.client.get_activity_details(activity_id)
 
     def _get_activity_streams_data(self, activity_id: int) -> Dict[str, List[float]]:
-        """
-        Fetch and format activity streams (Power, HR, Cadence, etc.)
-        Returns a dict suitable for AdvancedGarminCharts
-        """
+    def _get_activity_streams_data(self, activity_id: int) -> Dict[str, List[float]]:
+        # Fetch and format activity streams (Power, HR, Cadence, etc.)
+        # Returns a dict suitable for AdvancedGarminCharts
         try:
             # Request all relevant streams
             keys = "watts,heartRate,cadence,time" 
@@ -185,10 +183,9 @@ class GarminChartManager:
     # ==================== CHART GENERATION ====================
     
     def create_performance_dashboard(self, days: int = 30, save_path: Optional[str] = None) -> str:
-        """
-        Create comprehensive performance dashboard
-        Returns: Base64 encoded PNG image
-        """
+    def create_performance_dashboard(self, days: int = 30, save_path: Optional[str] = None) -> str:
+        # Create comprehensive performance dashboard
+        # Returns: Base64 encoded PNG image
         # Fetch data
         df = self.fetch_health_data(days)
         
@@ -244,7 +241,7 @@ class GarminChartManager:
         return img_base64
     
     def create_workout_analysis(self, activity_id: int) -> str:
-        """Create detailed single workout analysis"""
+        # Create detailed single workout analysis
         activity = self.fetch_activity_details(activity_id)
         if not activity:
             return ""
@@ -341,7 +338,7 @@ class GarminChartManager:
         return base64.b64encode(buf.read()).decode('utf-8')
 
     def create_cycling_power_analysis(self, activity, laps, ftp=250):
-        """Generate 8-panel advanced cycling power analysis"""
+        # Generate 8-panel advanced cycling power analysis
         
         # 1. Try Advanced Stream-based Analysis first
         if self.advanced_charts:
@@ -464,7 +461,7 @@ class GarminChartManager:
         return base64.b64encode(buf.read()).decode('utf-8')
 
     def create_swim_analysis(self, activity, laps):
-        """Generate 6-panel swim efficiency analysis"""
+        # Generate 6-panel swim efficiency analysis
         
         # 1. Try Advanced Swim Analysis (via Laps - we essentially enhance the lap data)
         # Advanced module expects list of dicts with: time, distance, stroke_rate, heart_rate
@@ -589,7 +586,7 @@ class GarminChartManager:
     # ==================== HELPER METHODS ====================
     
     def _plot_training_load(self, ax, df):
-        """Plot CTL/ATL/TSB"""
+        # Plot CTL/ATL/TSB
         df['ctl'] = df['training_load'].rolling(window=7, min_periods=1).mean()
         df['atl'] = df['training_load'].rolling(window=3, min_periods=1).mean()
         df['tsb'] = df['ctl'] - df['atl']
@@ -604,7 +601,7 @@ class GarminChartManager:
         ax_twin.legend(loc='upper right')
     
     def _plot_recovery_status(self, ax, df):
-        """Plot recovery metrics"""
+        # Plot recovery metrics
         df['recovery_score'] = (
             (100 - df['resting_hr'].fillna(60) + 40) * 0.3 +
             df['sleep_score'].fillna(70) * 0.3 +
@@ -620,7 +617,7 @@ class GarminChartManager:
         ax.set_ylabel('Score')
     
     def _plot_sleep_analysis(self, ax, df):
-        """Plot sleep trends"""
+        # Plot sleep trends
         colors = ['red' if x < 60 else 'orange' if x < 75 else 'green' 
                   for x in df['sleep_score'].fillna(0)]
         ax.bar(df['date'], df['sleep_score'], color=colors, alpha=0.7)
@@ -629,7 +626,7 @@ class GarminChartManager:
         ax.set_ylim(0, 100)
     
     def _plot_hr_trends(self, ax, df):
-        """Plot RHR and HRV"""
+        # Plot RHR and HRV
         ax.plot(df['date'], df['resting_hr'], marker='o', label='RHR', color='red')
         # Check if HRV exists
         if 'hrv' in df.columns and df['hrv'].notna().any():
@@ -643,7 +640,7 @@ class GarminChartManager:
         ax.legend(loc='upper left')
     
     def _plot_weekly_summary(self, ax, df):
-        """Plot weekly aggregates"""
+        # Plot weekly aggregates
         if df.empty: return
         df['week'] = df['date'].dt.isocalendar().week
         weekly = df.groupby('week').agg({
@@ -666,7 +663,7 @@ class GarminChartManager:
         ax.set_xticklabels([f'W{w}' for w in weekly.index])
     
     def _plot_fitness_progress(self, ax, df):
-        """Plot VO2Max and fitness trends"""
+        # Plot VO2Max and fitness trends
         if 'vo2max' in df.columns and df['vo2max'].notna().any():
             ax.plot(df['date'], df['vo2max'], marker='o', linewidth=2, color='darkblue')
             ax.fill_between(df['date'], df['vo2max'], alpha=0.2, color='darkblue')
