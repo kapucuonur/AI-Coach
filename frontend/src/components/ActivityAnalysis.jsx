@@ -99,7 +99,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Distance</p>
-                                                <p className="text-xl font-bold text-white">{(data?.details?.distance / 1000).toFixed(2)} <span className="text-sm font-normal text-gray-500">km</span></p>
+                                                <p className="text-xl font-bold text-white">{((data?.details?.distance || 0) / 1000).toFixed(2)} <span className="text-sm font-normal text-gray-500">km</span></p>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-center gap-4">
@@ -108,7 +108,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Duration</p>
-                                                <p className="text-xl font-bold text-white">{(data?.details?.duration / 60).toFixed(0)} <span className="text-sm font-normal text-gray-500">min</span></p>
+                                                <p className="text-xl font-bold text-white">{((data?.details?.duration || 0) / 60).toFixed(0)} <span className="text-sm font-normal text-gray-500">min</span></p>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-center gap-4">
@@ -117,7 +117,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Avg HR</p>
-                                                <p className="text-xl font-bold text-white">{Math.round(data?.details?.averageHR)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
+                                                <p className="text-xl font-bold text-white">{Math.round(data?.details?.averageHR || 0)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-center gap-4">
@@ -126,7 +126,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Max HR</p>
-                                                <p className="text-xl font-bold text-white">{Math.round(data?.details?.maxHR)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
+                                                <p className="text-xl font-bold text-white">{Math.round(data?.details?.maxHR || 0)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
                                             </div>
                                         </div>
                                     </div>
@@ -157,7 +157,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             Heart Rate Profile (Per Lap)
                                         </h3>
                                         <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorHr" x1="0" y1="0" x2="0" y2="1">
@@ -185,7 +185,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             Pace Profile (Per Lap - min/km)
                                         </h3>
                                         <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorPace" x1="0" y1="0" x2="0" y2="1">

@@ -178,7 +178,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
         {showPerformance ? (
-          <PerformanceDashboard />
+          <PerformanceDashboard onActivitySelect={setSelectedActivityId} />
         ) : (
           <>
             {/* Welcome Section */}
@@ -226,7 +226,7 @@ function App() {
               />
               <StatsCard
                 title="VO2 Max"
-                value={profile.vo2MaxRunning || profile.vo2Max || profile.vO2MaxValue || '--'}
+                value={profile.vo2MaxRunning || profile.vo2Max || profile.vO2MaxValue || healthStats?.vo2Max || '--'}
                 unit="ml/kg"
                 icon={Zap}
                 className="border-yellow-500/20"

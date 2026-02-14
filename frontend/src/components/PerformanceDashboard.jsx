@@ -3,7 +3,7 @@ import Chart from 'chart.js/auto';
 import axiosClient from '../api/client'; // Assuming default export or similar
 import './PerformanceDashboard.css';
 
-const PerformanceDashboard = () => {
+const PerformanceDashboard = ({ onActivitySelect }) => {
     const [loading, setLoading] = useState(true);
     const [days, setDays] = useState(30);
     const [dashboardChart, setDashboardChart] = useState(null);
@@ -342,12 +342,12 @@ const PerformanceDashboard = () => {
                 <h3>Recent Activities</h3>
                 <div className="activity-list">
                     {recentActivities.map(activity => (
-                        <div key={activity.id} className="activity-item" onClick={() => viewActivity(activity.id)}>
+                        <div key={activity.id} className="activity-item" onClick={() => onActivitySelect && onActivitySelect(activity.id)}>
                             <div className="activity-icon">{getActivityIcon(activity.type)}</div>
                             <div className="activity-info">
                                 <div className="activity-name">{activity.name}</div>
                                 <div className="activity-stats">
-                                    {formatDistance(activity.distance)} • {formatDuration(activity.duration)} • {activity.avg_hr} bpm
+                                    {formatDistance(activity.distance || 0)} • {formatDuration(activity.duration || 0)} • {activity.avg_hr || 0} bpm
                                 </div>
                             </div>
                             <div className="activity-load" style={{ background: getLoadColor(activity.load) }}>
