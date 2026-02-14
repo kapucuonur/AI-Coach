@@ -339,6 +339,17 @@ class GarminClient:
                     'averagePower': activity.get('averagePower')
                 }]
                 
+                }]
+            
+            # 4. Fetch Streams (High Res Data)
+            # This allows charts to be beautiful
+            try:
+                streams = self.get_activity_streams(activity_id)
+                if streams:
+                    activity['streams'] = streams
+            except Exception as e:
+                logger.warning(f"Could not attach streams: {e}")
+                
             return activity
         except Exception as e:
             logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
@@ -350,32 +361,93 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return None
         try:
-            # We explicitly request relevant keys. 
-            # Note: underlying library might method name might be 'get_activity_details' or similar for streams?
-            # Actually, standard garminconnect library uses `get_activity_details(id)` for summary and 
-            # often `get_activity_streams(id)` isn't completely standard in the wrapper I'm used to seeing but 
-            # let's try to simple logic or just use `client.connectapi`.
+            details = self.client.get_activity_details(activity_id)
+            if not details: 
+                return None
+
+            # Parse descriptors
+            descriptors = details.get('metricDescriptors', [])
+            metrics = details.get('activityDetailMetrics', [])
             
-            # The most reliable way with garminconnect python lib is often just direct API call if a wrapper method is missing
-            # But usually it has one. Let's try to use the likely method if it exists or implement via standard endpoint.
-            # Endpoint: /activity-service/activity/{id}/details
+            if not descriptors or not metrics:
+                return None
+                
+            # Map keys to (index, factor)
+            key_map = {}
+            for d in descriptors:
+                k = d.get('key')
+                idx = d.get('metricsIndex')
+                # extract factor
+                unit = d.get('unit', {})
+                factor = unit.get('factor', 1.0)
+                if k and idx is not None:
+                    key_map[k] = (idx, factor)
             
-            # Use the library's method if available, otherwise manual.
-            # Assuming 'garminconnect' 0.x.x
-            # It usually exposes `get_activity_details` which might be just summary.
+            # Prepare result arrays
+            streams = {
+                "time": [],
+                "heartRate": [],
+                "speed": [],
+                "cadence": [],
+                "elevation": [],
+                "power": [],
+                "distance": []
+            }
             
-            # Let's try to just assume we can get summary first. 
-            # If we need streams, we really need the endpoint `activity-service/activity/{id}/details`
-            # or `activity-service/activity/{id}/streams`?
-            
-            # For now, to keep it safe and functional, let's just return the summary details 
-            # and IF possible, I will add a mocked stream generator based on the summary if streams fail, 
-            # guaranteeing the dashboard works even if streams aren't perfectly fetched.
-            
-            # But user wants REAL data. 
-            # let's try to add the specific stream fetch.
-            
-            return self.client.get_activity_details(activity_id) # In some versions this IS the streams/details
+            # Helper to extract
+            def get_val(row, key, transform=lambda x: x):
+                if key in key_map:
+                    idx, factor = key_map[key]
+                    if idx < len(row):
+                        raw = row[idx]
+                        if raw is not None:
+                            return transform(raw / factor)
+                return None
+
+            start_time_offset = 0 # To track elapsed time if sumDuration is missing
+
+            for item in metrics:
+                row = item.get('metrics', [])
+                
+                # Time (sumDuration is usually in ms if factor is 1000, or seconds?)
+                # Looking at example: unit factor 1000.0 for 'second'. 
+                # Meaning raw value is milliseconds? Or raw is seconds * 1000?
+                # Usually raw / factor = value in unit. 
+                # If unit is 'second' and factor is 1000, then raw 1000 => 1 second.
+                t = get_val(row, 'sumDuration') # Result in seconds
+                
+                # Heart Rate
+                hr = get_val(row, 'directHeartRate')
+                
+                # Speed (usually m/s)
+                spd = get_val(row, 'directSpeed')
+                
+                # Cadence
+                cad = get_val(row, 'directRunCadence') or get_val(row, 'directBikeCadence') or get_val(row, 'directCadence')
+                
+                # Elevation
+                ele = get_val(row, 'directElevation')
+                
+                # Power
+                pwr = get_val(row, 'directPower')
+                
+                # Distance
+                dist = get_val(row, 'sumDistance')
+
+                # Append
+                streams["time"].append(t if t is not None else start_time_offset)
+                streams["heartRate"].append(hr)
+                streams["speed"].append(spd)
+                streams["cadence"].append(cad)
+                streams["elevation"].append(ele)
+                streams["power"].append(pwr)
+                streams["distance"].append(dist)
+                
+                # Verify time progression if needed
+                if t is None:
+                    start_time_offset += 1 # fallback increment
+
+            return streams
         except Exception as e:
             logger.error(f"Failed to fetch streams for {activity_id}: {e}")
             return None

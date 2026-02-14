@@ -439,25 +439,43 @@ class CoachBrain:
             }
             target_language = language_map.get(language_code, "English")
 
+            # Determine Activity Type for Context
+            activity_type = type_key.lower()
+            is_cycling = 'cycling' in activity_type or 'biking' in activity_type
+            is_running = 'running' in activity_type
+            is_swimming = 'swimming' in activity_type
+
             prompt = f"""
-            Act as an elite {sport_context} coach.
-            Analyze this specific workout: "{name}" ({type_key}).
+            Act as a World-Class Endurance Coach specializing in {activity_type}.
+            Analyze this specific workout: "{name}".
             
-            **Data for {name}:**
+            **Activity Context:**
+            - Sport Type: {activity_type.upper()} (Treat this strictly as {activity_type})
             - Total Distance: {dist_km:.2f} km
             - Total Duration: {duration_min:.1f} min
             - Avg HR: {avg_hr} bpm (Max: {max_hr})
-            - Avg Pace/Speed: {avg_pace_str}
+            - Avg Speed/Pace: {avg_speed:.2f} kph / {avg_pace_str}
             
             {splits_context}
             
             **Task:**
-            Provide a short, high-value analysis of this session in {target_language}.
-            1. **Effort Analysis:** Was it executed well? (e.g. "Solid steady state", "Good interval execution", "Recovery pace maintained").
-            2. **Physiological Insight:** Comment on Heart Rate vs Pace/Power if possible.
-            3. **Key Takeaway:** One specific thing to improve or maintain.
+            Provide a professional, sophisticated analysis of this session in {target_language}.
             
-            Keep it concise (3-5 sentences). Do not use markdown headers like ##. Just paragraphs.
+            **Guidelines:**
+            1. **Terminology**: Use correct terms. 
+               - If Cycling: Use "Ride", "Spin", "Power", "Cadence". Do NOT say "Run".
+               - If Running: Use "Run", "Pace", "Splits".
+               - If Swimming: Use "Swim", "Stroke", "Pace/100m".
+            2. **Deep Dive**:
+               - Analyze the relationship between Heart Rate and intensity.
+               - If HR is low but speed is decent -> "Excellent aerobic efficiency".
+               - If HR is high -> "Threshold/VO2 Max focus".
+            3. **Structure**:
+               - **Execution**: How well was it paced?
+               - **Physiology**: What energy systems were targeted?
+               - **Coach's Verdict**: One actionable takeaway.
+            
+            Keep it concise (3-4 paragraphs). Use professional, encouraging tone.
             """
             
             logger.info(f"Analyzing activity {name} with Gemini...")

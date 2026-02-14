@@ -83,7 +83,8 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
                     distance: act.distance,
                     duration: act.duration,
                     avg_hr: act.averageHR || 0,
-                    load: Math.round(act.averageHR * (act.duration / 3600)) // Crude TSS est if missing
+                    load: Math.round(act.averageHR * (act.duration / 3600)), // Crude TSS est if missing
+                    date: act.startTimeLocal
                 }));
                 setRecentActivities(mapped);
             }
@@ -105,13 +106,15 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
                     const prev = response.data.length > 1 ? response.data[response.data.length - 2] : latest;
 
                     setMetrics({
-                        recovery_score: latest.body_battery || 0, // Using Body Battery as proxy for recovery score
+                        recovery_score: latest.body_battery || 0,
                         recovery_trend: latest.body_battery >= prev.body_battery ? 'Stable' : 'Declining',
-                        ctl: 0, // Need dedicated endpoint for these TSS metrics
+                        ctl: latest.vo2max || 0, // Using CTL slot for VO2 Max as requested or add new slot? Let's add new.
                         ctl_change: 0,
                         atl: 0,
                         sleep_avg: Math.round(response.data.reduce((acc, curr) => acc + (curr.sleep_score || 0), 0) / response.data.length),
-                        sleep_trend: 'Stable'
+                        sleep_trend: 'Stable',
+                        vo2max: latest.vo2max || 0, // New Field
+                        vo2max_trend: (latest.vo2max || 0) >= (prev.vo2max || 0) ? 'Stable' : 'Declining'
                     });
                 }
             }
@@ -133,7 +136,7 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
         const rhr = healthData.map(d => d.resting_hr || 0);
         const hrv = healthData.map(d => d.hrv || 0);
 
-        // 1. Recovery Chart (Body Battery vs Stress)
+        // 1. Recovery Chart (Body Battery vs Stress) - unchanged
         if (recoveryChartRef.current) {
             const ctx = recoveryChartRef.current.getContext('2d');
             chartInstances.current.recovery = new Chart(ctx, {
@@ -162,7 +165,7 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
             });
         }
 
-        // 2. Sleep Chart
+        // 2. Sleep Chart - unchanged
         if (sleepChartRef.current) {
             const ctx = sleepChartRef.current.getContext('2d');
             chartInstances.current.sleep = new Chart(ctx, {
@@ -183,7 +186,7 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
             });
         }
 
-        // 3. HR Chart
+        // 3. HR Chart - unchanged
         if (hrChartRef.current) {
             const ctx = hrChartRef.current.getContext('2d');
             chartInstances.current.hr = new Chart(ctx, {
@@ -213,26 +216,40 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
             });
         }
 
-        // 4. Weekly Chart (Activity Counts) (Simplified for now based on recent activities list logic if we had full history)
-        // For now, keep mock or remove? Let's hide it if no data or keep simplified.
+        // 4. Weekly Volume Chart (Bar Chart of Distance per Day)
         if (weeklyChartRef.current) {
-            // We can calculate this from fetched activities if we fetch enough
-            const typeCounts = recentActivities.reduce((acc, curr) => {
-                acc[curr.type] = (acc[curr.type] || 0) + 1;
-                return acc;
-            }, {});
+            // Aggregate distance by day for the last 7 days
+            const last7Days = [...Array(7)].map((_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - (6 - i));
+                return d.toISOString().split('T')[0];
+            });
+
+            const dailyDistance = last7Days.map(dateStr => {
+                const dayActs = recentActivities.filter(a => a.date && a.date.startsWith(dateStr));
+                const totalDist = dayActs.reduce((sum, a) => sum + (a.distance || 0), 0);
+                return totalDist / 1000; // km
+            });
 
             const ctx = weeklyChartRef.current.getContext('2d');
             chartInstances.current.weekly = new Chart(ctx, {
-                type: 'doughnut',
+                type: 'bar',
                 data: {
-                    labels: Object.keys(typeCounts).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+                    labels: last7Days.map(d => new Date(d).toLocaleDateString(undefined, { weekday: 'short' })),
                     datasets: [{
-                        data: Object.values(typeCounts),
-                        backgroundColor: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#a55eea']
+                        label: 'Distance (km)',
+                        data: dailyDistance,
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: false }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'vs Last Week' } } // vs Last Week label is mostly design
+                    }
+                }
             });
         }
     };
@@ -281,11 +298,12 @@ const PerformanceDashboard = ({ onActivitySelect }) => {
                     <div className="metric-trend">{metrics.recovery_trend}</div>
                 </div>
 
+                {/* VO2 Max Card replacing fitness/ctl that was 0 */}
                 <div className="metric-card">
-                    <div className="metric-icon">⚡</div>
-                    <div className="metric-value">{metrics.ctl}</div>
-                    <div className="metric-label">Fitness (CTL)</div>
-                    <div className="metric-trend up">+ {metrics.ctl_change}</div>
+                    <div className="metric-icon">🌬️</div>
+                    <div className="metric-value">{metrics.vo2max ? Math.round(metrics.vo2max) : 'N/A'}</div>
+                    <div className="metric-label">VO2 Max</div>
+                    <div className="metric-trend">{metrics.vo2max_trend || '-'}</div>
                 </div>
 
                 <div className="metric-card">

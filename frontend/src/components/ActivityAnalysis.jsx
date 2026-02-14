@@ -35,14 +35,49 @@ export function ActivityAnalysis({ activityId, onClose }) {
     // Often specialized streams are needed for high-res charts. 
     // If not available, we can use splits (laps) as a coarser data source or see if 'full_details' has it.
     // For now, let's try to visualize splits since they are reliable.
-    const chartData = data?.details?.splits?.map((split, index) => ({
-        name: `Lap ${index + 1}`,
-        distance: Math.round(split.distance || 0), // meters
-        avgHR: split.averageHR,
-        avgSpeed: split.averageSpeed,
-        // Calculate Pace (min/km)
-        pace: split.averageSpeed ? (1000 / split.averageSpeed) / 60 : 0
-    })) || [];
+    // Process chart data: prioritize streams (high-res) over splits (laps)
+    let chartData = [];
+
+    if (data?.details?.streams && data.details.streams.time && data.details.streams.time.length > 0) {
+        const s = data.details.streams;
+        // Sample every Nth point if too large to prevent rendering lag, though Recharts handles <2k ok.
+        // Let's take every 5th point if length > 1000
+        const step = s.time.length > 1000 ? 5 : 1;
+
+        for (let i = 0; i < s.time.length; i += step) {
+            const timeSec = s.time[i];
+            const speed = s.speed?.[i] || 0;
+
+            // Format time as HH:MM:SS or MM:SS
+            const hours = Math.floor(timeSec / 3600);
+            const mins = Math.floor((timeSec % 3600) / 60);
+            const secs = Math.floor(timeSec % 60);
+            const timeLabel = hours > 0
+                ? `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+                : `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            chartData.push({
+                name: timeLabel,
+                distance: s.distance?.[i],
+                avgHR: s.heartRate?.[i],
+                avgSpeed: speed,
+                cadence: s.cadence?.[i],
+                power: s.power?.[i],
+                elevation: s.elevation?.[i],
+                // Calculate Pace (min/km) only if moving
+                pace: speed > 0.5 ? (1000 / speed) / 60 : null
+            });
+        }
+    } else {
+        // Fallback to Splits
+        chartData = data?.details?.splits?.map((split, index) => ({
+            name: `Lap ${index + 1}`,
+            distance: Math.round(split.distance || 0),
+            avgHR: split.averageHR,
+            avgSpeed: split.averageSpeed,
+            pace: split.averageSpeed ? (1000 / split.averageSpeed) / 60 : 0
+        })) || [];
+    }
 
     return (
         <AnimatePresence>
