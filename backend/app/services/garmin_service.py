@@ -35,7 +35,7 @@ class GarminService:
         # Fetch user credentials from DB
         user = self.db.query(User).filter(User.id == user_id).first()
         if not user or not user.garmin_email or not user.garmin_password:
-            return {"error": "Garmin credentials not found. Please connect your account in Profile settings."}
+            raise Exception("Garmin credentials not found. Please connect your account in Profile settings.")
 
         # Decrypt password
         from app.utils.crypto import decrypt_password
@@ -46,14 +46,14 @@ class GarminService:
             self.login(user.garmin_email, pwd)
         except Exception as e:
             logger.error(f"Login failed for user {user.garmin_email}: {e}")
-            return {"error": "Garmin login failed. Check your credentials."}
+            raise Exception("Garmin login failed. Check your password and try again.")
 
         # Garmin returns a list of activities (default 10)
         try:
             activities = self.client.get_activities(0, limit)
         except Exception as e:
             logger.error(f"Failed to fetch activities: {e}")
-            return {"error": str(e)}
+            raise Exception(f"Failed to fetch activities from Garmin: {str(e)}")
 
         synced_count = 0
         ftp = user.ftp_watts if user.ftp_watts else 200  # Default FTP

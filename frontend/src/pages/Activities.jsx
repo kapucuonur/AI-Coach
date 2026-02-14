@@ -35,7 +35,14 @@ const Activities = () => {
             const response = await axios.post(`${API_URL}/activities/sync/garmin`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             })
-            alert(response.data.message || 'Senkronizasyon başarılı!')
+
+            const count = response.data.synced
+            if (count > 0) {
+                alert(`Başarılı! ${count} yeni aktivite senkronize edildi.`)
+            } else {
+                alert('Senkronizasyon tamamlandı ancak yeni aktivite bulunamadı.')
+            }
+
             fetchActivities() // Refresh list
         } catch (error) {
             console.error('Sync Error:', error)
@@ -55,8 +62,8 @@ const Activities = () => {
                         onClick={handleSync}
                         disabled={syncing}
                         className={`px-6 py-2 rounded-lg font-bold transition-all ${syncing
-                                ? 'bg-gray-600 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-500 hover:scale-105'
+                            ? 'bg-gray-600 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-500 hover:scale-105'
                             }`}
                     >
                         {syncing ? 'Senkronize Ediliyor...' : 'Garmin ile Senkronize Et'}
