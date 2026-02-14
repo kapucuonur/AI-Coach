@@ -61,7 +61,9 @@ const Login = () => {
             }
             navigate('/')
         } catch (error) {
-            alert('Giriş başarısız! Lütfen bilgilerinizi kontrol edin.')
+            console.error("Login/Register Error:", error)
+            const message = error.response?.data?.detail || 'Giriş başarısız! Lütfen bilgilerinizi kontrol edin.'
+            alert(message)
         }
     }
 
