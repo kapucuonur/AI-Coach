@@ -10,7 +10,7 @@ const SLIDES = [
         color: 'from-blue-400 to-cyan-300'
     },
     {
-        video: '/video-cycle.mp4',
+        video: '/video-road-cycle.mp4',
         title: 'Triathlon',
         subtitle: 'Defy Your Limits',
         color: 'from-orange-400 to-red-400'
