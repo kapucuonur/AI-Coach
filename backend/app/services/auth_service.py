@@ -33,6 +33,11 @@ def authenticate_user(db: Session, email: str, password: str):
     return user
 
 def register_user(db: Session, email: str, password: str, full_name: str):
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.email == email).first()
+    if existing_user:
+        return None
+
     hashed_password = get_password_hash(password)
     db_user = User(
         email=email,
