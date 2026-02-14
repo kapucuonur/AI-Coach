@@ -6,6 +6,8 @@ garminconnect>=0.2.20
 sqlalchemy>=2.0.0
 requests>=2.31.0
 httpx>=0.26.0
+pydantic[email]>=2.0.0
+email-validator>=2.0.0
 
 # Database
 psycopg2-binary>=2.9.0

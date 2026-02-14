@@ -10,9 +10,9 @@ const SLIDES = [
         color: 'from-blue-400 to-cyan-300'
     },
     {
-        video: '/video-road-cycle.mp4',
-        title: 'Triathlon',
-        subtitle: 'Defy Your Limits',
+        video: '/video-road-bike.mp4',
+        title: 'Bike',
+        subtitle: 'Conquer the Road',
         color: 'from-orange-400 to-red-400'
     },
     {
@@ -20,6 +20,12 @@ const SLIDES = [
         title: 'Run',
         subtitle: 'Break Your Limits',
         color: 'from-green-400 to-emerald-300'
+    },
+    {
+        video: '/video-triathlon.mp4',
+        title: 'Triathlon',
+        subtitle: 'Defy Your Limits',
+        color: 'from-teal-400 to-blue-500'
     },
     {
         video: '/video-strength.mp4',
