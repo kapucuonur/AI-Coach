@@ -1,28 +1,23 @@
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@custom-variant dark (&:where(.dark, .dark *));
-
-@theme {
-  --color-garmin-blue: #007AC3;
-  --color-garmin-dark: #111111;
-  --color-garmin-gray: #2A2A2A;
-  --color-garmin-card: #1E1E1E;
+@layer base {
+  body {
+    @apply bg-gray-900 text-white;
+  }
 }
 
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@layer components {
+  .metric-card {
+    @apply bg-gray-800 rounded-lg p-4 text-center;
+  }
 
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #111111;
-}
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
+  }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  @apply bg-garmin-dark text-gray-100;
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded;
+  }
 }
