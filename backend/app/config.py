@@ -18,6 +18,8 @@ SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
+GARMIN_EMAIL = os.getenv("GARMIN_EMAIL")
+GARMIN_PASSWORD = os.getenv("GARMIN_PASSWORD")
 
 # WebSocket ayarları (Render timeout önlemek için)
 WS_PING_INTERVAL = 20
