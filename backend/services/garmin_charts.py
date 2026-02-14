@@ -109,6 +109,15 @@ class GarminChartManager:
                 if not record['vo2max']:
                      record['vo2max'] = stats.get('vO2MaxValue') or stats.get('vo2MaxCycling')
                 
+                # Fallback to Training Status if still missing
+                if not record['vo2max']:
+                    try:
+                        ts = self.client.get_training_status(date_str)
+                        if ts and 'mostRecentVO2Max' in ts:
+                            record['vo2max'] = ts['mostRecentVO2Max'].get('generic', {}).get('vo2MaxValue')
+                    except Exception as e:
+                        logger.debug(f"Could not fetch training status for VO2: {e}")
+                
                 records.append(record)
                 
             except Exception as e:

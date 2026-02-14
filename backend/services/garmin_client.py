@@ -318,7 +318,28 @@ class GarminClient:
         try:
             # Check if we can get details. 
             # The garminconnect library has `get_activity(activity_id)`
-            return self.client.get_activity(activity_id)
+            activity = self.client.get_activity(activity_id)
+            
+            # Flatten summaryDTO into top level for convenience
+            if activity and 'summaryDTO' in activity:
+                activity.update(activity['summaryDTO'])
+
+            # Ensure 'splits' exists for frontend charts
+            if 'splits' not in activity:
+                activity['splits'] = activity.get('lapDTOs', [])
+            
+            # Fallback: If no splits/laps, create a synthetic one from summary
+            if not activity['splits'] and activity.get('duration'):
+                activity['splits'] = [{
+                    'distance': activity.get('distance', 0),
+                    'duration': activity.get('duration', 0),
+                    'averageHR': activity.get('averageHR'),
+                    'averageSpeed': activity.get('averageSpeed'),
+                    'maxHR': activity.get('maxHR'),
+                    'averagePower': activity.get('averagePower')
+                }]
+                
+            return activity
         except Exception as e:
             logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
             return None
@@ -445,8 +466,33 @@ class GarminClient:
                     ]
         except Exception as e:
             logger.warning(f"Failed to fetch VO2 Max: {e}")
+            
+        # 5b. VO2 Max Fallback (Training Status)
+        if 'vo2_max' not in data:
+            try:
+                ts = self.get_training_status(target_date)
+                if ts and 'mostRecentVO2Max' in ts:
+                    # generic -> vo2MaxValue
+                    val = ts['mostRecentVO2Max'].get('generic', {}).get('vo2MaxValue')
+                    if val:
+                        data['vo2_max'] = [[0, val], [86400000, val]]
+            except Exception as e:
+                logger.warning(f"Failed to fetch VO2 Max from Training Status: {e}")
 
         return data
+
+    def get_training_status(self, date_str=None):
+        """Fetch training status which contains VO2 Max and Load."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return None
+        
+        target_date = date_str if date_str else date.today().isoformat()
+        try:
+            return self.client.get_training_status(target_date)
+        except Exception as e:
+            logger.error(f"Failed to fetch training status: {e}")
+            return None
 
     def create_workout(self, workout_json):
         """
