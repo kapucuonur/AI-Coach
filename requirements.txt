@@ -8,8 +8,11 @@ requests>=2.31.0
 httpx>=0.26.0
 pydantic[email]>=2.0.0
 email-validator>=2.0.0
-
-# Database
+pydantic[email]>=2.0.0
+email-validator>=2.0.0
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
 psycopg2-binary>=2.9.0
 pg8000>=1.30.0
 
