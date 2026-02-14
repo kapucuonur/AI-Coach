@@ -20,6 +20,9 @@ google-auth-httplib2>=0.2.0
 google-api-python-client>=2.115.0
 httplib2>=0.22.0
 
+# Route Processing
+gpxpy>=1.5.0
+
 # Scientific / Advanced Analytics
 matplotlib
 seaborn
