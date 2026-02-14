@@ -18,6 +18,7 @@ const Navbar = () => {
                     </Link>
                     <div className="flex items-center space-x-6">
                         <Link to="/" className="hover:text-blue-400">Dashboard</Link>
+                        <Link to="/routes" className="hover:text-blue-400 font-bold text-green-400">Trainer 🚴‍♂️</Link>
                         <Link to="/coach" className="hover:text-blue-400">Antrenör</Link>
                         <Link to="/activities" className="hover:text-blue-400">Aktiviteler</Link>
                         <Link to="/profile" className="hover:text-blue-400">Profil</Link>

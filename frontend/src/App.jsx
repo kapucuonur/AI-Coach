@@ -10,6 +10,7 @@ import VirtualRide from './pages/VirtualRide.jsx'
 import Activities from './pages/Activities.jsx'
 import Profile from './pages/Profile.jsx'
 import Coach from './pages/Coach.jsx'
+import RoutesPage from './pages/Routes.jsx'
 
 function App() {
   return (
@@ -45,6 +46,12 @@ function App() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/routes" element={
+            <ProtectedRoute>
+              <RoutesPage />
             </ProtectedRoute>
           } />
 
