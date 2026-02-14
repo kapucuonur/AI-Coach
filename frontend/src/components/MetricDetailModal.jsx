@@ -66,7 +66,13 @@ export function MetricDetailModal({ metricType, onClose, date: initialDate }) {
     }, [date]);
 
     // Formatters and Processors
-    const formatTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const formatTime = (ts) => {
+        if (!ts) return '';
+        // Heuristic: If timestamp is in seconds (small number), mul by 1000
+        const dateObj = new Date(ts < 10000000000 ? ts * 1000 : ts);
+        if (isNaN(dateObj.getTime())) return '';
+        return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
 
     const processHR = () => {
         if (!data?.heart_rate?.heartRateValues) return [];
@@ -113,6 +119,16 @@ export function MetricDetailModal({ metricType, onClose, date: initialDate }) {
             }));
     };
 
+    // Process VO2 Max
+    const processVO2Max = () => {
+        if (!data?.vo2_max) return [];
+        return data.vo2_max.map((pt, i) => ({
+            time: pt[0],
+            value: pt[1],
+            label: i === 0 ? 'Daily Avg' : ''
+        }));
+    };
+
     // Process Sleep
     const processSleep = () => {
         if (!data?.sleep?.dailySleepDTO?.sleepLevels) return [];
@@ -157,7 +173,7 @@ export function MetricDetailModal({ metricType, onClose, date: initialDate }) {
 
             return (
                 <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={chartData} layout="vertical" margin={{ left: 40, right: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" horizontal={false} />
                             <XAxis type="number" hide />
@@ -194,12 +210,13 @@ export function MetricDetailModal({ metricType, onClose, date: initialDate }) {
         if (metricType === 'heart_rate') chartData = processHR();
         if (metricType === 'body_battery') chartData = processBodyBattery();
         if (metricType === 'stress') chartData = processStress();
+        if (metricType === 'vo2_max') chartData = processVO2Max();
 
         if (chartData.length === 0) return <div className="text-center text-gray-500 py-12">No time-series data available</div>;
 
         return (
             <div className="h-80 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <AreaChart data={chartData}>
                         <defs>
                             <linearGradient id={config.gradientId} x1="0" y1="0" x2="0" y2="1">

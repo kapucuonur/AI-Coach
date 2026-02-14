@@ -420,6 +420,32 @@ class GarminClient:
         except Exception as e:
             logger.warning(f"Failed to fetch Sleep: {e}")
             
+        # 5. VO2 Max (Summary for the day)
+        try:
+            stats = self.client.get_user_summary(target_date)
+            if stats:
+                # Try common keys
+                val = stats.get('vo2MaxRunning') or stats.get('vo2Max') or stats.get('vO2MaxValue')
+                if val:
+                    # Format as time series for consistency with frontend charts if needed, 
+                    # or just a single value? 
+                    # MetricDetailModal expects a list of {time, value} objects normally?
+                    # Let's check MetricDetailModal.jsx:
+                    # It uses 'AreaChart' and expects 'dataData' array.
+                    # But for VO2 Max, it's a single value per day?
+                    # Actually MetricDetailModal is for *detailed* daily view (intraday).
+                    # VO2 Max doesn't change intraday usually.
+                    # Frontend usually shows it as a single value or flat line.
+                    # Let's return it as a flat series for the day to satisfy the chart.
+                    
+                    # Create a flat line across the day
+                    data['vo2_max'] = [
+                        [0, val], # Start of day
+                        [86400000, val] # End of day (ms)
+                    ]
+        except Exception as e:
+            logger.warning(f"Failed to fetch VO2 Max: {e}")
+
         return data
 
     def create_workout(self, workout_json):

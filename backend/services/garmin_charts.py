@@ -95,10 +95,19 @@ class GarminChartManager:
                     'hrv': stats.get('hrvStatus', {}).get('weeklyAvg')
                 }
                 
-                # If highly requested, we can do the specific calls:
-                # sleep_data = self.client.get_sleep_data(date_str)
-                # if sleep_data:
-                #    record['sleep_score'] = sleep_data.get('dailySleepDTO', {}).get('sleepScore')
+                # Fetch Sleep Data if missing from summary (Critical for Dashboard)
+                if not record['sleep_score']:
+                    try:
+                        sleep_data = self.client.get_sleep_data(date_str)
+                        if sleep_data:
+                            record['sleep_score'] = sleep_data.get('dailySleepDTO', {}).get('sleepScore')
+                    except Exception as e:
+                         # Rate limiting or data missing
+                         logger.debug(f"Could not fetch detailed sleep for {date_str}: {e}")
+
+                # Enhanced VO2Max Lookup
+                if not record['vo2max']:
+                     record['vo2max'] = stats.get('vO2MaxValue') or stats.get('vo2MaxCycling')
                 
                 records.append(record)
                 
