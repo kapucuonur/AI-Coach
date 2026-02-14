@@ -19,6 +19,10 @@ class User(Base):
     ftp_watts = Column(Integer)
     max_hr = Column(Integer)
     
+    # Garmin Integration
+    garmin_email = Column(String(255), nullable=True)
+    garmin_password = Column(String(500), nullable=True)  # Encrypted
+    
     activities = relationship("Activity", back_populates="user", cascade="all, delete-orphan")
 
 class Route(Base):

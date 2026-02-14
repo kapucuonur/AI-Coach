@@ -32,8 +32,21 @@ class GarminService:
         """
         Fetches recent activities from Garmin and saves them to DB for the given user.
         """
-        if not self.client:
-            self.login()
+        # Fetch user credentials from DB
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user or not user.garmin_email or not user.garmin_password:
+            return {"error": "Garmin credentials not found. Please connect your account in Profile settings."}
+
+        # Decrypt password
+        from app.utils.crypto import decrypt_password
+        pwd = decrypt_password(user.garmin_password)
+        
+        # Login with user credentials (not env vars)
+        try:
+            self.login(user.garmin_email, pwd)
+        except Exception as e:
+            logger.error(f"Login failed for user {user.garmin_email}: {e}")
+            return {"error": "Garmin login failed. Check your credentials."}
 
         # Garmin returns a list of activities (default 10)
         try:
@@ -43,8 +56,7 @@ class GarminService:
             return {"error": str(e)}
 
         synced_count = 0
-        user = self.db.query(User).filter(User.id == user_id).first()
-        ftp = user.ftp_watts if user and user.ftp_watts else 200  # Default FTP
+        ftp = user.ftp_watts if user.ftp_watts else 200  # Default FTP
 
         for act in activities:
             garmin_id = str(act['activityId'])
@@ -77,9 +89,6 @@ class GarminService:
             )
             
             # Calculate TSS (Training Stress Score)
-            # TSS = (sec * NP * IF) / (FTP * 3600) * 100
-            # IF = NP / FTP
-            # Simplified: IF = avg_power / FTP (since we don't have NP yet)
             if new_activity.avg_power and new_activity.duration_seconds and ftp > 0:
                 intensity_factor = new_activity.avg_power / ftp
                 tss = (new_activity.duration_seconds * new_activity.avg_power * intensity_factor) / (ftp * 3600) * 100
