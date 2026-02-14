@@ -11,8 +11,8 @@ const SLIDES = [
     },
     {
         video: '/video-cycle.mp4',
-        title: 'Bike',
-        subtitle: 'Conquer the Road',
+        title: 'Triathlon',
+        subtitle: 'Defy Your Limits',
         color: 'from-orange-400 to-red-400'
     },
     {
@@ -91,8 +91,8 @@ const Login = () => {
                             <div
                                 key={index}
                                 className={`absolute top-0 left-0 w-full transition-all duration-1000 transform ${currentSlide === index
-                                        ? 'opacity-100 translate-y-0'
-                                        : 'opacity-0 translate-y-8 pointer-events-none'
+                                    ? 'opacity-100 translate-y-0'
+                                    : 'opacity-0 translate-y-8 pointer-events-none'
                                     }`}
                             >
                                 <h3 className={`text-2xl font-bold tracking-[0.2em] uppercase mb-2 bg-gradient-to-r ${slide.color} bg-clip-text text-transparent`}>
