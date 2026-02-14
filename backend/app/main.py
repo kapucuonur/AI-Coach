@@ -5,12 +5,14 @@ from contextlib import asynccontextmanager
 from app.database import engine, Base
 from app.config import ALLOWED_ORIGINS
 from app.routers import auth, users, routes, trainer, virtual_ride, activities, coach
+from app.migration import migrate_db
 
 Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 AI-Coach starting...")
+    migrate_db()  # Run schema updates
     yield
     print("👋 AI-Coach shutting down...")
 
