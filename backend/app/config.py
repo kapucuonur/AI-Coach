@@ -24,5 +24,7 @@ WS_TIMEOUT = 25
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://your-app.vercel.app",  # Kendi Vercel URL'niz
+    "https://ai-coach-nine-rho.vercel.app",
+    "https://ai-coach.vercel.app",
+    "https://ai-coach-usoh.onrender.com"
 ]
