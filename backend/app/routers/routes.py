@@ -50,3 +50,55 @@ def import_gpx(
         return route
     finally:
         os.unlink(tmp_path)
+
+@router.post("/free-ride")
+def create_free_ride_route(
+    lat: float,
+    lng: float,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_active_user)
+):
+    service = RouteService(db)
+    # Generate a 20km square loop around the point
+    # 1 deg lat ~= 111km -> 5km ~= 0.045 deg
+    delta = 0.045
+    
+    # Simple Square Loop (North -> East -> South -> West)
+    points = [
+        {"lat": lat, "lng": lng, "elevation": 0},
+        {"lat": lat + delta, "lng": lng, "elevation": 0},          # 5km North
+        {"lat": lat + delta, "lng": lng + delta, "elevation": 0},  # 5km East
+        {"lat": lat, "lng": lng + delta, "elevation": 0},          # 5km South
+        {"lat": lat, "lng": lng, "elevation": 0}                   # 5km West (Back to start)
+    ]
+    
+    # We need more granularity for the simulation to work smoothly
+    # Let's interpolate points every ~100m
+    detailed_points = []
+    for i in range(len(points) - 1):
+        p1 = points[i]
+        p2 = points[i+1]
+        
+        # Linear interpolation
+        steps = 50 
+        for j in range(steps):
+            t = j / steps
+            detailed_points.append({
+                "lat": p1["lat"] + (p2["lat"] - p1["lat"]) * t,
+                "lng": p1["lng"] + (p2["lng"] - p1["lng"]) * t,
+                "elevation": 0 + (p2["elevation"] - p1["elevation"]) * t
+            })
+            
+    detailed_points.append(points[-1])
+    
+    # Create the route
+    route = service.create_synthetic_route(
+        name="Özgür Sürüş", 
+        description=f"Map Location: {lat:.4f}, {lng:.4f}",
+        country="World",
+        distance_km=20.0,
+        elevation_gain_m=0,
+        points=detailed_points
+    )
+    
+    return route

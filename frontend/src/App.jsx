@@ -11,6 +11,7 @@ import Activities from './pages/Activities.jsx'
 import Profile from './pages/Profile.jsx'
 import Coach from './pages/Coach.jsx'
 import RoutesPage from './pages/Routes.jsx'
+import FreeRideSetup from './pages/FreeRideSetup.jsx'
 
 function App() {
   return (
@@ -52,6 +53,12 @@ function App() {
           <Route path="/routes" element={
             <ProtectedRoute>
               <RoutesPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/free-ride" element={
+            <ProtectedRoute>
+              <FreeRideSetup />
             </ProtectedRoute>
           } />
 

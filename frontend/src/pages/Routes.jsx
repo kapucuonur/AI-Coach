@@ -38,6 +38,19 @@ const Routes = () => {
                     <span>🚴‍♂️</span> Sanal Sürüş Rotaları
                 </h1>
 
+                <div className="mb-8 p-6 bg-gradient-to-r from-purple-900 to-indigo-900 rounded-xl shadow-xl border border-purple-500 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-2xl font-bold mb-2">🗺️ Özgür Sürüş Modu</h2>
+                        <p className="text-gray-200">Dünyanın herhangi bir yerini seçin ve sürmeye başlayın.</p>
+                    </div>
+                    <button
+                        onClick={() => navigate('/free-ride')}
+                        className="bg-white text-purple-900 px-6 py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors"
+                    >
+                        Haritadan Seç 🌍
+                    </button>
+                </div>
+
                 {loading ? (
                     <div className="text-center text-gray-400 py-12">Yükleniyor...</div>
                 ) : routes.length === 0 ? (

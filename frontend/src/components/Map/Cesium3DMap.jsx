@@ -4,7 +4,7 @@ import * as Cesium from 'cesium'
 
 Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJlYWE1M...'
 
-const Cesium3DMap = ({ coordinates, currentPosition }) => {
+const Cesium3DMap = ({ coordinates, currentPosition, onClick }) => {
     const containerRef = useRef(null)
     const viewerRef = useRef(null)
     const entityRef = useRef(null)
@@ -89,6 +89,28 @@ const Cesium3DMap = ({ coordinates, currentPosition }) => {
             )
         )
     }, [currentPosition])
+
+    useEffect(() => {
+        if (!viewerRef.current || !onClick) return
+
+        const handler = new Cesium.ScreenSpaceEventHandler(viewerRef.current.scene.canvas)
+
+        handler.setInputAction((movement) => {
+            const cartesian = viewerRef.current.camera.pickEllipsoid(
+                movement.position,
+                viewerRef.current.scene.globe.ellipsoid
+            )
+
+            if (cartesian) {
+                const cartographic = Cesium.Cartographic.fromCartesian(cartesian)
+                const lng = Cesium.Math.toDegrees(cartographic.longitude)
+                const lat = Cesium.Math.toDegrees(cartographic.latitude)
+                onClick({ lat, lng })
+            }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
+
+        return () => handler.destroy()
+    }, [onClick])
 
     return <div ref={containerRef} className="w-full h-96 rounded-lg overflow-hidden" />
 }

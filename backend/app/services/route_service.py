@@ -80,11 +80,6 @@ class RouteService:
         
         return query.order_by(Route.popularity.desc()).all()
     
-    def get_route_for_virtual_ride(self, route_id: int) -> Dict:
-        route = self.get_route(route_id)
-        if not route:
-            return None
-        
         return {
             "id": route.id,
             "name": route.name,
@@ -94,3 +89,35 @@ class RouteService:
             "coordinates": route.coordinates,
             "elevation_profile": route.elevation_profile
         }
+
+    def create_synthetic_route(self, name: str, description: str, country: str,
+                             distance_km: float, elevation_gain_m: float,
+                             points: List[Dict]) -> Route:
+        
+        # Calculate gradients for the synthetic points
+        elevation_points = self.elevation_service.calculate_from_coordinates(points)
+        
+        gradients = [p.gradient for p in elevation_points[1:]]
+        max_gradient = max(gradients) if gradients else 0
+        avg_gradient = sum(gradients) / len(gradients) if gradients else 0
+        
+        db_route = Route(
+            name=name,
+            description=description,
+            country=country,
+            distance_km=distance_km,
+            elevation_gain_m=elevation_gain_m,
+            max_gradient=round(max_gradient, 2),
+            avg_gradient=round(avg_gradient, 2),
+            difficulty=1,
+            gpx_file="synthetic",
+            elevation_profile=self.elevation_service.to_dict(),
+            coordinates=[{"lat": p.lat, "lng": p.lng, "elevation": p.elevation} 
+                      for p in elevation_points]
+        )
+        
+        self.db.add(db_route)
+        self.db.commit()
+        self.db.refresh(db_route)
+        
+        return db_route
