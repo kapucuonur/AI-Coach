@@ -1,0 +1,29 @@
+{
+    "navbar": {
+        "dashboard": "Armaturenbrett",
+        "trainer": "Trainer",
+        "coach": "KI-Coach",
+        "activities": "Aktivitäten",
+        "profile": "Profil",
+        "logout": "Abmelden"
+    },
+    "dashboard": {
+        "welcome": "Willkommen zurück",
+        "start_ride": "Fahrt beginnen"
+    },
+    "routes": {
+        "title": "Virtuelle Routen",
+        "free_ride": "Freier Modus",
+        "free_ride_desc": "Wählen Sie einen beliebigen Ort auf der Weltkarte und fahren Sie los.",
+        "map_select": "Auf Karte wählen",
+        "start": "Starten",
+        "distance": "Distanz",
+        "elevation": "Höhe",
+        "difficulty": "Schwierigkeit"
+    },
+    "common": {
+        "loading": "Laden...",
+        "success": "Erfolg",
+        "error": "Fehler"
+    }
+}

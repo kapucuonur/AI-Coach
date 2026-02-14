@@ -1,0 +1,29 @@
+{
+    "navbar": {
+        "dashboard": "Tableau de bord",
+        "trainer": "Entraîneur",
+        "coach": "Coach IA",
+        "activities": "Activités",
+        "profile": "Profil",
+        "logout": "Déconnexion"
+    },
+    "dashboard": {
+        "welcome": "Bon retour",
+        "start_ride": "Commencer"
+    },
+    "routes": {
+        "title": "Parcours Virtuels",
+        "free_ride": "Mode Libre",
+        "free_ride_desc": "Choisissez n'importe où sur la carte du monde et commencez à rouler.",
+        "map_select": "Choisir sur la carte",
+        "start": "Commencer",
+        "distance": "Distance",
+        "elevation": "Altitude",
+        "difficulty": "Difficulté"
+    },
+    "common": {
+        "loading": "Chargement...",
+        "success": "Succès",
+        "error": "Erreur"
+    }
+}

@@ -1,0 +1,29 @@
+{
+    "navbar": {
+        "dashboard": "Dashboard",
+        "trainer": "Trainer",
+        "coach": "AI Coach",
+        "activities": "Activities",
+        "profile": "Profile",
+        "logout": "Logout"
+    },
+    "dashboard": {
+        "welcome": "Welcome back",
+        "start_ride": "Start Ride"
+    },
+    "routes": {
+        "title": "Virtual Ride Routes",
+        "free_ride": "Free Ride Mode",
+        "free_ride_desc": "Select anywhere on the world map and start riding.",
+        "map_select": "Select on Map",
+        "start": "Start Ride",
+        "distance": "Distance",
+        "elevation": "Elevation",
+        "difficulty": "Difficulty"
+    },
+    "common": {
+        "loading": "Loading...",
+        "success": "Success",
+        "error": "Error"
+    }
+}

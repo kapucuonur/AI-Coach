@@ -1,0 +1,29 @@
+{
+    "navbar": {
+        "dashboard": "Panel",
+        "trainer": "Trainer",
+        "coach": "Antrenör",
+        "activities": "Aktiviteler",
+        "profile": "Profil",
+        "logout": "Çıkış"
+    },
+    "dashboard": {
+        "welcome": "Hoş geldin",
+        "start_ride": "Sürüşü Başlat"
+    },
+    "routes": {
+        "title": "Sanal Sürüş Rotaları",
+        "free_ride": "Özgür Sürüş Modu",
+        "free_ride_desc": "Dünya haritası üzerinde herhangi bir yer seç ve sürmeye başla.",
+        "map_select": "Haritadan Seç",
+        "start": "Sürüşe Başla",
+        "distance": "Mesafe",
+        "elevation": "Yükseklik",
+        "difficulty": "Zorluk"
+    },
+    "common": {
+        "loading": "Yükleniyor...",
+        "success": "Başarılı",
+        "error": "Hata"
+    }
+}

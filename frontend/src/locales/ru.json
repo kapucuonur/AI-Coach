@@ -1,0 +1,29 @@
+{
+    "navbar": {
+        "dashboard": "Дашборд",
+        "trainer": "Тренажер",
+        "coach": "AI Тренер",
+        "activities": "Активности",
+        "profile": "Профиль",
+        "logout": "Выйти"
+    },
+    "dashboard": {
+        "welcome": "С возвращением",
+        "start_ride": "Начать заезд"
+    },
+    "routes": {
+        "title": "Виртуальные маршруты",
+        "free_ride": "Свободный режим",
+        "free_ride_desc": "Выберите любое место на карте мира и начните заезд.",
+        "map_select": "Выбрать на карте",
+        "start": "Начать",
+        "distance": "Расстояние",
+        "elevation": "Набор высоты",
+        "difficulty": "Сложность"
+    },
+    "common": {
+        "loading": "Загрузка...",
+        "success": "Успешно",
+        "error": "Ошибка"
+    }
+}

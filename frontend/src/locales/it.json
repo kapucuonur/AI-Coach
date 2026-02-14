@@ -1,0 +1,29 @@
+{
+    "navbar": {
+        "dashboard": "Cruscotto",
+        "trainer": "Allenatore",
+        "coach": "Coach AI",
+        "activities": "Attività",
+        "profile": "Profilo",
+        "logout": "Esci"
+    },
+    "dashboard": {
+        "welcome": "Benvenuto",
+        "start_ride": "Inizia Corsa"
+    },
+    "routes": {
+        "title": "Percorsi Virtuali",
+        "free_ride": "Modalità Libera",
+        "free_ride_desc": "Scegli un punto qualsiasi sulla mappa e inizia a pedalare.",
+        "map_select": "Seleziona su Mappa",
+        "start": "Inizia",
+        "distance": "Distanza",
+        "elevation": "Altitudine",
+        "difficulty": "Difficoltà"
+    },
+    "common": {
+        "loading": "Caricamento...",
+        "success": "Successo",
+        "error": "Errore"
+    }
+}
