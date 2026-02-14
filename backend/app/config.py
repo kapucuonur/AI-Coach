@@ -4,6 +4,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+from dotenv import load_dotenv
+load_dotenv(BASE_DIR / ".env")
+
 # PostgreSQL bağlantı (Render.com veya local)
 DATABASE_URL = os.getenv(
     "DATABASE_URL", 
