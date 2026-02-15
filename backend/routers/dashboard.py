@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from backend.services.garmin_client import GarminClient
 from backend.services.coach_brain import CoachBrain
@@ -7,6 +8,7 @@ from backend.database import get_db
 import os
 import traceback
 import logging
+import math
 from datetime import date
 
 # Configure logging
@@ -14,6 +16,20 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+def clean_nans(obj):
+    """
+    Recursively replace NaN and Infinity with None to ensure JSON compliance.
+    """
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: clean_nans(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [clean_nans(v) for v in obj]
+    return obj
 
 def get_garmin_client(db: Session = Depends(get_db)):
     # Try to get email/password from env first as a fallback/default
@@ -50,7 +66,7 @@ def get_daily_summary(client: GarminClient = Depends(get_garmin_client)):
         today = date.today().isoformat()
         # client.client is the internal Garmin object
         stats = client.client.get_user_summary(today)
-        return stats
+        return clean_nans(stats)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -58,7 +74,7 @@ def get_daily_summary(client: GarminClient = Depends(get_garmin_client)):
 def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_garmin_client)):
     try:
         activities = client.get_activities(limit)
-        return activities
+        return clean_nans(activities)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -73,6 +89,13 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
             logger.warning(f"Activity {activity_id} not found in Garmin.")
             raise HTTPException(status_code=404, detail="Activity not found")
             
+        # Clean potential NaNs which break JSON serialization
+        try:
+            details = clean_nans(details)
+        except Exception as e:
+            logger.error(f"Error cleaning NaNs from details: {e}")
+            # Continue with original details if cleaning fails, hoping for the best
+            
         # 2. AI Analysis
         gemini_key = os.getenv("GEMINI_API_KEY")
         if not gemini_key:
@@ -81,19 +104,23 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
 
         brain = CoachBrain(gemini_key)
         
+        user_settings_dict = {}
         try:
             settings = load_settings()
             user_settings_dict = settings.model_dump()
         except Exception as se:
             logger.warning(f"Failed to load settings: {se}")
-            user_settings_dict = {}
         
         analysis = brain.analyze_activity(details, user_settings_dict)
         
-        return {
+        response_data = {
             "details": details,
             "analysis": analysis
         }
+        
+        # Verify serialization ensures no 500 error escapes this block
+        return jsonable_encoder(response_data)
+        
     except HTTPException as he:
         raise he
     except Exception as e:
