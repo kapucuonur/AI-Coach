@@ -8,6 +8,7 @@ import { TrainingPlan } from './components/TrainingPlan';
 import { Login } from './components/Login';
 import { ChatWidget } from './components/ChatWidget';
 import { ActivityAnalysis } from './components/ActivityAnalysis';
+import { MetricDetailModal } from './components/MetricDetailModal';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
 
 function App() {
@@ -16,9 +17,12 @@ function App() {
   const [error, setError] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selectedActivityId, setSelectedActivityId] = useState(null);
 
-  // Dark mode state - defaulting to true or system preference could be added
+  // Interaction States
+  const [selectedActivityId, setSelectedActivityId] = useState(null);
+  const [selectedMetric, setSelectedMetric] = useState(null);
+
+  // Dark mode state
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved !== null ? JSON.parse(saved) : true;
@@ -39,11 +43,10 @@ function App() {
   const handleLogin = async (briefingData, creds) => {
     setLoading(true);
     setError(null);
-    setCredentials(creds); // Store for later API calls (Plan generation)
-    setData(briefingData); // Set the advice data directly from Login component
+    setCredentials(creds);
+    setData(briefingData);
 
     try {
-      // Fetch Settings (for language preference)
       try {
         const settingsRes = await client.get('/settings');
         setSettingsData(settingsRes.data);
@@ -64,7 +67,6 @@ function App() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark transition-colors duration-300">
-        {/* Simple dark mode toggle for login screen */}
         <div className="absolute top-4 right-4">
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -78,7 +80,6 @@ function App() {
     );
   }
 
-  // Loading state for subsequent operations if any
   if (loading && isAuthenticated) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white transition-colors">
@@ -88,7 +89,7 @@ function App() {
     );
   }
 
-  const { metrics, advice, workout } = data || {}; // Safe destructuring
+  const { metrics, advice, workout } = data || {};
   const health = metrics?.health || {};
   const sleep = metrics?.sleep || {};
   const profile = metrics?.profile || {};
@@ -104,7 +105,6 @@ function App() {
             <p className="text-gray-500 dark:text-gray-400">Your daily training intelligence</p>
           </div>
           <div className="flex items-center gap-4">
-            {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
@@ -141,7 +141,7 @@ function App() {
           }}
         />
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Now Clickable */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatsCard
             title="Resting HR"
@@ -149,13 +149,15 @@ function App() {
             unit="bpm"
             icon={Heart}
             className="border-red-500/20"
+            onClick={() => setSelectedMetric({ key: 'resting_hr', title: 'Resting Heart Rate', unit: 'bpm', color: '#ef4444' })}
           />
           <StatsCard
             title="VO2 Max"
-            value={profile.vo2MaxRunning || '--'}
+            value={profile.vo2MaxRunning || profile.vo2MaxPreciseValue || '--'}
             unit="ml/kg"
             icon={Zap}
             className="border-yellow-500/20"
+            onClick={() => setSelectedMetric({ key: 'vo2_max', title: 'VO2 Max', unit: 'ml/kg', color: '#eab308' })}
           />
           <StatsCard
             title="Stress"
@@ -163,6 +165,7 @@ function App() {
             unit="/100"
             icon={Activity}
             className="border-orange-500/20"
+            onClick={() => setSelectedMetric({ key: 'stress', title: 'Stress Level', unit: '', color: '#f97316' })}
           />
           <StatsCard
             title="Body Battery"
@@ -170,6 +173,7 @@ function App() {
             unit="%"
             icon={Battery}
             className="border-blue-500/20"
+            onClick={() => setSelectedMetric({ key: 'body_battery', title: 'Body Battery', unit: '%', color: '#3b82f6' })}
           />
           <StatsCard
             title="Sleep"
@@ -177,6 +181,7 @@ function App() {
             unit="hrs"
             icon={Moon}
             className="border-purple-500/20"
+            onClick={() => setSelectedMetric({ key: 'sleep', title: 'Sleep Duration', unit: 'hrs', color: '#a855f7' })}
           />
         </div>
 
@@ -205,6 +210,17 @@ function App() {
         <ActivityAnalysis
           activityId={selectedActivityId}
           onClose={() => setSelectedActivityId(null)}
+        />
+      )}
+
+      {/* Metric Detail Modal */}
+      {selectedMetric && (
+        <MetricDetailModal
+          metricKey={selectedMetric.key}
+          title={selectedMetric.title}
+          unit={selectedMetric.unit}
+          color={selectedMetric.color}
+          onClose={() => setSelectedMetric(null)}
         />
       )}
 

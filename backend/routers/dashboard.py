@@ -101,3 +101,39 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
         logger.error(f"Error fetching activity details: {error_trace}")
         # Return the trace in the detail for debugging (in production usually hidden, but we need it here)
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}\n\nTrace:\n{error_trace}")
+
+@router.get("/health-history")
+def get_health_history(days: int = 7, client: GarminClient = Depends(get_garmin_client)):
+    try:
+        from datetime import timedelta
+        history = []
+        today = date.today()
+        
+        # Limit days to prevent long waits
+        days = min(days, 30)
+        
+        for i in range(days):
+            d = today - timedelta(days=i)
+            d_str = d.isoformat()
+            try:
+                stats = client.get_health_stats(d_str)
+                sleep = client.get_sleep_data(d_str)
+                
+                day_data = {
+                    "date": d_str,
+                    "resting_hr": stats.get('restingHeartRate') if stats else None,
+                    "max_hr": stats.get('maxHeartRate') if stats else None,
+                    "stress": stats.get('averageStressLevel') if stats else None,
+                    "body_battery_max": stats.get('bodyBatteryLargestChargedValue') if stats else None,
+                    "sleep_seconds": sleep.get('dailySleepDTO', {}).get('sleepTimeSeconds') if sleep and sleep.get('dailySleepDTO') else None,
+                    "sleep_score": sleep.get('dailySleepDTO', {}).get('sleepScore') if sleep and sleep.get('dailySleepDTO') else None
+                }
+                history.append(day_data)
+            except Exception as e:
+                logger.warning(f"Failed to fetch stats for {d_str}: {e}")
+                
+        # Return oldest to newest for charts
+        return sorted(history, key=lambda x: x['date'])
+        
+    except Exception as e:
+         raise HTTPException(status_code=500, detail=str(e))
