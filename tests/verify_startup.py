@@ -1,14 +1,12 @@
 
 import sys
 import os
-
-# Add backend to sys.path
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
-    from app.main import app
-    print("✅ Application imported successfully!")
+    from backend.app.main import app
+    print("✅ App imported successfully!")
 except Exception as e:
-    print(f"❌ Application failed to import: {e}")
+    print(f"❌ App import failed: {e}")
     import traceback
     traceback.print_exc()
