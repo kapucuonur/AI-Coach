@@ -80,23 +80,28 @@ def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_gar
 
 @router.get("/activities/{activity_id}/details")
 def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):
+    logger.info(f"DEBUG: Starting get_activity_details for {activity_id}")
     try:
-        logger.info(f"Fetching details for activity {activity_id}")
-        
         # 1. Fetch details from Garmin
+        logger.info("DEBUG: Calling client.get_activity_details...")
         details = client.get_activity_details(activity_id)
+        logger.info(f"DEBUG: client.get_activity_details returned type: {type(details)}")
+        
         if not details:
             logger.warning(f"Activity {activity_id} not found in Garmin.")
             raise HTTPException(status_code=404, detail="Activity not found")
             
         # Clean potential NaNs which break JSON serialization
+        logger.info("DEBUG: Cleaning NaNs...")
         try:
             details = clean_nans(details)
+            logger.info("DEBUG: clean_nans completed.")
         except Exception as e:
             logger.error(f"Error cleaning NaNs from details: {e}")
             # Continue with original details if cleaning fails, hoping for the best
             
         # 2. AI Analysis
+        logger.info("DEBUG: Starting AI Analysis...")
         gemini_key = os.getenv("GEMINI_API_KEY")
         if not gemini_key:
             logger.error("GEMINI_API_KEY missing")
@@ -111,14 +116,16 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
         except Exception as se:
             logger.warning(f"Failed to load settings: {se}")
         
+        logger.info("DEBUG: Calling brain.analyze_activity...")
         analysis = brain.analyze_activity(details, user_settings_dict)
+        logger.info("DEBUG: brain.analyze_activity completed.")
         
         response_data = {
             "details": details,
             "analysis": analysis
         }
         
-        # Verify serialization ensures no 500 error escapes this block
+        logger.info("DEBUG: Encoding response...")
         return jsonable_encoder(response_data)
         
     except HTTPException as he:
