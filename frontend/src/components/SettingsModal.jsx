@@ -8,6 +8,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const [age, setAge] = useState("");
     const [gender, setGender] = useState("Male");
     const [strengthDays, setStrengthDays] = useState(0);
+    const [offDays, setOffDays] = useState([]);
     const [metrics, setMetrics] = useState({ threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
     const [races, setRaces] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
             setAge(res.data.age || "");
             setGender(res.data.gender || "Male");
             setStrengthDays(res.data.strength_days || 0);
+            setOffDays(res.data.off_days || []);
             setMetrics(res.data.metrics || { threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
             setRaces(res.data.races || []);
         } catch (error) {
@@ -42,6 +44,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                 age: age ? parseInt(age) : null,
                 gender: gender,
                 strength_days: parseInt(strengthDays),
+                off_days: offDays,
                 metrics: metrics,
                 races: races
             });
@@ -116,6 +119,32 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                             onChange={(e) => setStrengthDays(e.target.value)}
                             className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
                         />
+                    </div>
+
+                    {/* Off Days Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Off Day(s) - Rest Days
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+                                <label key={day} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={offDays.includes(day)}
+                                        onChange={(e) => {
+                                            if (e.target.checked) {
+                                                setOffDays([...offDays, day]);
+                                            } else {
+                                                setOffDays(offDays.filter(d => d !== day));
+                                            }
+                                        }}
+                                        className="w-4 h-4 text-garmin-blue bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-2 focus:ring-garmin-blue"
+                                    />
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">{day}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Sport Specific Metrics */}

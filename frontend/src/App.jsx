@@ -181,7 +181,7 @@ function App() {
           />
           <StatsCard
             title="VO2 Max"
-            value={profile.vo2MaxRunning || profile.vo2MaxPreciseValue || '--'}
+            value={profile.vo2Max || profile.vo2MaxValue || profile.vo2MaxRunning || profile.vo2MaxPrecise || '--'}
             unit="ml/kg"
             icon={Zap}
             className="border-yellow-500/20"

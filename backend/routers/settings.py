@@ -20,6 +20,7 @@ class UserSettings(BaseModel):
     age: Optional[int] = None
     gender: Optional[str] = None
     strength_days: int = 0
+    off_days: List[str] = []  # e.g., ["Monday", "Sunday"]
     metrics: Dict = {}
     races: List[Race] = []
     coach_style: str = "Supportive"

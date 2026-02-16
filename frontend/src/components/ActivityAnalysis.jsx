@@ -142,8 +142,10 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                                 <Zap size={18} className="text-blue-400" />
                                                 Coach's Analysis
                                             </h3>
-                                            <div className="prose prose-invert prose-sm max-w-none text-gray-300">
-                                                <ReactMarkdown>{data?.analysis}</ReactMarkdown>
+                                            <div className="prose prose-invert prose-sm max-w-none">
+                                                <p className="text-gray-300 leading-relaxed whitespace-pre-line text-base">
+                                                    {data?.analysis?.feedback || "No analysis available"}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
