@@ -2,9 +2,16 @@ import React from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-export function StatsCard({ title, value, unit, icon: Icon, trend, className }) {
+export function StatsCard({ title, value, unit, icon: Icon, trend, className, onClick }) {
     return (
-        <div className={twMerge("bg-white dark:bg-garmin-gray p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 transition-colors duration-300", className)}>
+        <div
+            onClick={onClick}
+            className={twMerge(
+                "bg-white dark:bg-garmin-gray p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-800 transition-all duration-300",
+                onClick && "cursor-pointer hover:scale-105 hover:shadow-xl hover:border-garmin-blue dark:hover:border-garmin-blue",
+                className
+            )}
+        >
             <div className="flex justify-between items-start mb-4">
                 <div>
                     <p className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">{title}</p>
