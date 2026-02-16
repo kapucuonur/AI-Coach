@@ -137,7 +137,14 @@ class GarminClient:
         Returns: (success: bool, status: str, message: str)
         status can be: "SUCCESS", "MFA_REQUIRED", "FAILED"
         """
-        if not self.email or not self.password:
+        # Password is required for new logins, but not for loading existing sessions from DB
+        if not self.email:
+            msg = "Email not provided."
+            logger.error(msg)
+            return False, "FAILED", msg
+        
+        # Check if password is required (not needed if loading from DB/cache)
+        if not self.password and not db and self.email not in GLOBAL_CLIENTS:
             msg = "Garmin credentials not provided."
             logger.error(msg)
             return False, "FAILED", msg
