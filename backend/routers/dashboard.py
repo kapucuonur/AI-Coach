@@ -36,11 +36,14 @@ def get_garmin_client(db: Session = Depends(get_db)):
     email = os.getenv("GARMIN_EMAIL")
     password = os.getenv("GARMIN_PASSWORD")
     
+    logger.info(f"get_garmin_client called - Email configured: {bool(email)}")
+    
     # If no env vars, we might fail if we don't have a session.
     # Ideally, we should get the email from the request header/token 
     # but for this specific app structure (single user/owner), env var is the identity.
     
     if not email or not password:
+         logger.error("Garmin credentials missing from environment")
          raise HTTPException(status_code=500, detail="Server configuration error: Garmin credentials missing")
 
     client = GarminClient(email, password)
@@ -48,16 +51,22 @@ def get_garmin_client(db: Session = Depends(get_db)):
     # helper to unpack the tuple return from updated login()
     # We pass 'db' so it can try to load from DB first
     try:
+        logger.info("Attempting Garmin client login...")
         success, status, msg = client.login(db=db)
+        logger.info(f"Login attempt result: success={success}, status={status}")
     except Exception as e:
+        logger.error(f"Exception during client.login: {e}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
     
     if not success:
         # If login failed (even after trying DB session), we return 401
         # This will happen if session expired AND env var password/email is wrong or requires 2FA fresh
         # For dashboard data calls, if we fail here, the user sees 401 and should be redirected to Login
+        logger.warning(f"Garmin authentication failed: {msg}")
         raise HTTPException(status_code=401, detail=f"Failed to authenticate with Garmin: {msg}")
-        
+    
+    logger.info("Garmin client authenticated successfully")
     return client
 
 @router.get("/summary")
