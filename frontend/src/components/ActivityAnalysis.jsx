@@ -144,7 +144,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </h3>
                                             <div className="prose prose-invert prose-sm max-w-none">
                                                 <p className="text-gray-300 leading-relaxed whitespace-pre-line text-base">
-                                                    {data?.analysis?.feedback || "No analysis available"}
+                                                    {data?.analysis || "No analysis available"}
                                                 </p>
                                             </div>
                                         </div>
