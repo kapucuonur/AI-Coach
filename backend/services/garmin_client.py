@@ -95,8 +95,9 @@ class GarminClient:
     def restore_session_from_data(self, session_data):
         """Restore garth session from data dict."""
         try:
-            # Create a client instance
-            self.client = Garmin(self.email, self.password)
+            # Create a client instance (password not used when loading from session)
+            pwd = self.password if self.password else "session_restore_placeholder"
+            self.client = Garmin(self.email, pwd)
             
             # Use temp dir to load
             with tempfile.TemporaryDirectory() as tmpdirname:
