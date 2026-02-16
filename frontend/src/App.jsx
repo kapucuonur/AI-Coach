@@ -1,3 +1,4 @@
+```javascript
 import { useState, useEffect } from 'react';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -9,6 +10,7 @@ import { Login } from './components/Login';
 import { ChatWidget } from './components/ChatWidget';
 import { ActivityAnalysis } from './components/ActivityAnalysis';
 import { MetricDetailModal } from './components/MetricDetailModal';
+import { NutritionTracker } from './components/NutritionTracker';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
 
 function App() {
@@ -211,6 +213,9 @@ function App() {
             onClick={() => setSelectedMetric({ key: 'sleep', title: 'Sleep Duration', unit: 'hrs', color: '#a855f7' })}
           />
         </div>
+
+        {/* Nutrition Tracking */}
+        <NutritionTracker />
 
 
         {/* Main Content Split */}
