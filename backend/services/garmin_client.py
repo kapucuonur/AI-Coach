@@ -166,7 +166,8 @@ class GarminClient:
         garth_dir = os.path.join(home_dir, ".garth")
         if not mfa_code and os.path.exists(garth_dir):
              try:
-                self.client = Garmin(self.email, self.password)
+                pwd = self.password if self.password else "session_restore_placeholder"
+                self.client = Garmin(self.email, pwd)
                 self.client.garth.load(garth_dir)
                 # ... (verification logic same as above) ...
                 try:
