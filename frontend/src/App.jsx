@@ -1,4 +1,3 @@
-```javascript
 import { useState, useEffect } from 'react';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
