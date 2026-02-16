@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from backend.services.garmin_client import GarminClient
 from backend.database import get_db
+from backend.auth_utils import create_access_token
 import logging
 
 router = APIRouter()
@@ -27,10 +28,15 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
         success, status, message = client.login(db=db)
         
         if success:
+            # Generate JWT token for authenticated user
+            access_token = create_access_token(email=credentials.email)
+            
             return {
                 "status": "success", 
                 "message": message, 
-                "display_name": client.client.display_name
+                "display_name": client.client.display_name,
+                "access_token": access_token,
+                "token_type": "bearer"
             }
         elif status == "MFA_REQUIRED":
             return {
@@ -61,10 +67,15 @@ def mfa_login(data: MFARequest, db: Session = Depends(get_db)):
         success, status, message = client.login(db=db, mfa_code=data.code)
         
         if success:
-             return {
+            # Generate JWT token for authenticated user
+            access_token = create_access_token(email=data.email)
+            
+            return {
                 "status": "success", 
                 "message": message, 
-                "display_name": client.client.display_name if client.client and hasattr(client.client, 'display_name') else "User"
+                "display_name": client.client.display_name if client.client and hasattr(client.client, 'display_name') else "User",
+                "access_token": access_token,
+                "token_type": "bearer"
             }
         else:
             raise HTTPException(status_code=401, detail=message)
@@ -81,3 +92,4 @@ def auth_status(db: Session = Depends(get_db)):
     Check authentication status.
     """
     return {"authenticated": False}
+

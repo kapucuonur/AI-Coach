@@ -3,6 +3,7 @@ from backend.services.garmin_client import GarminClient
 from backend.services.data_processor import DataProcessor
 from backend.services.coach_brain import CoachBrain
 from backend.database import get_db
+from backend.auth_utils import create_access_token
 from sqlalchemy.orm import Session
 import os
 from datetime import date
@@ -115,7 +116,9 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
                 "weekly_volume": activities_summary_dict,
                 "recent_activities": activities,
                 "profile": profile
-            }
+            },
+            "access_token": create_access_token(email=user_data.email),
+            "token_type": "bearer"
         }
         
         return sanitize_for_json(response_data)

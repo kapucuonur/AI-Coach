@@ -5,6 +5,7 @@ from backend.services.garmin_client import GarminClient
 from backend.services.coach_brain import CoachBrain
 from backend.routers.settings import load_settings
 from backend.database import get_db
+from backend.auth_utils import get_current_user
 import os
 import traceback
 import logging
@@ -31,42 +32,53 @@ def clean_nans(obj):
         return [clean_nans(v) for v in obj]
     return obj
 
-def get_garmin_client(db: Session = Depends(get_db)):
-    # Try to get email/password from env first as a fallback/default
-    email = os.getenv("GARMIN_EMAIL")
-    password = os.getenv("GARMIN_PASSWORD")
+def get_garmin_client(
+    email: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> GarminClient:
+    """
+    Get authenticated Garmin client for the current user.
     
-    logger.info(f"get_garmin_client called - Email configured: {bool(email)}")
+    This dependency:
+    1. Validates the JWT token and extracts user email
+    2. Loads the user's Garmin session from database
+    3. Returns an authenticated GarminClient
     
-    # If no env vars, we might fail if we don't have a session.
-    # Ideally, we should get the email from the request header/token 
-    # but for this specific app structure (single user/owner), env var is the identity.
+    Multi-user safe: Each user's session is isolated in the database.
+    """
+    logger.info(f"Getting Garmin client for user: {email}")
     
-    if not email or not password:
-         logger.error("Garmin credentials missing from environment")
-         raise HTTPException(status_code=500, detail="Server configuration error: Garmin credentials missing")
-
-    client = GarminClient(email, password)
+    # Get credentials from environment as fallback (for testing/single-user mode)
+    env_email = os.getenv("GARMIN_EMAIL")
+    env_password = os.getenv("GARMIN_PASSWORD")
     
-    # helper to unpack the tuple return from updated login()
-    # We pass 'db' so it can try to load from DB first
+    # Use environment credentials if available and match the authenticated user
+    if env_email and env_email == email and env_password:
+        logger.info(f"Using environment credentials for {email}")
+        client = GarminClient(env_email, env_password)
+    else:
+        logger.info(f"Using database session for {email}")
+        # Create client with email - it will try to load session from DB
+        client = GarminClient(email, password=None)
+    
+    # Attempt to authenticate/resume session from DB
     try:
-        logger.info("Attempting Garmin client login...")
+        logger.info("Attempting to authenticate from DB session...")
         success, status, msg = client.login(db=db)
-        logger.info(f"Login attempt result: success={success}, status={status}")
+        logger.info(f"Authentication result: success={success}, status={status}")
     except Exception as e:
-        logger.error(f"Exception during client.login: {e}")
+        logger.error(f"Exception during authentication: {e}")
         logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to load Garmin session: {str(e)}")
     
     if not success:
-        # If login failed (even after trying DB session), we return 401
-        # This will happen if session expired AND env var password/email is wrong or requires 2FA fresh
-        # For dashboard data calls, if we fail here, the user sees 401 and should be redirected to Login
-        logger.warning(f"Garmin authentication failed: {msg}")
-        raise HTTPException(status_code=401, detail=f"Failed to authenticate with Garmin: {msg}")
+        logger.warning(f"Garmin session expired or invalid for {email}")
+        raise HTTPException(
+            status_code=401,
+            detail="Garmin session expired. Please log in again."
+        )
     
-    logger.info("Garmin client authenticated successfully")
+    logger.info(f"Garmin client authenticated successfully for {email}")
     return client
 
 @router.get("/summary")

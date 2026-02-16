@@ -41,7 +41,7 @@ class LoginSession:
         self.code_event.set()
 
 class GarminClient:
-    def __init__(self, email, password):
+    def __init__(self, email, password=None):
         self.email = email
         self.password = password
         self.client = None

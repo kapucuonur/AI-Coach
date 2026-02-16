@@ -49,6 +49,12 @@ function App() {
     let enrichedData = { ...briefingData };
 
     try {
+      // Store JWT token if present in response
+      if (briefingData.access_token) {
+        localStorage.setItem('access_token', briefingData.access_token);
+        console.log('JWT token stored successfully');
+      }
+
       // Fetch settings
       try {
         const settingsRes = await client.get('/settings');
