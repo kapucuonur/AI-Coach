@@ -134,6 +134,11 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
         if not details:
             logger.warning(f"Activity {activity_id} not found in Garmin.")
             raise HTTPException(status_code=404, detail="Activity not found")
+        
+        # DEBUG: Log the structure to see actual field names
+        logger.info(f"Activity details keys: {list(details.keys())[:20]}")  # First 20 keys
+        if 'summaryDTO' in details:
+            logger.info(f"summaryDTO keys: {list(details['summaryDTO'].keys())[:20]}")
             
         # Clean potential NaNs which break JSON serialization
         try:
