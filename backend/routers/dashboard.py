@@ -74,14 +74,22 @@ def get_daily_summary(client: GarminClient = Depends(get_garmin_client)):
 def get_user_profile(client: GarminClient = Depends(get_garmin_client)):
     """Fetch user profile including VO2 max and other metrics"""
     try:
+        logger.info("Fetching user profile from Garmin...")
         profile = client.get_profile()
+        logger.info(f"Profile fetched successfully: {type(profile)}")
+        
         if not profile:
+            logger.warning("Profile data is None or empty")
             raise HTTPException(status_code=404, detail="Profile not found")
-        return clean_nans(profile)
+            
+        cleaned = clean_nans(profile)
+        logger.info("Profile data cleaned and ready to return")
+        return cleaned
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error fetching user profile: {e}")
+        error_trace = traceback.format_exc()
+        logger.error(f"Error fetching user profile: {error_trace}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
 
 @router.get("/activities")
