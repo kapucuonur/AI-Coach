@@ -442,24 +442,29 @@ class CoachBrain:
             target_language = language_map.get(language_code, "English")
 
             prompt = f"""
-            Act as an elite {sport_context} coach.
-            Analyze this specific workout: "{name}" ({type_key}).
+            Act as an elite {sport_context} coach analyzing this workout: "{name}" ({type_key}).
             
-            **Data for {name}:**
-            - Total Distance: {dist_km:.2f} km
-            - Total Duration: {duration_min:.1f} min
+            **Workout Data:**
+            - Distance: {dist_km:.2f} km
+            - Duration: {duration_min:.1f} min
             - Avg HR: {avg_hr} bpm (Max: {max_hr})
-            - Avg Pace/Speed: {avg_pace_str}
+            - Avg Pace: {avg_pace_str}
             
             {splits_context}
             
             **Task:**
-            Provide a short, high-value analysis of this session in {target_language}.
-            1. **Effort Analysis:** Was it executed well? (e.g. "Solid steady state", "Good interval execution", "Recovery pace maintained").
-            2. **Physiological Insight:** Comment on Heart Rate vs Pace/Power if possible.
-            3. **Key Takeaway:** One specific thing to improve or maintain.
+            Provide a professional, structured analysis in {target_language} with these sections:
             
-            Keep it concise (3-5 sentences). Do not use markdown headers like ##. Just paragraphs.
+            📊 PERFORMANCE SUMMARY
+            One sentence summarizing the workout type and execution quality.
+            
+            💓 HEART RATE & EFFORT ANALYSIS  
+            2-3 sentences analyzing HR zones, effort level, and pacing strategy based on the data.
+            
+            🎯 COACHING INSIGHTS
+            2-3 sentences with specific recommendations for improvement or what to maintain in future sessions.
+            
+            Use the section headers EXACTLY as shown above (with emojis). Keep each section concise and professional.
             """
             
             logger.info(f"Analyzing activity {name} with Gemini...")

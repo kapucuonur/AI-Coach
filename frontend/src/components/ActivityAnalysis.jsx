@@ -138,14 +138,58 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             <Zap size={120} className="text-blue-500 transform rotate-12" />
                                         </div>
                                         <div className="relative z-10">
-                                            <h3 className="text-lg font-bold text-blue-100 flex items-center gap-2 mb-4">
+                                            <h3 className="text-lg font-bold text-blue-100 flex items-center gap-2 mb-6">
                                                 <Zap size={18} className="text-blue-400" />
                                                 Coach's Analysis
                                             </h3>
-                                            <div className="prose prose-invert prose-sm max-w-none">
-                                                <p className="text-gray-300 leading-relaxed whitespace-pre-line text-base">
-                                                    {data?.analysis || "No analysis available"}
-                                                </p>
+                                            <div className="space-y-5">
+                                                {data?.analysis ? (
+                                                    (() => {
+                                                        // Parse sections from AI response
+                                                        const text = data.analysis;
+                                                        const sections = [];
+
+                                                        // Split by emoji headers
+                                                        const parts = text.split(/(?=📊|💓|🎯)/);
+
+                                                        parts.forEach(part => {
+                                                            const trimmed = part.trim();
+                                                            if (!trimmed) return;
+
+                                                            // Extract header and content
+                                                            const lines = trimmed.split('\n');
+                                                            const header = lines[0];
+                                                            const content = lines.slice(1).join('\n').trim();
+
+                                                            if (header && content) {
+                                                                sections.push({ header, content });
+                                                            }
+                                                        });
+
+                                                        // If no sections found, display as single paragraph
+                                                        if (sections.length === 0) {
+                                                            return (
+                                                                <p className="text-gray-300 leading-relaxed text-base">
+                                                                    {text}
+                                                                </p>
+                                                            );
+                                                        }
+
+                                                        // Display parsed sections
+                                                        return sections.map((section, idx) => (
+                                                            <div key={idx} className="border-l-2 border-blue-400/30 pl-4">
+                                                                <h4 className="text-sm font-bold text-blue-200 mb-2 tracking-wide">
+                                                                    {section.header}
+                                                                </h4>
+                                                                <p className="text-gray-300 leading-relaxed text-base">
+                                                                    {section.content}
+                                                                </p>
+                                                            </div>
+                                                        ));
+                                                    })()
+                                                ) : (
+                                                    <p className="text-gray-400 italic">No analysis available</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
