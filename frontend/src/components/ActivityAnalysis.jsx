@@ -35,13 +35,13 @@ export function ActivityAnalysis({ activityId, onClose }) {
     // Often specialized streams are needed for high-res charts. 
     // If not available, we can use splits (laps) as a coarser data source or see if 'full_details' has it.
     // For now, let's try to visualize splits since they are reliable.
-    // Garmin API uses snake_case field names
+    // Garmin API uses summaryDTO wrapper or root level fields
+    const summary = data?.details?.summaryDTO || data?.details || {};
     const chartData = data?.details?.splitSummaries?.map((split, index) => ({
         name: `Lap ${index + 1}`,
-        distance: Math.round(split.distance || 0), // meters
+        distance: Math.round(split.distance || 0),
         avgHR: split.averageHR || split.average_hr,
         avgSpeed: split.averageSpeed || split.average_speed,
-        // Calculate Pace (min/km)
         pace: (split.averageSpeed || split.average_speed) ? (1000 / (split.averageSpeed || split.average_speed)) / 60 : 0
     })) || [];
 
@@ -100,7 +100,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Distance</p>
-                                                <p className="text-xl font-bold text-white">{((data?.details?.distance || 0) / 1000).toFixed(2)} <span className="text-sm font-normal text-gray-500">km</span></p>
+                                                <p className="text-xl font-bold text-white">{((summary.distance || 0) / 1000).toFixed(2)} <span className="text-sm font-normal text-gray-500">km</span></p>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-center gap-4">
@@ -109,7 +109,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Duration</p>
-                                                <p className="text-xl font-bold text-white">{((data?.details?.duration || 0) / 60).toFixed(0)} <span className="text-sm font-normal text-gray-500">min</span></p>
+                                                <p className="text-xl font-bold text-white">{((summary.duration || summary.elapsedDuration || 0) / 60).toFixed(0)} <span className="text-sm font-normal text-gray-500">min</span></p>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-center gap-4">
@@ -118,7 +118,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Avg HR</p>
-                                                <p className="text-xl font-bold text-white">{Math.round(data?.details?.averageHR || data?.details?.average_hr || 0)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
+                                                <p className="text-xl font-bold text-white">{Math.round(summary.averageHR || summary.avgHr || 0)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
                                             </div>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 p-4 rounded-xl flex items-center gap-4">
@@ -127,7 +127,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </div>
                                             <div>
                                                 <p className="text-xs text-gray-400 uppercase tracking-widest">Max HR</p>
-                                                <p className="text-xl font-bold text-white">{Math.round(data?.details?.maxHR || data?.details?.max_hr || 0)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
+                                                <p className="text-xl font-bold text-white">{Math.round(summary.maxHR || summary.maxHr || 0)} <span className="text-sm font-normal text-gray-500">bpm</span></p>
                                             </div>
                                         </div>
                                     </div>
