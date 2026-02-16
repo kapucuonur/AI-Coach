@@ -354,61 +354,79 @@ class CoachBrain:
         Analyze a specific activity in detail.
         """
         try:
-            # Extract key metrics
-            # 'get_activity' usually returns the top level dict as the summary
+            # Safely extract key metrics - handle various data structures from Garmin
+            # 'get_activity' can return different structures depending on activity type
             summary = activity_data
-            if 'summaryDTO' in activity_data:
-                 summary = activity_data['summaryDTO']
+            if isinstance(activity_data, dict) and 'summaryDTO' in activity_data:
+                summary = activity_data['summaryDTO']
             
-            name = summary.get('activityName', 'Activity')
-            type_key = summary.get('activityType', {}).get('typeKey', 'exercise') if isinstance(summary.get('activityType'), dict) else 'exercise'
+            # Safely extract basic info with fallbacks
+            name = summary.get('activityName', 'Activity') if isinstance(summary, dict) else 'Activity'
+            
+            # Handle activityType which can be a dict or missing
+            type_info = summary.get('activityType', {}) if isinstance(summary, dict) else {}
+            type_key = type_info.get('typeKey', 'exercise') if isinstance(type_info, dict) else 'exercise'
             
             # Helper for safe float conversion
             def safe_float(val):
-                try: return float(val) if val is not None else 0.0
-                except: return 0.0
+                try: 
+                    return float(val) if val is not None else 0.0
+                except: 
+                    return 0.0
 
-            dist = safe_float(summary.get('distance'))
+            # Safely extract metrics with defaults
+            dist = safe_float(summary.get('distance', 0) if isinstance(summary, dict) else 0)
             dist_km = dist / 1000
             
-            duration = safe_float(summary.get('duration'))
-            duration_min = duration / 60
+            duration = safe_float(summary.get('duration', 0) if isinstance(summary, dict) else 0)
+            duration_min = duration / 60 if duration > 0 else 0
             
-            avg_hr = summary.get('averageHR', 'N/A')
-            max_hr = summary.get('maxHR', 'N/A')
+            avg_hr = summary.get('averageHR', 'N/A') if isinstance(summary, dict) else 'N/A'
+            max_hr = summary.get('maxHR', 'N/A') if isinstance(summary, dict) else 'N/A'
             
-            avg_speed = safe_float(summary.get('averageSpeed'))
+            avg_speed = safe_float(summary.get('averageSpeed', 0) if isinstance(summary, dict) else 0)
             
             # approximate pace calculation (min/km)
             avg_pace_str = "N/A"
             if avg_speed > 0:
-                 pace_per_km_sec = 1000 / avg_speed
-                 p_min = int(pace_per_km_sec // 60)
-                 p_sec = int(pace_per_km_sec % 60)
-                 avg_pace_str = f"{p_min}:{p_sec:02d} /km"
+                pace_per_km_sec = 1000 / avg_speed
+                p_min = int(pace_per_km_sec // 60)
+                p_sec = int(pace_per_km_sec % 60)
+                avg_pace_str = f"{p_min}:{p_sec:02d} /km"
 
-            # Laps/Splits context
+            # Laps/Splits context - handle missing or unexpected structures
             splits_context = ""
-            splits_data = activity_data.get('splits', {})
             laps = []
-            if isinstance(splits_data, dict) and 'lapDTOs' in splits_data:
-                 laps = splits_data['lapDTOs']
-            elif isinstance(splits_data, list):
-                 laps = splits_data
+            
+            # Try to extract splits from various possible structures
+            if isinstance(activity_data, dict):
+                splits_data = activity_data.get('splits')
+                
+                if splits_data:
+                    if isinstance(splits_data, dict) and 'lapDTOs' in splits_data:
+                        laps = splits_data['lapDTOs']
+                    elif isinstance(splits_data, list):
+                        laps = splits_data
                  
-            if laps:
-                 splits_context = "Splits/Laps (First 10):\n"
-                 for i, lap in enumerate(laps[:10]):
-                      l_dur = safe_float(lap.get('duration'))
-                      l_dist = safe_float(lap.get('distance'))
-                      l_hr = lap.get('averageHR', 'N/A')
-                      l_speed = safe_float(lap.get('averageSpeed'))
-                      l_pace = "N/A"
-                      if l_speed > 0:
-                          l_p_sec = 1000 / l_speed
-                          l_pace = f"{int(l_p_sec//60)}:{int(l_p_sec%60):02d}"
-                      
-                      splits_context += f"- Lap {i+1}: {l_dist:.0f}m in {l_dur:.0f}s, Avg HR {l_hr}, Pace {l_pace}\n"
+            # Only process laps if we actually have them
+            if laps and isinstance(laps, list) and len(laps) > 0:
+                splits_context = "Splits/Laps (First 10):\n"
+                for i, lap in enumerate(laps[:10]):
+                    if not isinstance(lap, dict):
+                        continue
+                        
+                    l_dur = safe_float(lap.get('duration', 0))
+                    l_dist = safe_float(lap.get('distance', 0))
+                    l_hr = lap.get('averageHR', 'N/A')
+                    l_speed = safe_float(lap.get('averageSpeed', 0))
+                    l_pace = "N/A"
+                    if l_speed > 0:
+                        l_p_sec = 1000 / l_speed
+                        l_pace = f"{int(l_p_sec//60)}:{int(l_p_sec%60):02d}"
+                    
+                    splits_context += f"- Lap {i+1}: {l_dist:.0f}m in {l_dur:.0f}s, Avg HR {l_hr}, Pace {l_pace}\n"
+            else:
+                splits_context = "No detailed lap/split data available for this activity.\n"
 
             # Settings for personalization
             sport_context = "Endurance Sports"

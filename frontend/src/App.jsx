@@ -44,9 +44,12 @@ function App() {
     setLoading(true);
     setError(null);
     setCredentials(creds);
-    setData(briefingData);
+
+    // Merge briefing data with profile data
+    let enrichedData = { ...briefingData };
 
     try {
+      // Fetch settings
       try {
         const settingsRes = await client.get('/settings');
         setSettingsData(settingsRes.data);
@@ -54,6 +57,24 @@ function App() {
         console.warn("Could not fetch settings", e);
       }
 
+      // Fetch profile data for VO2 max and other metrics
+      try {
+        const profileRes = await client.get('/dashboard/profile');
+        // Merge profile into metrics if it exists
+        if (profileRes.data) {
+          enrichedData = {
+            ...enrichedData,
+            metrics: {
+              ...enrichedData.metrics,
+              profile: profileRes.data
+            }
+          };
+        }
+      } catch (e) {
+        console.warn("Could not fetch profile data", e);
+      }
+
+      setData(enrichedData);
       setIsAuthenticated(true);
     } catch (err) {
       console.error(err);

@@ -70,6 +70,20 @@ def get_daily_summary(client: GarminClient = Depends(get_garmin_client)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/profile")
+def get_user_profile(client: GarminClient = Depends(get_garmin_client)):
+    """Fetch user profile including VO2 max and other metrics"""
+    try:
+        profile = client.get_profile()
+        if not profile:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        return clean_nans(profile)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error fetching user profile: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch profile: {str(e)}")
+
 @router.get("/activities")
 def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_garmin_client)):
     try:
@@ -80,52 +94,53 @@ def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_gar
 
 @router.get("/activities/{activity_id}/details")
 def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):
-    logger.info(f"DEBUG: Starting get_activity_details for {activity_id}")
+    logger.info(f"Fetching activity details for {activity_id}")
+    analysis = None
+    details = None
+    
     try:
         # 1. Fetch details from Garmin
-        logger.info("DEBUG: Calling client.get_activity_details...")
         details = client.get_activity_details(activity_id)
-        logger.info(f"DEBUG: client.get_activity_details returned type: {type(details)}")
         
         if not details:
             logger.warning(f"Activity {activity_id} not found in Garmin.")
             raise HTTPException(status_code=404, detail="Activity not found")
             
         # Clean potential NaNs which break JSON serialization
-        logger.info("DEBUG: Cleaning NaNs...")
         try:
             details = clean_nans(details)
-            logger.info("DEBUG: clean_nans completed.")
         except Exception as e:
             logger.error(f"Error cleaning NaNs from details: {e}")
-            # Continue with original details if cleaning fails, hoping for the best
+            # Continue with original details if cleaning fails
             
-        # 2. AI Analysis
-        logger.info("DEBUG: Starting AI Analysis...")
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        if not gemini_key:
-            logger.error("GEMINI_API_KEY missing")
-            raise HTTPException(status_code=500, detail="Server config error: GEMINI_API_KEY missing")
-
-        brain = CoachBrain(gemini_key)
-        
-        user_settings_dict = {}
+        # 2. AI Analysis - wrapped in try-catch to return partial data if it fails
         try:
-            settings = load_settings()
-            user_settings_dict = settings.model_dump()
-        except Exception as se:
-            logger.warning(f"Failed to load settings: {se}")
-        
-        logger.info("DEBUG: Calling brain.analyze_activity...")
-        analysis = brain.analyze_activity(details, user_settings_dict)
-        logger.info("DEBUG: brain.analyze_activity completed.")
+            logger.info("Starting AI Analysis...")
+            gemini_key = os.getenv("GEMINI_API_KEY")
+            if not gemini_key:
+                logger.warning("GEMINI_API_KEY missing - skipping AI analysis")
+                analysis = "AI analysis unavailable: API key not configured."
+            else:
+                brain = CoachBrain(gemini_key)
+                
+                user_settings_dict = {}
+                try:
+                    settings = load_settings()
+                    user_settings_dict = settings.model_dump()
+                except Exception as se:
+                    logger.warning(f"Failed to load settings: {se}")
+                
+                analysis = brain.analyze_activity(details, user_settings_dict)
+                logger.info("AI analysis completed successfully")
+        except Exception as ai_error:
+            logger.error(f"AI analysis failed but continuing with activity data: {ai_error}")
+            analysis = f"Activity analysis temporarily unavailable. Please try again later."
         
         response_data = {
             "details": details,
             "analysis": analysis
         }
         
-        logger.info("DEBUG: Encoding response...")
         return jsonable_encoder(response_data)
         
     except HTTPException as he:
@@ -133,8 +148,7 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
     except Exception as e:
         error_trace = traceback.format_exc()
         logger.error(f"Error fetching activity details: {error_trace}")
-        # Return the trace in the detail for debugging (in production usually hidden, but we need it here)
-        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}\n\nTrace:\n{error_trace}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch activity: {str(e)}")
 
 @router.get("/health-history")
 def get_health_history(days: int = 7, client: GarminClient = Depends(get_garmin_client)):
