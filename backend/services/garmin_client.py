@@ -363,38 +363,63 @@ class GarminClient:
         try:
             vo2_data = {}
             
-            # Use get_max_metrics() - this is the correct endpoint for VO2 Max
+            # Try get_max_metrics() for today and recent dates
+            # VO2 Max doesn't update daily, so check last 7 days
             try:
-                today = date.today().isoformat()
-                max_metrics = self.client.get_max_metrics(today)
+                dates_to_check = []
+                today = date.today()
+                for days_back in range(7):
+                    check_date = today - timedelta(days=days_back)
+                    dates_to_check.append(check_date.isoformat())
                 
-                if max_metrics:
-                    logger.info(f"Max metrics response: {max_metrics}")
+                logger.info(f"Checking VO2 Max for dates: {dates_to_check}")
+                
+                for date_str in dates_to_check:
+                    try:
+                        max_metrics = self.client.get_max_metrics(date_str)
+                        
+                        # Log what we actually get
+                        logger.info(f"Max metrics for {date_str}: {max_metrics}")
+                        
+                        if max_metrics and isinstance(max_metrics, dict):
+                            # Extract VO2 Max value
+                            if 'vo2MaxValue' in max_metrics and max_metrics['vo2MaxValue']:
+                                vo2_data['vo2MaxValue'] = max_metrics['vo2MaxValue']
+                                vo2_data['vo2Max'] = max_metrics['vo2MaxValue']
+                                logger.info(f"✅ Found vo2MaxValue: {max_metrics['vo2MaxValue']} on {date_str}")
+                                break  # Found it, stop looking
+                            
+                            # Check for generic vo2Max field
+                            if 'vo2Max' in max_metrics and max_metrics['vo2Max']:
+                                vo2_data['vo2Max'] = max_metrics['vo2Max']
+                                logger.info(f"✅ Found vo2Max: {max_metrics['vo2Max']} on {date_str}")
+                                break
+                            
+                            # Check for sport-specific VO2 Max values
+                            if 'generic' in max_metrics and isinstance(max_metrics['generic'], dict):
+                                generic = max_metrics['generic']
+                                if 'vo2Max' in generic and generic['vo2Max']:
+                                    vo2_data['vo2Max'] = generic['vo2Max']
+                                    logger.info(f"✅ Found generic vo2Max: {generic['vo2Max']} on {date_str}")
+                                    break
+                                if 'vo2MaxRunning' in generic and generic['vo2MaxRunning']:
+                                    vo2_data['vo2MaxRunning'] = generic['vo2MaxRunning']
+                                    vo2_data['vo2Max'] = generic['vo2MaxRunning']
+                                    logger.info(f"✅ Found vo2MaxRunning: {generic['vo2MaxRunning']} on {date_str}")
+                                    break
+                                if 'vo2MaxCycling' in generic and generic['vo2MaxCycling']:
+                                    vo2_data['vo2MaxCycling'] = generic['vo2MaxCycling']
+                                    vo2_data['vo2Max'] = generic['vo2MaxCycling']
+                                    logger.info(f"✅ Found vo2MaxCycling: {generic['vo2MaxCycling']} on {date_str}")
+                                    break
+                            
+                            # Also check fitnessAge if available
+                            if 'fitnessAge' in max_metrics and max_metrics['fitnessAge']:
+                                vo2_data['fitnessAge'] = max_metrics['fitnessAge']
                     
-                    # Extract VO2 Max value
-                    if 'vo2MaxValue' in max_metrics and max_metrics['vo2MaxValue']:
-                        vo2_data['vo2MaxValue'] = max_metrics['vo2MaxValue']
-                        vo2_data['vo2Max'] = max_metrics['vo2MaxValue']  # Also set generic field
-                        logger.info(f"Found vo2MaxValue: {max_metrics['vo2MaxValue']}")
-                    
-                    # Check for generic vo2Max field
-                    if 'vo2Max' in max_metrics and max_metrics['vo2Max']:
-                        vo2_data['vo2Max'] = max_metrics['vo2Max']
-                        logger.info(f"Found vo2Max: {max_metrics['vo2Max']}")
-                    
-                    # Check for sport-specific VO2 Max values
-                    if 'generic' in max_metrics and isinstance(max_metrics['generic'], dict):
-                        generic = max_metrics['generic']
-                        if 'vo2Max' in generic:
-                            vo2_data['vo2Max'] = generic['vo2Max']
-                        if 'vo2MaxRunning' in generic:
-                            vo2_data['vo2MaxRunning'] = generic['vo2MaxRunning']
-                        if 'vo2MaxCycling' in generic:
-                            vo2_data['vo2MaxCycling'] = generic['vo2MaxCycling']
-                    
-                    # Also check fitnessAge if available
-                    if 'fitnessAge' in max_metrics:
-                        vo2_data['fitnessAge'] = max_metrics['fitnessAge']
+                    except Exception as date_error:
+                        logger.debug(f"No max metrics for {date_str}: {date_error}")
+                        continue
                         
             except Exception as e:
                 logger.warning(f"Could not get VO2 Max from max_metrics: {e}")
@@ -402,10 +427,14 @@ class GarminClient:
             
             # Return the data if we found any, otherwise None
             if vo2_data:
-                logger.info(f"VO2 Max data retrieved: {vo2_data}")
+                logger.info(f"✅ VO2 Max data retrieved: {vo2_data}")
                 return vo2_data
             else:
-                logger.warning("No VO2 Max data available from Garmin max_metrics endpoint")
+                logger.warning("⚠️ No VO2 Max data found in max_metrics for last 7 days")
+                logger.warning("This usually means:")
+                logger.warning("  - User hasn't done qualifying cardio activities (running/cycling with HR monitor)")
+                logger.warning("  - Garmin device doesn't support VO2 Max measurement")
+                logger.warning("  - Not enough activity history for Garmin to calculate VO2 Max")
                 return None
                 
         except Exception as e:
