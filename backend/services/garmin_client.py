@@ -428,6 +428,39 @@ class GarminClient:
                 logger.warning(f"Could not get VO2 Max from max_metrics: {e}")
                 logger.warning(f"Error details: {traceback.format_exc()}")
             
+            # Fitness Age is NOT in max_metrics, try get_stats_and_body()
+            if 'fitnessAge' not in vo2_data or not vo2_data.get('fitnessAge'):
+                try:
+                    logger.info("Attempting to fetch fitness age from get_stats_and_body()...")
+                    stats_body = self.client.get_stats_and_body(today.isoformat())
+                    logger.info(f"Stats and body response: {stats_body}")
+                    
+                    if stats_body and isinstance(stats_body, dict):
+                        # Check various possible locations
+                        if 'fitnessAge' in stats_body and stats_body['fitnessAge']:
+                            vo2_data['fitnessAge'] = stats_body['fitnessAge']
+                            logger.info(f"✅ Found fitnessAge in stats_body: {stats_body['fitnessAge']}")
+                        
+                        # Also check nested structures
+                        if 'bodyComposition' in stats_body and isinstance(stats_body['bodyComposition'], dict):
+                            body_comp = stats_body['bodyComposition']
+                            if 'fitnessAge' in body_comp and body_comp['fitnessAge']:
+                                vo2_data['fitnessAge'] = body_comp['fitnessAge']
+                                logger.info(f"✅ Found fitnessAge in bodyComposition: {body_comp['fitnessAge']}")
+                
+                except Exception as e:
+                    logger.warning(f"Could not get fitness age from stats_and_body: {e}")
+            
+            # Final fallback: try user profile
+            if 'fitnessAge' not in vo2_data or not vo2_data.get('fitnessAge'):
+                try:
+                    profile = self.client.get_user_profile()
+                    if profile and isinstance(profile, dict) and 'fitnessAge' in profile:
+                        vo2_data['fitnessAge'] = profile['fitnessAge']
+                        logger.info(f"✅ Found fitnessAge in user profile: {profile['fitnessAge']}")
+                except Exception as e:
+                    logger.warning(f"Could not get fitness age from profile: {e}")
+            
             # Return the data if we found any, otherwise None
             if vo2_data:
                 logger.info(f"✅ VO2 Max data retrieved: {vo2_data}")
