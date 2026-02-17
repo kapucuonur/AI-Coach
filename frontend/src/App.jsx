@@ -170,7 +170,7 @@ function App() {
         />
 
         {/* Stats Grid - Now Clickable */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <StatsCard
             title="Resting HR"
             value={health.restingHeartRate || '--'}
@@ -210,6 +210,13 @@ function App() {
             icon={Moon}
             className="border-purple-500/20"
             onClick={() => setSelectedMetric({ key: 'sleep', title: 'Sleep Duration', unit: 'hrs', color: '#a855f7' })}
+          />
+          <StatsCard
+            title="Fitness Age"
+            value={profile.fitnessAge || '--'}
+            unit="yrs"
+            icon={Zap}
+            className="border-green-500/20"
           />
         </div>
 
