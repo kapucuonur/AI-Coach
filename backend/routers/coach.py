@@ -129,3 +129,39 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
         logger.error(f"Error in daily briefing: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/sync")
+def sync_workout_to_watch(
+    request: dict,
+    client: GarminClient = Depends(lambda: None)  # Placeholder - will implement proper auth
+):
+    """
+    Send AI-generated workout to Garmin Connect.
+    TODO: Implement proper workout format conversion for Garmin API.
+    """
+    try:
+        workout = request.get("workout")
+        
+        if not workout:
+            raise HTTPException(status_code=400, detail="No workout data provided")
+        
+        logger.info(f"Received workout sync request: {workout.get('workoutName', 'Unnamed')}")
+        
+        # TODO: Convert AI workout format to Garmin's format and actually create it
+        # For now, just log and return success to test the flow
+        logger.info(f"Workout details: {workout}")
+        
+        # Placeholder - will implement actual Garmin API call
+        # success = client.create_workout(garmin_format_workout)
+        
+        return {
+            "status": "success", 
+            "message": "Workout logged (sync to device pending implementation)"
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error syncing workout: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
