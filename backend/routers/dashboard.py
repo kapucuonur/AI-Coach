@@ -102,6 +102,21 @@ def get_user_profile(client: GarminClient = Depends(get_garmin_client)):
         if not profile:
             logger.warning("Profile data is None or empty")
             raise HTTPException(status_code=404, detail="Profile not found")
+        
+        # Fetch VO2 Max data separately if not in profile
+        try:
+            vo2_data = client.get_vo2_max()
+            if vo2_data:
+                # Merge VO2 Max data into profile
+                if 'running' in vo2_data:
+                    profile['vo2MaxRunning'] = vo2_data['running']
+                if 'cycling' in vo2_data:
+                    profile['vo2MaxCycling'] = vo2_data['cycling']
+                if 'general' in vo2_data and 'vo2Max' not in profile:
+                    profile['vo2Max'] = vo2_data['general']
+                logger.info(f"Added VO2 Max data to profile: {vo2_data}")
+        except Exception as vo2_error:
+            logger.warning(f"Could not fetch VO2 Max data: {vo2_error}")
             
         cleaned = clean_nans(profile)
         logger.info("Profile data cleaned and ready to return")
