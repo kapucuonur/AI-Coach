@@ -400,9 +400,14 @@ class GarminClient:
                                     vo2_data['vo2MaxPrecise'] = generic['vo2MaxPreciseValue']
                                     logger.info(f"✅ Found vo2MaxPreciseValue: {generic['vo2MaxPreciseValue']} on {date_str}")
                                 
+                                # Log the FULL generic object to debug fitness age
+                                logger.info(f"📊 Full generic object: {generic}")
+                                
                                 if 'fitnessAge' in generic and generic['fitnessAge']:
                                     vo2_data['fitnessAge'] = generic['fitnessAge']
                                     logger.info(f"✅ Found fitnessAge: {generic['fitnessAge']} on {date_str}")
+                                else:
+                                    logger.warning(f"⚠️ fitnessAge is None or missing in generic object on {date_str}")
                                 
                                 # If we found any VO2 Max data, we're done
                                 if 'vo2Max' in vo2_data or 'vo2MaxValue' in vo2_data:
