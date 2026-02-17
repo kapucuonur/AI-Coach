@@ -381,41 +381,39 @@ class GarminClient:
                         # Log what we actually get
                         logger.info(f"Max metrics for {date_str}: {max_metrics}")
                         
-                        if max_metrics and isinstance(max_metrics, dict):
-                            # Extract VO2 Max value
-                            if 'vo2MaxValue' in max_metrics and max_metrics['vo2MaxValue']:
-                                vo2_data['vo2MaxValue'] = max_metrics['vo2MaxValue']
-                                vo2_data['vo2Max'] = max_metrics['vo2MaxValue']
-                                logger.info(f"✅ Found vo2MaxValue: {max_metrics['vo2MaxValue']} on {date_str}")
-                                break  # Found it, stop looking
+                        # The API returns a LIST, not a dict!
+                        if max_metrics and isinstance(max_metrics, list) and len(max_metrics) > 0:
+                            # Get the first item from the list
+                            metrics = max_metrics[0]
                             
-                            # Check for generic vo2Max field
-                            if 'vo2Max' in max_metrics and max_metrics['vo2Max']:
-                                vo2_data['vo2Max'] = max_metrics['vo2Max']
-                                logger.info(f"✅ Found vo2Max: {max_metrics['vo2Max']} on {date_str}")
-                                break
-                            
-                            # Check for sport-specific VO2 Max values
-                            if 'generic' in max_metrics and isinstance(max_metrics['generic'], dict):
-                                generic = max_metrics['generic']
-                                if 'vo2Max' in generic and generic['vo2Max']:
-                                    vo2_data['vo2Max'] = generic['vo2Max']
-                                    logger.info(f"✅ Found generic vo2Max: {generic['vo2Max']} on {date_str}")
-                                    break
-                                if 'vo2MaxRunning' in generic and generic['vo2MaxRunning']:
-                                    vo2_data['vo2MaxRunning'] = generic['vo2MaxRunning']
-                                    vo2_data['vo2Max'] = generic['vo2MaxRunning']
-                                    logger.info(f"✅ Found vo2MaxRunning: {generic['vo2MaxRunning']} on {date_str}")
-                                    break
-                                if 'vo2MaxCycling' in generic and generic['vo2MaxCycling']:
-                                    vo2_data['vo2MaxCycling'] = generic['vo2MaxCycling']
-                                    vo2_data['vo2Max'] = generic['vo2MaxCycling']
-                                    logger.info(f"✅ Found vo2MaxCycling: {generic['vo2MaxCycling']} on {date_str}")
+                            # VO2 Max is inside the 'generic' key
+                            if 'generic' in metrics and isinstance(metrics['generic'], dict):
+                                generic = metrics['generic']
+                                
+                                # Extract VO2 Max values
+                                if 'vo2MaxValue' in generic and generic['vo2MaxValue']:
+                                    vo2_data['vo2MaxValue'] = generic['vo2MaxValue']
+                                    vo2_data['vo2Max'] = generic['vo2MaxValue']
+                                    logger.info(f"✅ Found vo2MaxValue: {generic['vo2MaxValue']} on {date_str}")
+                                
+                                if 'vo2MaxPreciseValue' in generic and generic['vo2MaxPreciseValue']:
+                                    vo2_data['vo2MaxPrecise'] = generic['vo2MaxPreciseValue']
+                                    logger.info(f"✅ Found vo2MaxPreciseValue: {generic['vo2MaxPreciseValue']} on {date_str}")
+                                
+                                if 'fitnessAge' in generic and generic['fitnessAge']:
+                                    vo2_data['fitnessAge'] = generic['fitnessAge']
+                                    logger.info(f"✅ Found fitnessAge: {generic['fitnessAge']} on {date_str}")
+                                
+                                # If we found any VO2 Max data, we're done
+                                if 'vo2Max' in vo2_data or 'vo2MaxValue' in vo2_data:
                                     break
                             
-                            # Also check fitnessAge if available
-                            if 'fitnessAge' in max_metrics and max_metrics['fitnessAge']:
-                                vo2_data['fitnessAge'] = max_metrics['fitnessAge']
+                            # Also check for cycling-specific VO2 Max
+                            if 'cycling' in metrics and isinstance(metrics['cycling'], dict):
+                                cycling = metrics['cycling']
+                                if 'vo2MaxValue' in cycling and cycling['vo2MaxValue']:
+                                    vo2_data['vo2MaxCycling'] = cycling['vo2MaxValue']
+                                    logger.info(f"✅ Found vo2MaxCycling: {cycling['vo2MaxValue']} on {date_str}")
                     
                     except Exception as date_error:
                         logger.debug(f"No max metrics for {date_str}: {date_error}")
