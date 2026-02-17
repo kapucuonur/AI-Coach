@@ -5,6 +5,7 @@ import time
 import json
 import tempfile
 import shutil
+import traceback
 from datetime import date, timedelta
 from garminconnect import Garmin
 from dotenv import load_dotenv
@@ -352,8 +353,8 @@ class GarminClient:
     
     def get_vo2_max(self):
         """
-        Fetch VO2 Max data from Garmin Connect.
-        Returns a dict with available VO2 Max values for different sports, or None.
+        Fetch VO2 Max data from Garmin Connect using get_max_metrics().
+        Returns a dict with available VO2 Max values, or None.
         """
         if not self.client:
             logger.error("Client not authenticated.")
@@ -362,42 +363,54 @@ class GarminClient:
         try:
             vo2_data = {}
             
-            # Try to get from user profile first
-            try:
-                profile = self.client.get_user_profile()
-                if profile:
-                    # Check for various VO2 Max fields
-                    if 'vo2MaxRunning' in profile and profile['vo2MaxRunning']:
-                        vo2_data['running'] = profile['vo2MaxRunning']
-                    if 'vo2MaxCycling' in profile and profile['vo2MaxCycling']:
-                        vo2_data['cycling'] = profile['vo2MaxCycling']
-                    if 'vo2Max' in profile and profile['vo2Max']:
-                        vo2_data['general'] = profile['vo2Max']
-            except Exception as e:
-                logger.warning(f"Could not get VO2 Max from profile: {e}")
-            
-            # Try to get from stats endpoint as fallback
+            # Use get_max_metrics() - this is the correct endpoint for VO2 Max
             try:
                 today = date.today().isoformat()
-                stats = self.client.get_stats_and_body(today)
-                if stats:
-                    if 'vo2MaxRunning' in stats and stats['vo2MaxRunning']:
-                        vo2_data['running'] = stats['vo2MaxRunning']
-                    if 'vo2MaxCycling' in stats and stats['vo2MaxCycling']:
-                        vo2_data['cycling'] = stats['vo2MaxCycling']
+                max_metrics = self.client.get_max_metrics(today)
+                
+                if max_metrics:
+                    logger.info(f"Max metrics response: {max_metrics}")
+                    
+                    # Extract VO2 Max value
+                    if 'vo2MaxValue' in max_metrics and max_metrics['vo2MaxValue']:
+                        vo2_data['vo2MaxValue'] = max_metrics['vo2MaxValue']
+                        vo2_data['vo2Max'] = max_metrics['vo2MaxValue']  # Also set generic field
+                        logger.info(f"Found vo2MaxValue: {max_metrics['vo2MaxValue']}")
+                    
+                    # Check for generic vo2Max field
+                    if 'vo2Max' in max_metrics and max_metrics['vo2Max']:
+                        vo2_data['vo2Max'] = max_metrics['vo2Max']
+                        logger.info(f"Found vo2Max: {max_metrics['vo2Max']}")
+                    
+                    # Check for sport-specific VO2 Max values
+                    if 'generic' in max_metrics and isinstance(max_metrics['generic'], dict):
+                        generic = max_metrics['generic']
+                        if 'vo2Max' in generic:
+                            vo2_data['vo2Max'] = generic['vo2Max']
+                        if 'vo2MaxRunning' in generic:
+                            vo2_data['vo2MaxRunning'] = generic['vo2MaxRunning']
+                        if 'vo2MaxCycling' in generic:
+                            vo2_data['vo2MaxCycling'] = generic['vo2MaxCycling']
+                    
+                    # Also check fitnessAge if available
+                    if 'fitnessAge' in max_metrics:
+                        vo2_data['fitnessAge'] = max_metrics['fitnessAge']
+                        
             except Exception as e:
-                logger.warning(f"Could not get VO2 Max from stats: {e}")
+                logger.warning(f"Could not get VO2 Max from max_metrics: {e}")
+                logger.warning(f"Error details: {traceback.format_exc()}")
             
             # Return the data if we found any, otherwise None
             if vo2_data:
                 logger.info(f"VO2 Max data retrieved: {vo2_data}")
                 return vo2_data
             else:
-                logger.info("No VO2 Max data available from Garmin")
+                logger.warning("No VO2 Max data available from Garmin max_metrics endpoint")
                 return None
                 
         except Exception as e:
             logger.error(f"Failed to fetch VO2 Max data: {e}")
+            logger.error(f"Error traceback: {traceback.format_exc()}")
             return None
 
     def create_workout(self, workout_json):
