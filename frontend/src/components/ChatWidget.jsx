@@ -1,30 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, X, Send } from 'lucide-react';
 import client from '../api/client';
 
 export function ChatWidget({ userContext, language = "en" }) {
+    const { t: translate } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const messagesEndRef = useRef(null);
-
-    // Simple translations
-    const t = {
-        en: {
-            greeting: "Hi! How are you feeling today? Any pain, fatigue, or soreness I should know about? (To generate a training plan, verify your settings and press the Generate Plan button on the dashboard!)",
-            placeholder: "Ask your coach...",
-            connError: "Sorry, I'm having trouble connecting to the Coach Brain right now."
-        },
-        tr: {
-            greeting: "Merhaba! Bugün nasıl hissediyorsun? Herhangi bir ağrı, yorgunluk veya bilmem gereken bir durum var mı? (Antrenman programı oluşturmak için panodaki butonları kullanabilirsin!)",
-            placeholder: "Koçuna sor...",
-            connError: "Üzgünüm, şu anda Coach Brain ile bağlantı kuramıyorum."
-        },
-        // Add others as needed
-    };
-
-    const txt = t[language] || t['en'];
 
     // Auto-open on mount with greeting
     useEffect(() => {
@@ -32,7 +17,7 @@ export function ChatWidget({ userContext, language = "en" }) {
             setIsOpen(true);
             if (messages.length === 0) {
                 setMessages([
-                    { role: 'model', content: txt.greeting }
+                    { role: 'model', content: translate('chat_greeting') }
                 ]);
             }
         }, 1500);
@@ -70,7 +55,7 @@ export function ChatWidget({ userContext, language = "en" }) {
             setMessages(prev => [...prev, aiMsg]);
         } catch (err) {
             console.error("Chat error:", err);
-            setMessages(prev => [...prev, { role: 'model', content: txt.connError }]);
+            setMessages(prev => [...prev, { role: 'model', content: translate('chat_conn_error') }]);
         } finally {
             setLoading(false);
         }
@@ -99,8 +84,8 @@ export function ChatWidget({ userContext, language = "en" }) {
                             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div
                                     className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                            ? 'bg-garmin-blue text-white rounded-br-none'
-                                            : 'bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-bl-none shadow-sm'
+                                        ? 'bg-garmin-blue text-white rounded-br-none'
+                                        : 'bg-white dark:bg-zinc-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-bl-none shadow-sm'
                                         }`}
                                 >
                                     {msg.content}
@@ -127,7 +112,7 @@ export function ChatWidget({ userContext, language = "en" }) {
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder={txt.placeholder}
+                            placeholder={translate('chat_placeholder')}
                             className="flex-1 bg-gray-100 dark:bg-zinc-800 text-gray-900 dark:text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-garmin-blue"
                         />
                         <button

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Activity, Bike, Footprints, Waves } from 'lucide-react';
 
 const ActivityIcon = ({ type }) => {
@@ -10,12 +11,13 @@ const ActivityIcon = ({ type }) => {
 };
 
 export function ActivityList({ activities, onSelect }) {
+    const { t } = useTranslation();
     if (!activities || activities.length === 0) return <div className="text-gray-500">No recent activities.</div>;
 
     return (
         <div className="bg-white dark:bg-garmin-gray rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden transition-colors duration-300 shadow-lg">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Recent Activities</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('recent_activities')}</h3>
             </div>
             <div className="divide-y divide-gray-200 dark:divide-gray-800">
                 {activities.map((act) => (

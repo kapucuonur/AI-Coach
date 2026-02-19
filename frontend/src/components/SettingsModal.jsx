@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2 } from 'lucide-react';
 import client from '../api/client';
 
 export function SettingsModal({ isOpen, onClose, onSave }) {
+    const { t, i18n } = useTranslation();
     const [sport, setSport] = useState("Running");
     const [language, setLanguage] = useState("en");
     const [age, setAge] = useState("");
@@ -48,10 +50,10 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                 strength_days: parseInt(strengthDays),
                 off_days: offDays,
                 off_days: offDays,
-                metrics: metrics,
                 races: races,
                 goals: goals
             });
+            i18n.changeLanguage(language);
             onSave(); // Refresh data
             onClose();
         } catch (error) {
@@ -81,7 +83,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
         <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center z-50 p-4 transition-colors">
             <div className="bg-white dark:bg-garmin-gray w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden transition-colors duration-300">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-transparent">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Coach Settings</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('coach_settings')}</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                         <X size={24} />
                     </button>
@@ -91,7 +93,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                     {/* Profile & Strength */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Age</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('age')}</label>
                             <input
                                 type="number"
                                 value={age}
@@ -100,21 +102,21 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gender</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('gender')}</label>
                             <select
                                 value={gender}
                                 onChange={(e) => setGender(e.target.value)}
                                 className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
                             >
-                                <option value="Male">Male</option>
-                                <option value="Female">Female</option>
+                                <option value="Male">{t('male')}</option>
+                                <option value="Female">{t('female')}</option>
                             </select>
                         </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Strength Training (Days/Week): {strengthDays}
+                            {t('strength_training', { days: strengthDays })}
                         </label>
                         <input
                             type="range"
@@ -128,7 +130,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                     {/* Off Days Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Off Day(s) - Rest Days
+                            {t('off_days')}
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
@@ -153,11 +155,11 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                     {/* Training Goals */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Training Goals</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('training_goals')}</label>
 
                         {(sport === "Running" || sport === "Triathlon") && (
                             <div>
-                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Running Target</label>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('running_target')}</label>
                                 <select
                                     value={goals.running || ""}
                                     onChange={(e) => setGoals({ ...goals, running: e.target.value })}
@@ -175,7 +177,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                         {(sport === "Triathlon") && (
                             <div>
-                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Triathlon Distance</label>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('triathlon_distance')}</label>
                                 <select
                                     value={goals.triathlon || ""}
                                     onChange={(e) => setGoals({ ...goals, triathlon: e.target.value })}
@@ -192,7 +194,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                         {(sport === "Cycling" || sport === "Triathlon") && (
                             <div>
-                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Cycling Focus</label>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('cycling_focus')}</label>
                                 <select
                                     value={goals.cycling || ""}
                                     onChange={(e) => setGoals({ ...goals, cycling: e.target.value })}
@@ -211,11 +213,11 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                     {/* Sport Specific Metrics */}
                     <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Performance Metrics</label>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('performance_metrics')}</label>
 
                         {(sport === "Running" || sport === "Triathlon") && (
                             <div>
-                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Threshold Pace (min/km)</label>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('threshold_pace')}</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. 5:00"
@@ -229,7 +231,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                         {(sport === "Cycling" || sport === "Triathlon") && (
                             <>
                                 <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">FTP (Watts)</label>
+                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('ftp')}</label>
                                     <input
                                         type="number"
                                         placeholder="e.g. 250"
@@ -239,7 +241,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Power (Watts)</label>
+                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('max_power')}</label>
                                     <input
                                         type="number"
                                         placeholder="e.g. 800"
@@ -253,7 +255,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                         {(sport === "Swimming" || sport === "Triathlon") && (
                             <div>
-                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Swim Pace (min/100m)</label>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('swim_pace')}</label>
                                 <input
                                     type="text"
                                     placeholder="e.g. 1:45"
@@ -265,7 +267,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                         )}
 
                         <div>
-                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max HR (bpm)</label>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">{t('max_hr')}</label>
                             <input
                                 type="number"
                                 placeholder="e.g. 190"
@@ -278,7 +280,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                     {/* Sport Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Primary Sport</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('primary_sport')}</label>
                         <select
                             value={sport}
                             onChange={(e) => setSport(e.target.value)}
@@ -295,7 +297,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                     {/* Language Selection */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Language</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('language')}</label>
                         <select
                             value={language}
                             onChange={(e) => setLanguage(e.target.value)}
@@ -314,12 +316,12 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                     {/* Races */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Upcoming Races</label>
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('upcoming_races')}</label>
                             <button
                                 onClick={addRace}
                                 className="text-xs flex items-center gap-1 text-garmin-blue hover:text-blue-600 dark:hover:text-blue-400"
                             >
-                                <Plus size={14} /> Add Race
+                                <Plus size={14} /> {t('add_race')}
                             </button>
                         </div>
 
@@ -348,7 +350,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                                 </div>
                             ))}
                             {races.length === 0 && (
-                                <p className="text-gray-500 text-sm italic">No races added yet.</p>
+                                <p className="text-gray-500 text-sm italic">{t('no_races')}</p>
                             )}
                         </div>
                     </div>
@@ -359,14 +361,14 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                         onClick={onClose}
                         className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                     >
-                        Cancel
+                        {t('cancel')}
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={loading}
                         className="px-4 py-2 bg-garmin-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                     >
-                        {loading ? 'Saving...' : 'Save Settings'}
+                        {loading ? t('saving') : t('save_settings')}
                     </button>
                 </div>
             </div>

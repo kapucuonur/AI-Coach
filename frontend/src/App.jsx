@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
 import { ActivityList } from './components/ActivityList';
@@ -15,6 +16,7 @@ import { DeviceCard } from './components/DeviceCard';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
 
 function App() {
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -62,6 +64,9 @@ function App() {
       try {
         const settingsRes = await client.get('/settings');
         setSettingsData(settingsRes.data);
+        if (settingsRes.data.language) {
+          i18n.changeLanguage(settingsRes.data.language);
+        }
       } catch (e) {
         console.warn("Could not fetch settings", e);
       }
@@ -114,7 +119,7 @@ function App() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white transition-colors">
         <Loader2 className="w-12 h-12 animate-spin text-garmin-blue mb-4" />
-        <p className="text-gray-500 dark:text-gray-400 animate-pulse">Updating data...</p>
+        <p className="text-gray-500 dark:text-gray-400 animate-pulse">{t('updating_data')}</p>
       </div>
     );
   }
@@ -131,16 +136,16 @@ function App() {
         {/* Header */}
         <header className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">AI Coach Dashboard</h1>
-            <p className="text-gray-500 dark:text-gray-400">Your daily training intelligence</p>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{t('dashboard_title')}</h1>
+            <p className="text-gray-500 dark:text-gray-400">{t('daily_intelligence')}</p>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
-              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
             >
-              {darkMode ? <div className="flex items-center gap-2"><span>Light</span> <Sun size={24} /></div> : <div className="flex items-center gap-2"><span>Dark</span> <Moon size={24} /></div>}
+              {darkMode ? <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div> : <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>}
             </button>
 
             <button
@@ -151,14 +156,14 @@ function App() {
             </button>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Online</span>
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('online')}</span>
             </div>
 
             <button
               onClick={() => setIsAuthenticated(false)}
               className="text-sm text-red-500 hover:text-red-400 ml-2"
             >
-              Logout
+              {t('logout')}
             </button>
           </div>
         </header>
@@ -171,7 +176,7 @@ function App() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-                Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!
+                {t('sync_reminder')}
               </p>
             </div>
           </div>
@@ -188,49 +193,49 @@ function App() {
         {/* Stats Grid - Now Clickable */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
           <StatsCard
-            title="Resting HR"
+            title={t('resting_hr')}
             value={health.restingHeartRate || '--'}
-            unit="bpm"
+            unit={t('bpm')}
             icon={Heart}
             className="border-red-500/20"
-            onClick={() => setSelectedMetric({ key: 'resting_hr', title: 'Resting Heart Rate', unit: 'bpm', color: '#ef4444' })}
+            onClick={() => setSelectedMetric({ key: 'resting_hr', title: t('resting_hr'), unit: t('bpm'), color: '#ef4444' })}
           />
           <StatsCard
-            title="VO2 Max"
+            title={t('vo2_max')}
             value={profile.vo2Max || profile.vo2MaxValue || profile.vo2MaxRunning || profile.vo2MaxPrecise || '--'}
             unit="ml/kg"
             icon={Zap}
             className="border-yellow-500/20"
-            onClick={() => setSelectedMetric({ key: 'vo2_max', title: 'VO2 Max', unit: 'ml/kg', color: '#eab308' })}
+            onClick={() => setSelectedMetric({ key: 'vo2_max', title: t('vo2_max'), unit: 'ml/kg', color: '#eab308' })}
           />
           <StatsCard
-            title="Stress"
+            title={t('stress')}
             value={health.averageStressLevel || '--'}
             unit="/100"
             icon={Activity}
             className="border-orange-500/20"
-            onClick={() => setSelectedMetric({ key: 'stress', title: 'Stress Level', unit: '', color: '#f97316' })}
+            onClick={() => setSelectedMetric({ key: 'stress', title: t('stress'), unit: '', color: '#f97316' })}
           />
           <StatsCard
-            title="Body Battery"
+            title={t('body_battery')}
             value={health.bodyBatteryMostRecentValue || '--'}
             unit="%"
             icon={Battery}
             className="border-blue-500/20"
-            onClick={() => setSelectedMetric({ key: 'body_battery', title: 'Body Battery', unit: '%', color: '#3b82f6' })}
+            onClick={() => setSelectedMetric({ key: 'body_battery', title: t('body_battery'), unit: '%', color: '#3b82f6' })}
           />
           <StatsCard
-            title="Sleep"
+            title={t('sleep')}
             value={sleep.dailySleepDTO?.sleepTimeSeconds ? (sleep.dailySleepDTO.sleepTimeSeconds / 3600).toFixed(1) : '--'}
-            unit="hrs"
+            unit={t('hrs')}
             icon={Moon}
             className="border-purple-500/20"
-            onClick={() => setSelectedMetric({ key: 'sleep', title: 'Sleep Duration', unit: 'hrs', color: '#a855f7' })}
+            onClick={() => setSelectedMetric({ key: 'sleep', title: t('sleep'), unit: t('hrs'), color: '#a855f7' })}
           />
           <StatsCard
-            title="Fitness Age"
+            title={t('fitness_age')}
             value={profile.fitnessAge ? Number(profile.fitnessAge).toFixed(1) : '--'}
-            unit="yrs"
+            unit={t('yrs')}
             icon={Zap}
             className="border-green-500/20"
           />

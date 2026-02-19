@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Bot, Sparkles, Watch, CheckCircle, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import WorkoutVisualizer from './WorkoutVisualizer';
 
 export function AdviceBlock({ advice, workout }) {
+    const { t } = useTranslation();
     const [syncStatus, setSyncStatus] = useState(null); // 'loading', 'success', 'error'
 
     const handleSync = async () => {
@@ -42,10 +44,10 @@ export function AdviceBlock({ advice, workout }) {
                         <span className="text-xl">🤖</span>
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">AI Performance Coach</h2>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{t('ai_performance_coach')}</h2>
                         <div className="flex items-center gap-1 text-xs font-medium text-garmin-blue dark:text-blue-400 uppercase tracking-wider">
                             <Sparkles size={12} />
-                            <span>Daily Briefing</span>
+                            <span>{t('coach_daily_briefing')}</span>
                         </div>
                     </div>
                 </div>
@@ -80,10 +82,10 @@ export function AdviceBlock({ advice, workout }) {
 
                             {!syncStatus && <Watch size={18} />}
 
-                            {syncStatus === 'loading' && 'Sending...'}
-                            {syncStatus === 'success' && 'Sent to Watch!'}
-                            {syncStatus === 'error' && 'Failed'}
-                            {!syncStatus && 'Send to Watch'}
+                            {syncStatus === 'loading' && t('sending')}
+                            {syncStatus === 'success' && t('sent_to_watch')}
+                            {syncStatus === 'error' && t('failed')}
+                            {!syncStatus && t('send_to_watch')}
                         </button>
                     </div>
                 )}

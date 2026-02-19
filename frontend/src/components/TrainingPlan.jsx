@@ -1,34 +1,13 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronRight, Activity, Clock, Zap } from 'lucide-react';
 import client from '../api/client';
 
 export function TrainingPlan({ userContext, language }) {
+    const { t } = useTranslation();
     const [plan, setPlan] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
-    // Simple translations
-    const t = {
-        en: {
-            title: "Training Plan",
-            desc: "Generate a structured plan tailored to your goals.",
-            gen1w: "Generate 1-Week Plan",
-            gen1m: "Generate 1-Month Plan",
-            generating: "Designing your plan...",
-            error: "Failed to generate plan. Please try again."
-        },
-        tr: {
-            title: "Antrenman Programı",
-            desc: "Hedeflerinize özel yapılandırılmış bir program oluşturun.",
-            gen1w: "1 Haftalık Program Oluştur",
-            gen1m: "1 Aylık Program Oluştur",
-            generating: "Programınız tasarlanıyor...",
-            error: "Program oluşturulamadı. Lütfen tekrar deneyin."
-        },
-        // Add others as needed, default to EN
-    };
-
-    const txt = t[language] || t['en'];
 
     const handleGenerate = async (duration) => {
         setLoading(true);
@@ -76,7 +55,7 @@ export function TrainingPlan({ userContext, language }) {
             setPlan(res.data);
         } catch (err) {
             console.error(err);
-            setError(txt.error);
+            setError(t('error'));
         } finally {
             setLoading(false);
         }
@@ -85,8 +64,8 @@ export function TrainingPlan({ userContext, language }) {
     if (!plan && !loading) {
         return (
             <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-800">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{txt.title}</h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">{txt.desc}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('training_plan_title')}</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">{t('training_plan_desc')}</p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
                     <button
@@ -94,14 +73,14 @@ export function TrainingPlan({ userContext, language }) {
                         className="flex-1 py-3 px-4 bg-garmin-blue hover:bg-blue-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
                         <Calendar size={18} />
-                        {txt.gen1w}
+                        {t('generate_1w')}
                     </button>
                     <button
                         onClick={() => handleGenerate("1-Month")}
                         className="flex-1 py-3 px-4 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-700 text-gray-900 dark:text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
                     >
                         <Calendar size={18} />
-                        {txt.gen1m}
+                        {t('generate_1m')}
                     </button>
                 </div>
                 {error && <p className="text-red-500 mt-4 text-sm text-center">{error}</p>}
@@ -113,7 +92,7 @@ export function TrainingPlan({ userContext, language }) {
         return (
             <div className="bg-white dark:bg-zinc-900 rounded-2xl p-12 shadow-sm border border-gray-200 dark:border-gray-800 flex flex-col items-center justify-center">
                 <div className="w-10 h-10 border-4 border-garmin-blue border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-gray-500 dark:text-gray-400 animate-pulse">{txt.generating}</p>
+                <p className="text-gray-500 dark:text-gray-400 animate-pulse">{t('generating')}</p>
             </div>
         );
     }
@@ -140,7 +119,7 @@ export function TrainingPlan({ userContext, language }) {
                     <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{plan.summary}</p>
                 </div>
                 <button onClick={() => setPlan(null)} className="text-xs font-medium text-red-500 hover:text-red-400 uppercase tracking-wide px-3 py-1 rounded-full border border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                    Reset Plan
+                    {t('reset_plan')}
                 </button>
             </div>
 
@@ -150,7 +129,7 @@ export function TrainingPlan({ userContext, language }) {
                         <div className="flex items-center gap-4">
                             <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
                             <h4 className="text-sm font-bold text-gray-400 uppercase tracking-widest text-center">
-                                Week {week.week_number} <span className="text-garmin-blue mx-2">•</span> {week.focus}
+                                {t('week')} {week.week_number} <span className="text-garmin-blue mx-2">•</span> {week.focus}
                             </h4>
                             <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800"></div>
                         </div>
@@ -165,7 +144,7 @@ export function TrainingPlan({ userContext, language }) {
 
                                         {/* Day Info Column */}
                                         <div className="p-4 md:w-32 flex md:flex-col items-center md:items-start justify-between md:justify-center border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5">
-                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{day.day_name}</span>
+                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{t(day.day_name.toLowerCase())}</span>
                                             <div className="text-2xl mt-1">{isRest ? '😴' : theme.icon}</div>
                                             {day.total_duration && (
                                                 <span className="hidden md:inline-block text-xs font-mono text-gray-500 mt-2 bg-white dark:bg-black/20 px-1.5 py-0.5 rounded">
