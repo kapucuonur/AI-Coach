@@ -10,9 +10,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-    except Exception as e:
-        logger.error(f"Error fetching devices: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/devices")
 def get_devices(request: Request):
