@@ -6,39 +6,43 @@ An AI-powered endurance sports coach that analyzes your Garmin data to provide p
 - **Data Integration**: Fetches activities, sleep, and health metrics from Garmin Connect.
 - **AI Coaching**: Uses Google Gemini 2.0 to generate personalized training advice based on recovery and load.
 - **Professional Training Plans**: Generates detailed 1-Week/1-Month plans with specific paces, watts, and heart rate zones.
-- **Structured Workouts**: breakdown of Warmup, Main Set, and Cooldown for every session.
-- **Multilingual Support**: Fully localized in English, Turkish, German, French, Spanish, Russian, and Italian.
-- **Smart Caching**: Implements a Singleton pattern for Garmin connections to prevent rate limiting (429 errors) and ensure stability on ephemeral servers (Render).
+- **Structured Workouts**: Breakdown of Warmup, Main Set, and Cooldown for every session.
+- **Multilingual Support**: Comprehensive localization in English, Turkish, German, French, Spanish, Russian, and Italian using `i18next`.
+- **Interactive Dashboard**: Real-time stats cards for Resting HR, VO2 Max, Stress, Body Battery, and Sleep.
+- **Yearly Progression**: Visual analytics of distance and activity distribution across sports.
+- **Device Management**: Intelligent display of your primary Garmin device with connection status.
+- **AI Chat Widget**: Interactive AI coach for immediate feedback on training and recovery.
+- **Smart Caching**: Implements stability patterns for Garmin connections to prevent rate limiting.
 
 ## Architecture
 
-- **Backend:** FastAPI (Python)
-- **Frontend:** React (Vite + Tailwind + Lucide Icons)
-- **Database:** PostgreSQL (Production) / SQLite (Dev) (SQLAlchemy)
-- **AI:** Google Gemini 2.0 Flash
-- **Authentication:** Garmin Connect (Session Caching in RAM)
+- **Backend:** FastAPI (Python 3.10+)
+- **Frontend:** React (Vite + Vanilla CSS)
+- **Database:** PostgreSQL (Production) / SQLite (Dev)
+- **AI Brain:** Google Gemini 2.0 Flash
+- **Localization:** i18next / react-i18next
 
 ## Project Structure
 
 ```
 AI-Coach/
 ├── backend/
-│   ├── routers/        # API Endpoints (auth, coach, settings, dashboard)
-│   ├── services/       # Core Logic (Garmin Client, AI Brain, Data Processing)
-│   ├── database.py     # Database Configuration
-│   ├── models.py       # DB Models
-│   └── main.py         # App Entry Point
-├── frontend/           # React Application
+│   ├── routers/        # API Endpoints (auth, coach, garmin, settings)
+│   ├── services/       # Logic (Garmin Client, Coach Brain, Daily Briefing)
+│   ├── database.py     # Database & SQLAlchemy config
+│   ├── models.py       # User & Settings models
+│   └── main.py         # Backend entry point
+├── frontend/
 │   ├── src/
-│   │   ├── api/        # Axios Client Config
-│   │   ├── components/ # Reusable UI Components
-│   │   ├── pages/      # Page Views
-│   │   ├── App.jsx     # Main Layout
-│   │   └── main.jsx    # React Entry Point
-│   ├── public/         # Static Assets
-│   └── vite.config.js  # Vite Configuration
-├── tests/              # Unit & Integration Tests
-└── sql_app.db          # Local Database (Auto-created)
+│   │   ├── api/        # Axios API client
+│   │   ├── components/ # Localized UI (TrainingPlan, ActivityList, ChatWidget, etc.)
+│   │   ├── i18n.js     # Localization Hub
+│   │   ├── App.jsx     # Main Dashboard Logic
+│   │   └── main.jsx    # React bootstrapping
+│   ├── public/         # Static assets & videos
+│   └── vite.config.js
+├── scripts/            # Utility scripts (e.g., token management)
+└── sql_app.db          # Development database
 ```
 
 ## Getting Started
