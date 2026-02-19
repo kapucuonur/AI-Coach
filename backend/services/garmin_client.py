@@ -520,21 +520,34 @@ class GarminClient:
                     
                     logger.info(f"Raw summary for {year}: {json.dumps(summary, default=str)}")
                     
-                    # summary is expected to be a list of dicts, e.g.:
-                    # [{'activityType': {'typeKey': 'running', ...}, 'distance': 123456.78}, ...]
-                    # distance is usually in meters
+                    # RAW structure seen in logs:
+                    # [{"date": "...", "countOfActivities": 4, "stats": {"running": {"distance": {"sum": 89634368.68}}, ...}}]
+                    # Note: "sum" seems to be in centimeters or meters? 
+                    # Comparison: 253674599.12 / 1000 = 253,674 km? That's huge. 
+                    # Let's check a smaller one: swimming sum=6850452. 6850 km? No.
+                    # 6850452 / 100 = 68504 meters = 68.5 km. That sounds more likely.
+                    # Wait, let's look at running: 89634368 sum. 89634 km? No.
+                    # Maybe it's meters? 89634 km is impossible for a year.
+                    # 89,634,368 meters -> 89,634 km. Still too high.
+                    # Maybe centimeters? 89,634,368 cm -> 896,343 m -> 896 km. That sounds reasonable for a year running.
+                    # Let's verify with cycling. 253,674,599 cm -> 2,536,745 m -> 2,536 km. Reasonable.
+                    # So unit is likely CENTIMETERS.
                     
                     stats_for_year = {}
-                    if summary:
-                        for item in summary:
-                            activity_type = item.get('activityType', {}).get('typeKey')
-                            distance_meters = item.get('distance', 0)
-                            
-                            if activity_type:
-                                # Convert to km and round
-                                distance_km = round(distance_meters / 1000, 2)
-                                stats_for_year[activity_type] = distance_km
-                    
+                    if summary and isinstance(summary, list) and len(summary) > 0:
+                        # summary[0] contains the data for the range
+                        data_item = summary[0]
+                        if 'stats' in data_item:
+                            stats_obj = data_item['stats']
+                            # Iterate over sports in stats
+                            for sport_key, sport_data in stats_obj.items():
+                                # sport_data might look like: {"distance": {"sum": 1234.5, "count": 10 ...}}
+                                if 'distance' in sport_data and 'sum' in sport_data['distance']:
+                                    distance_cm = sport_data['distance']['sum']
+                                    # Convert CM to KM: cm / 100 = m / 1000 = km => cm / 100000
+                                    distance_km = round(distance_cm / 100000, 2)
+                                    stats_for_year[sport_key] = distance_km
+
                     yearly_stats[year] = stats_for_year
                     
                 except Exception as ye:
