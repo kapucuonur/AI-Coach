@@ -23,6 +23,7 @@ class UserSettings(BaseModel):
     off_days: List[str] = []  # e.g., ["Monday", "Sunday"]
     metrics: Dict = {}
     races: List[Race] = []
+    goals: Dict[str, str] = {}  # e.g. {"running": "Marathon", "triathlon": "Olympic"}
     coach_style: str = "Supportive"
 
 @router.get("/", response_model=UserSettings)

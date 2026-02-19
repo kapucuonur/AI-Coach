@@ -74,6 +74,7 @@ class CoachBrain:
         # Settings Context
         sport_context = "Endurance Sports"
         race_context = "No specific upcoming races."
+        goals_context = ""
         language_code = "en"
         language_map = {
             "en": "English", "tr": "Turkish", "de": "German", 
@@ -136,6 +137,17 @@ class CoachBrain:
                 if race_list:
                     race_context = "Upcoming Races:\n" + "\n".join(race_list)
 
+            # Goals Context
+            goals = user_settings.get("goals", {})
+            if goals:
+                g_list = []
+                for sport_key, goal_val in goals.items():
+                    if goal_val:
+                        g_list.append(f"- {sport_key.capitalize()} Goal: {goal_val}")
+                
+                if g_list:
+                    goals_context = "**Current Training Targets:**\n        " + "\n        ".join(g_list)
+
         target_language = language_map.get(language_code, "English")
 
         prompt = f"""
@@ -148,6 +160,7 @@ class CoachBrain:
         - Sport: {sport_context}
         {profile_context}
         {metrics_context}
+        {goals_context}
 
         **Current Context:**
         - Local Time: {time_context_str}

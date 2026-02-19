@@ -11,6 +11,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const [offDays, setOffDays] = useState([]);
     const [metrics, setMetrics] = useState({ threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
     const [races, setRaces] = useState([]);
+    const [goals, setGoals] = useState({ running: "", triathlon: "", cycling: "" }); // New state for goals
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -30,6 +31,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
             setOffDays(res.data.off_days || []);
             setMetrics(res.data.metrics || { threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
             setRaces(res.data.races || []);
+            setGoals(res.data.goals || { running: "", triathlon: "", cycling: "" });
         } catch (error) {
             console.error("Failed to load settings", error);
         }
@@ -45,8 +47,10 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                 gender: gender,
                 strength_days: parseInt(strengthDays),
                 off_days: offDays,
+                off_days: offDays,
                 metrics: metrics,
-                races: races
+                races: races,
+                goals: goals
             });
             onSave(); // Refresh data
             onClose();
@@ -145,6 +149,64 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                                 </label>
                             ))}
                         </div>
+                    </div>
+
+                    {/* Training Goals */}
+                    <div className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Training Goals</label>
+
+                        {(sport === "Running" || sport === "Triathlon") && (
+                            <div>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Running Target</label>
+                                <select
+                                    value={goals.running || ""}
+                                    onChange={(e) => setGoals({ ...goals, running: e.target.value })}
+                                    className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                >
+                                    <option value="">Select Distance</option>
+                                    <option value="5k">5k</option>
+                                    <option value="10k">10k</option>
+                                    <option value="Half Marathon">Half Marathon</option>
+                                    <option value="Marathon">Marathon</option>
+                                    <option value="Ultra">Ultra Marathon</option>
+                                </select>
+                            </div>
+                        )}
+
+                        {(sport === "Triathlon") && (
+                            <div>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Triathlon Distance</label>
+                                <select
+                                    value={goals.triathlon || ""}
+                                    onChange={(e) => setGoals({ ...goals, triathlon: e.target.value })}
+                                    className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                >
+                                    <option value="">Select Distance</option>
+                                    <option value="Sprint">Sprint</option>
+                                    <option value="Olympic">Olympic</option>
+                                    <option value="70.3">Half Ironman (70.3)</option>
+                                    <option value="Full">Ironman (140.6)</option>
+                                </select>
+                            </div>
+                        )}
+
+                        {(sport === "Cycling" || sport === "Triathlon") && (
+                            <div>
+                                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Cycling Focus</label>
+                                <select
+                                    value={goals.cycling || ""}
+                                    onChange={(e) => setGoals({ ...goals, cycling: e.target.value })}
+                                    className="w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                >
+                                    <option value="">Select Focus</option>
+                                    <option value="General Fitness">General Fitness</option>
+                                    <option value="Gran Fondo">Gran Fondo</option>
+                                    <option value="Crit Racing">Criterium</option>
+                                    <option value="Time Trial">Time Trial</option>
+                                    <option value="Climbing">Climbing</option>
+                                </select>
+                            </div>
+                        )}
                     </div>
 
                     {/* Sport Specific Metrics */}
