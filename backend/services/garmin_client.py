@@ -518,6 +518,8 @@ class GarminClient:
                         start_date, end_date, metric="distance"
                     )
                     
+                    logger.info(f"Raw summary for {year}: {json.dumps(summary, default=str)}")
+                    
                     # summary is expected to be a list of dicts, e.g.:
                     # [{'activityType': {'typeKey': 'running', ...}, 'distance': 123456.78}, ...]
                     # distance is usually in meters
