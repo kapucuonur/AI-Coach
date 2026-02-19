@@ -229,7 +229,7 @@ function App() {
           />
           <StatsCard
             title="Fitness Age"
-            value={profile.fitnessAge || '--'}
+            value={profile.fitnessAge ? Number(profile.fitnessAge).toFixed(1) : '--'}
             unit="yrs"
             icon={Zap}
             className="border-green-500/20"
