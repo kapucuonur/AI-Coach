@@ -12,13 +12,9 @@ router = APIRouter()
 
 
 @router.get("/devices")
-def get_devices(request: Request):
+def get_devices(client: GarminClient = Depends(get_garmin_client)):
     """Fetch available Garmin devices."""
     try:
-        client = get_garmin_client(request)
-        if not client:
-            raise HTTPException(status_code=401, detail="Garmin client not authenticated")
-        
         devices = client.get_devices()
         return devices
     except Exception as e:
@@ -26,13 +22,9 @@ def get_devices(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats/yearly")
-def get_yearly_stats(request: Request):
+def get_yearly_stats(client: GarminClient = Depends(get_garmin_client)):
     """Get yearly activity statistics."""
     try:
-        client = get_garmin_client(request)
-        if not client:
-            raise HTTPException(status_code=401, detail="Garmin client not authenticated")
-        
         # Default to last 5 years
         start_year = date.today().year - 5
         stats = client.get_yearly_stats(start_year)
