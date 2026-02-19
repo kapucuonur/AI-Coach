@@ -11,6 +11,7 @@ import { ActivityAnalysis } from './components/ActivityAnalysis';
 import { MetricDetailModal } from './components/MetricDetailModal';
 import { NutritionTracker } from './components/NutritionTracker';
 import { YearlyStats } from './components/YearlyStats';
+import { DeviceCard } from './components/DeviceCard';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
 
 function App() {
@@ -244,6 +245,7 @@ function App() {
 
           {/* Left: Coach Advice & Plan (Merged column) */}
           <div className="lg:col-span-2 space-y-6">
+            <DeviceCard />
             <AdviceBlock advice={advice} workout={workout} />
             <YearlyStats />
             <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
