@@ -162,6 +162,20 @@ function App() {
           </div>
         </header>
 
+        {/* Sync Reminder Note */}
+        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Activity className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!
+              </p>
+            </div>
+          </div>
+        </div>
+
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}

@@ -462,6 +462,19 @@ class GarminClient:
                 except Exception as e:
                     logger.warning(f"Could not get fitness age from profile: {e}")
             
+
+
+            # NEW FALLBACK: try get_fitnessage_data()
+            if 'fitnessAge' not in vo2_data or not vo2_data.get('fitnessAge'):
+                try:
+                    logger.info("Attempting to fetch fitness age from get_fitnessage_data()...")
+                    fa_data = self.get_fitness_age(today.isoformat())
+                    if fa_data and 'fitnessAge' in fa_data:
+                         vo2_data['fitnessAge'] = fa_data['fitnessAge']
+                         logger.info(f"✅ Found fitnessAge in get_fitnessage_data: {fa_data['fitnessAge']}")
+                except Exception as e:
+                    logger.warning(f"Could not get fitness age from get_fitnessage_data: {e}")
+            
             # Return the data if we found any, otherwise None
             if vo2_data:
                 logger.info(f"✅ VO2 Max data retrieved: {vo2_data}")
@@ -477,6 +490,20 @@ class GarminClient:
         except Exception as e:
             logger.error(f"Failed to fetch VO2 Max data: {e}")
             logger.error(f"Error traceback: {traceback.format_exc()}")
+            return None
+
+
+    def get_fitness_age(self, date_str=None):
+        """Fetch fitness age data."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return None
+        
+        try:
+            target_date = date_str if date_str else date.today().isoformat()
+            return self.client.get_fitnessage_data(target_date)
+        except Exception as e:
+            logger.error(f"Failed to fetch fitness age data: {e}")
             return None
 
     def get_devices(self):
