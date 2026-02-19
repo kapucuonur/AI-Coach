@@ -29,11 +29,30 @@ export function DeviceCard() {
     if (error) return null; // Or show error
     if (!devices || devices.length === 0) return null;
 
-    // Use the primary device or the first one
-    const primaryDevice = devices.find(d => d.primary) || devices[0];
+    // Helper to score devices for display priority
+    const getDeviceScore = (d) => {
+        let score = 0;
+        const name = (d.productDisplayName || d.modelName || "").toLowerCase();
+
+        // Penalize known accessories
+        if (name.includes('hrm') || name.includes('strap') || name.includes('monitor')) score -= 100;
+
+        // Boost known watches (generic check, though usually if it's not an HRM it's likely a watch/computer in this context)
+        if (name.includes('fenix') || name.includes('forerunner') || name.includes('vivo') || name.includes('epix') || name.includes('marq') || name.includes('instinct') || name.includes('edge') || name.includes('enduro')) score += 50;
+
+        if (d.primary) score += 10;
+        if (d.connectionStatus === 'CONNECTED') score += 5;
+
+        return score;
+    };
+
+    // Sort devices by score descending
+    const sortedDevices = [...devices].sort((a, b) => getDeviceScore(b) - getDeviceScore(a));
+    const primaryDevice = sortedDevices[0];
 
     // Helper to get image URL if available
     const getDeviceImage = (device) => {
+        if (!device) return null;
         if (device.imageUrl) return device.imageUrl;
         // Fallback to a generic image based on product name if possible, or just an icon
         // For now, we'll try to use the image URL provided by Garmin if it exists
