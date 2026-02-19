@@ -258,8 +258,9 @@ class GarminClient:
                         return session.mfa_code
 
                     # Init client
-                    client = Garmin(self.email, self.password, prompt_mfa=mfa_callback)
-                    client.login()
+                    client = Garmin(self.email, self.password)
+                    if not client.login():
+                        raise Exception("Garmin login failed (invalid credentials or captcha)")
                     
                     try:
                         client.get_user_profile()
@@ -477,6 +478,17 @@ class GarminClient:
             logger.error(f"Failed to fetch VO2 Max data: {e}")
             logger.error(f"Error traceback: {traceback.format_exc()}")
             return None
+
+    def get_devices(self):
+        """Fetch available devices."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return []
+        try:
+            return self.client.get_devices()
+        except Exception as e:
+            logger.error(f"Failed to fetch devices: {e}")
+            return []
 
     def create_workout(self, workout_json):
         """
