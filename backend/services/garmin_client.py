@@ -490,6 +490,61 @@ class GarminClient:
             logger.error(f"Failed to fetch devices: {e}")
             return []
 
+    def get_yearly_stats(self, start_year=None):
+        """
+        Fetch yearly activity stats (distance) for running, cycling, swimming, etc.
+        Default: Last 5 years.
+        """
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return {}
+
+        try:
+            current_year = date.today().year
+            if not start_year:
+                start_year = current_year - 5
+            
+            yearly_stats = {}
+            
+            for year in range(start_year, current_year + 1):
+                start_date = f"{year}-01-01"
+                end_date = f"{year}-12-31"
+                logger.info(f"Fetching stats for {year} ({start_date} to {end_date})...")
+                
+                try:
+                    # Using 'distance' metric as requested (total km)
+                    # groupbyactivities=True gives us breakdown by sport
+                    summary = self.client.get_progress_summary_between_dates(
+                        start_date, end_date, metric="distance"
+                    )
+                    
+                    # summary is expected to be a list of dicts, e.g.:
+                    # [{'activityType': {'typeKey': 'running', ...}, 'distance': 123456.78}, ...]
+                    # distance is usually in meters
+                    
+                    stats_for_year = {}
+                    if summary:
+                        for item in summary:
+                            activity_type = item.get('activityType', {}).get('typeKey')
+                            distance_meters = item.get('distance', 0)
+                            
+                            if activity_type:
+                                # Convert to km and round
+                                distance_km = round(distance_meters / 1000, 2)
+                                stats_for_year[activity_type] = distance_km
+                    
+                    yearly_stats[year] = stats_for_year
+                    
+                except Exception as ye:
+                    logger.error(f"Failed to fetch stats for {year}: {ye}")
+                    yearly_stats[year] = {"error": str(ye)}
+                    
+            return yearly_stats
+
+        except Exception as e:
+            logger.error(f"Failed to fetch yearly stats: {e}")
+            return {}
+
     def create_workout(self, workout_json):
         """
         Create a structured workout in Garmin Connect.

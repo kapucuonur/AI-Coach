@@ -18,3 +18,13 @@ def get_devices(client: GarminClient = Depends(get_garmin_client)):
     except Exception as e:
         logger.error(f"Error fetching devices: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/stats/yearly")
+def get_yearly_stats(client: GarminClient = Depends(get_garmin_client)):
+    """Fetch total distance for each sport by year (last 5 years)."""
+    try:
+        stats = client.get_yearly_stats()
+        return stats
+    except Exception as e:
+        logger.error(f"Error fetching yearly stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
