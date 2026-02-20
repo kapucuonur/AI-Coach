@@ -68,9 +68,10 @@ const resources = {
             "friday": "Friday",
             "saturday": "Saturday",
             "sunday": "Sunday",
-            "chat_greeting": "Hi! How are you feeling today? Any pain, fatigue, or soreness I should know about? (To generate a training plan, verify your settings and press the Generate Plan button on the dashboard!)",
             "chat_placeholder": "Ask your coach...",
-            "chat_conn_error": "Sorry, I'm having trouble connecting to the Coach Brain right now."
+            "chat_conn_error": "Sorry, I'm having trouble connecting to the Coach Brain right now.",
+            "also_runs": "Do you also run?",
+            "also_runs_desc": "If unchecked, AI Coach won't prescribe running workouts."
         }
     },
     tr: {
@@ -140,7 +141,9 @@ const resources = {
             "sunday": "Pazar",
             "chat_greeting": "Merhaba! Bugün nasıl hissediyorsun? Herhangi bir ağrı, yorgunluk veya bilmem gereken bir durum var mı? (Antrenman programı oluşturmak için panodaki butonları kullanabilirsin!)",
             "chat_placeholder": "Koçuna sor...",
-            "chat_conn_error": "Üzgünüm, şu anda Coach Brain ile bağlantı kuramıyorum."
+            "chat_conn_error": "Üzgünüm, şu anda Coach Brain ile bağlantı kuramıyorum.",
+            "also_runs": "Ayrıca koşuyor musunuz?",
+            "also_runs_desc": "İşaretlenmezse, AI Koç koşu antrenmanları yazmayacaktır."
         }
     },
     de: {
@@ -160,7 +163,9 @@ const resources = {
             "recent_activities": "Neueste Aktivitäten",
             "coach_daily_briefing": "Tägliches Briefing",
             "send_to_watch": "An Uhr senden",
-            "language": "Sprache"
+            "language": "Sprache",
+            "also_runs": "Laufen Sie auch?",
+            "also_runs_desc": "Falls nicht markiert, verschreibt der AI Coach keine Lauftrainings."
         }
     },
     fr: {
@@ -180,7 +185,9 @@ const resources = {
             "recent_activities": "Activités récentes",
             "coach_daily_briefing": "Briefing quotidien",
             "send_to_watch": "Envoyer à la montre",
-            "language": "Langue"
+            "language": "Langue",
+            "also_runs": "Courez-vous aussi ?",
+            "also_runs_desc": "Si décoché, AI Coach ne prescrira pas d'entraînements de course à pied."
         }
     },
     it: {
@@ -200,7 +207,9 @@ const resources = {
             "recent_activities": "Attività recenti",
             "coach_daily_briefing": "Briefing giornaliero",
             "send_to_watch": "Invia all'orologio",
-            "language": "Lingua"
+            "language": "Lingua",
+            "also_runs": "Corri anche tu?",
+            "also_runs_desc": "Se deselezionato, AI Coach non prescriverà allenamenti di corsa."
         }
     },
     es: {
@@ -220,7 +229,9 @@ const resources = {
             "recent_activities": "Actividades recientes",
             "coach_daily_briefing": "Resumen diario",
             "send_to_watch": "Enviar al reloj",
-            "language": "Idioma"
+            "language": "Idioma",
+            "also_runs": "¿También corres?",
+            "also_runs_desc": "Si no está marcado, AI Coach no prescribirá entrenamientos de carrera."
         }
     },
     ru: {
@@ -240,7 +251,9 @@ const resources = {
             "recent_activities": "Последние активности",
             "coach_daily_briefing": "Ежедневный брифинг",
             "send_to_watch": "Отправить на часы",
-            "language": "Язык"
+            "language": "Язык",
+            "also_runs": "Вы также бегаете?",
+            "also_runs_desc": "Если не отмечено, ИИ-тренер не будет назначать беговые тренировки."
         }
     }
 };

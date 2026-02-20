@@ -177,10 +177,14 @@ class CoachBrain:
         **Task:**
         Generate a Daily Briefing in {target_language}.
         
+        **CRITICAL LANGUAGE RULE:**
+        The ENTIRE response MUST be written in {target_language}. This includes the Markdown headers!
+        Do NOT output headers like "1. Recovery Status" or "2. Training Focus" in English if the target language is not English. You MUST translate the headers themselves to {target_language}.
+        
         **Structure (Markdown):**
-        1. **Recovery Status:** One line summary with an emoji status (🟢 Prime / 🟡 Maintenance / 🔴 Recovery). Mention key driver (e.g., "RHR is low", "Sleep was poor").
-        2. **Training Focus:** One concise paragraph analyzing load and today's goal.
-        3. **Workout of the Day:**
+        1. **[Translate to {target_language}: Recovery Status]**: One line summary with an emoji status (🟢 Prime / 🟡 Maintenance / 🔴 Recovery). Mention key driver (e.g., "RHR is low", "Sleep was poor").
+        2. **[Translate to {target_language}: Training Focus]**: One concise paragraph analyzing load and today's goal.
+        3. **[Translate to {target_language}: Workout of the Day]**:
            - **IF User has ALREADY trained today:**
              - Evening (18:00+): "Recovery Mode. No more training."
              - Early: Suggest double session ONLY if elite.
@@ -188,8 +192,8 @@ class CoachBrain:
              - Late Evening (20:00+): "Mobility/Yoga or Rest."
              - Normal hours: Specific workout recommendation based on data.
            - **CRITICAL RESTRICTION:** If the Athlete is a Cyclist AND "Runs: No", you MUST NOT prescribe ANY running/jogging activities. Prescribe cycling, strength, mobility, or rest instead.
-        4. **Nutrition:** Bullet points for Pre/During/Post (short & specific).
-        5. **Mindset:** One punchy, professional tip.
+        4. **[Translate to {target_language}: Nutrition]**: Bullet points for Pre/During/Post (short & specific).
+        5. **[Translate to {target_language}: Mindset]**: One punchy, professional tip.
 
         **Mandatory Footer:**
         *"Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!"*

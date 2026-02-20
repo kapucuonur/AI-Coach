@@ -307,11 +307,11 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                                         className="w-4 h-4 text-garmin-blue bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-2 focus:ring-garmin-blue"
                                     />
                                     <span className="text-sm font-medium text-blue-900 dark:text-blue-100 flex-1">
-                                        Do you also run?
+                                        {t('also_runs')}
                                     </span>
                                 </label>
                                 <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 ml-6">
-                                    If unchecked, AI Coach won't prescribe running workouts.
+                                    {t('also_runs_desc')}
                                 </p>
                             </div>
                         )}
