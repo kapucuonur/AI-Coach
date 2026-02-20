@@ -10,6 +10,7 @@ from datetime import date
 import pandas as pd
 import traceback
 import logging
+import asyncio
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -17,16 +18,14 @@ logger = logging.getLogger(__name__)
 from backend.schemas import GarminLoginSchema
 from backend.routers.settings import load_settings
 
-@router.post("/daily-briefing")
-def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_db)):
+@router.post("/daily-metrics")
+async def get_daily_metrics(user_data: GarminLoginSchema, db: Session = Depends(get_db)):
     try:
-        # Initialize services with provided credentials
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        
         client = GarminClient(user_data.email, user_data.password)
         
         # Pass DB session to login for persistence
-        success, status, error_msg = client.login(db=db, mfa_code=user_data.mfa_code)
+        # We run login in a thread since it's synchronous
+        success, status, error_msg = await asyncio.to_thread(client.login, db, user_data.mfa_code)
         
         if not success:
              logger.warning(f"Login failed: {status} - {error_msg}")
@@ -34,61 +33,36 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
                  raise HTTPException(status_code=401, detail="MFA_REQUIRED")
              raise HTTPException(status_code=401, detail=error_msg)
              
-        brain = CoachBrain(gemini_key)
         processor = DataProcessor()
         
-        settings = load_settings()
-        user_settings_dict = settings.model_dump()
+        # 1. Fetch Data Concurrently
+        activities_task = asyncio.to_thread(client.get_activities, 30)
+        health_stats_task = asyncio.to_thread(client.get_health_stats)
+        sleep_data_task = asyncio.to_thread(client.get_sleep_data)
+        profile_task = asyncio.to_thread(client.client.get_user_profile)
         
-        # 1. Fetch Data
-        activities = client.get_activities(30)
-        health_stats = client.get_health_stats()
-        sleep_data = client.get_sleep_data()
-        profile = client.client.get_user_profile() # Raw profile
+        activities, health_stats, sleep_data, profile = await asyncio.gather(
+            activities_task, health_stats_task, sleep_data_task, profile_task
+        )
         
-        # 2. Process Data
+        # 2. Process Data for summary block
         df = processor.process_activities(activities)
         weekly_summary = processor.calculate_weekly_summary(df)
         
         # Filter for TODAY'S activities
         todays_activities = []
         if not df.empty:
-            # df['date'] is datetime64[ns], compare with python date
             today = date.today()
             todays_df = df[df['date'].dt.date == today]
             if not todays_df.empty:
-                # Convert timestamps to string for JSON serialization/AI context
                 todays_activities = todays_df.to_dict(orient='records')
 
-        # 3. AI Generation
-        # Convert df to summary string/dict for AI
         activities_summary_dict = {}
         if not weekly_summary.empty:
             weekly_summary.index = weekly_summary.index.astype(str)
             activities_summary_dict = weekly_summary.to_dict()
-            
-        raw_advice = brain.generate_daily_advice(
-            profile, 
-            activities_summary_dict, 
-            health_stats, 
-            sleep_data, 
-            user_settings_dict, 
-            todays_activities,
-            client_local_time=user_data.client_local_time
-        )
-        
-        # Parse the JSON string from Gemini
-        import json
-        try:
-            parsed_advice = json.loads(raw_advice)
-            advice_text = parsed_advice.get("advice_text", raw_advice)
-            workout = parsed_advice.get("workout", None)
-        except json.JSONDecodeError:
-            logger.warning("Failed to parse advice JSON, returning raw text")
-            advice_text = raw_advice
-            workout = None
 
-        # Sanitize everything before returning to avoid 422/500
+        # Sanitize helpers
         import numpy as np
         def sanitize_for_json(obj):
             if isinstance(obj, pd.DataFrame):
@@ -108,8 +82,6 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
             return obj
 
         response_data = {
-            "advice": advice_text,
-            "workout": workout,
             "metrics": {
                 "health": health_stats,
                 "sleep": sleep_data,
@@ -117,6 +89,7 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
                 "recent_activities": activities,
                 "profile": profile
             },
+            "todays_activities": todays_activities, # Pass down for the AI to use later
             "access_token": create_access_token(email=user_data.email),
             "token_type": "bearer"
         }
@@ -126,7 +99,57 @@ def get_daily_briefing(user_data: GarminLoginSchema, db: Session = Depends(get_d
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error in daily briefing: {e}")
+        logger.error(f"Error in daily metrics: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+class AIAdviceRequest(GarminLoginSchema):
+    todays_activities: list = []
+    activities_summary_dict: dict = {}
+    health_stats: dict = {}
+    sleep_data: dict = {}
+    profile: dict = {}
+
+@router.post("/generate-advice")
+async def generate_advice(payload: AIAdviceRequest):
+    try:
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        brain = CoachBrain(gemini_key)
+        
+        # Load user personalization
+        settings = load_settings()
+        user_settings_dict = settings.model_dump()
+        
+        # 3. AI Generation (Offloaded to second request)
+        raw_advice = await asyncio.to_thread(
+            brain.generate_daily_advice,
+            payload.profile, 
+            payload.activities_summary_dict, 
+            payload.health_stats, 
+            payload.sleep_data, 
+            user_settings_dict, 
+            payload.todays_activities,
+            client_local_time=payload.client_local_time
+        )
+        
+        # Parse the JSON string from Gemini
+        import json
+        try:
+            parsed_advice = json.loads(raw_advice)
+            advice_text = parsed_advice.get("advice_text", raw_advice)
+            workout = parsed_advice.get("workout", None)
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse advice JSON, returning raw text")
+            advice_text = raw_advice
+            workout = None
+
+        return {
+            "advice": advice_text,
+            "workout": workout
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating advice: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

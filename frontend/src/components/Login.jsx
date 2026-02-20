@@ -78,7 +78,7 @@ export function Login({ onLogin }) {
                 client_local_time: new Date().toISOString()
             };
 
-            const response = await client.post('/coach/daily-briefing', payload);
+            const response = await client.post('/coach/daily-metrics', payload);
 
             // If successful, pass data and credentials to parent
             // Also pass payload so App.jsx knows the credentials used

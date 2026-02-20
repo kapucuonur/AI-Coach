@@ -22,6 +22,7 @@ function App() {
   const [error, setError] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
 
   // Interaction States
   const [selectedActivityId, setSelectedActivityId] = useState(null);
@@ -44,6 +45,44 @@ function App() {
 
   const [credentials, setCredentials] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
+
+  // Trigger AI generation AFTER dashboard loads
+  useEffect(() => {
+    const fetchAIAdvice = async () => {
+      if (!isAuthenticated || !credentials || !data || data.advice) return;
+
+      setIsGeneratingAdvice(true);
+      try {
+        const payload = {
+          ...credentials, // email, password, mfa etc
+          todays_activities: data.todays_activities || [],
+          activities_summary_dict: data.metrics?.weekly_volume || {},
+          health_stats: data.metrics?.health || {},
+          sleep_data: data.metrics?.sleep || {},
+          profile: data.metrics?.profile || {}
+        };
+
+        const res = await client.post('/coach/generate-advice', payload);
+
+        setData(prev => ({
+          ...prev,
+          advice: res.data.advice,
+          workout: res.data.workout
+        }));
+      } catch (err) {
+        console.error("Failed to generate AI advice in background", err);
+        setData(prev => ({
+          ...prev,
+          advice: "Sorry, I could not generate your advice right now. Please try again later.",
+          workout: null
+        }));
+      } finally {
+        setIsGeneratingAdvice(false);
+      }
+    };
+
+    fetchAIAdvice();
+  }, [isAuthenticated]);
 
   const handleLogin = async (briefingData, creds) => {
     setLoading(true);
@@ -251,7 +290,7 @@ function App() {
           {/* Left: Coach Advice & Plan (Merged column) */}
           <div className="lg:col-span-2 space-y-6">
             <DeviceCard />
-            <AdviceBlock advice={advice} workout={workout} />
+            <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} />
             <YearlyStats />
             <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
           </div>

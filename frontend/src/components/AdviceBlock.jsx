@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import WorkoutVisualizer from './WorkoutVisualizer';
 
-export function AdviceBlock({ advice, workout }) {
+export function AdviceBlock({ advice, workout, isGenerating }) {
     const { t } = useTranslation();
     const [syncStatus, setSyncStatus] = useState(null); // 'loading', 'success', 'error'
 
@@ -27,11 +27,12 @@ export function AdviceBlock({ advice, workout }) {
     const getSportIcon = () => {
         if (!workout) return <Bot size={24} className="text-garmin-blue" />;
         const type = workout.sportType?.sportTypeKey || '';
+        const adviceStr = (advice || "").toLowerCase();
         // keywords check
-        if (type === 'running' || advice.includes('run')) return <div className="text-2xl">🏃</div>;
-        if (type === 'cycling' || advice.includes('ride') || advice.includes('cycle')) return <div className="text-2xl">🚴</div>;
-        if (type === 'swimming' || advice.includes('swim')) return <div className="text-2xl">🏊</div>;
-        if (type === 'strength_training' || advice.includes('gym') || advice.includes('lift')) return <div className="text-2xl">🏋️</div>;
+        if (type === 'running' || adviceStr.includes('run')) return <div className="text-2xl">🏃</div>;
+        if (type === 'cycling' || adviceStr.includes('ride') || adviceStr.includes('cycle')) return <div className="text-2xl">🚴</div>;
+        if (type === 'swimming' || adviceStr.includes('swim')) return <div className="text-2xl">🏊</div>;
+        if (type === 'strength_training' || adviceStr.includes('gym') || adviceStr.includes('lift')) return <div className="text-2xl">🏋️</div>;
         return <Bot size={24} className="text-garmin-blue" />;
     };
 
@@ -57,9 +58,16 @@ export function AdviceBlock({ advice, workout }) {
             </div>
 
             <div className="p-6 relative z-10">
-                <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 font-sans leading-relaxed mb-6 dark:prose-invert">
-                    <ReactMarkdown>{advice}</ReactMarkdown>
-                </div>
+                {isGenerating ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center animate-pulse">
+                        <div className="w-10 h-10 border-4 border-garmin-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">AI Coach is analyzing your recovery and generating your daily plan...</p>
+                    </div>
+                ) : (
+                    <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 font-sans leading-relaxed mb-6 dark:prose-invert">
+                        <ReactMarkdown>{advice || "No advice generated yet."}</ReactMarkdown>
+                    </div>
+                )}
 
                 {/* Visual Workout Builder */}
                 {workout && <WorkoutVisualizer workout={workout} />}
