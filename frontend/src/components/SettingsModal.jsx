@@ -14,6 +14,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const [metrics, setMetrics] = useState({ threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
     const [races, setRaces] = useState([]);
     const [goals, setGoals] = useState({ running: "", triathlon: "", cycling: "" }); // New state for goals
+    const [alsoRuns, setAlsoRuns] = useState(true);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -34,6 +35,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
             setMetrics(res.data.metrics || { threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
             setRaces(res.data.races || []);
             setGoals(res.data.goals || { running: "", triathlon: "", cycling: "" });
+            setAlsoRuns(res.data.also_runs !== undefined ? res.data.also_runs : true);
         } catch (error) {
             console.error("Failed to load settings", error);
         }
@@ -51,7 +53,8 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                 off_days: offDays,
                 off_days: offDays,
                 races: races,
-                goals: goals
+                goals: goals,
+                also_runs: sport === "Cycling" ? alsoRuns : true,
             });
             i18n.changeLanguage(language);
             onSave(); // Refresh data
@@ -81,15 +84,15 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
     return (
         <div className="fixed inset-0 bg-black/60 dark:bg-black/80 flex items-center justify-center z-50 p-4 transition-colors">
-            <div className="bg-white dark:bg-garmin-gray w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden transition-colors duration-300">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-transparent">
+            <div className="bg-white dark:bg-garmin-gray w-full max-w-md max-h-[90vh] flex flex-col rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl overflow-hidden transition-colors duration-300">
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-transparent shrink-0">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('coach_settings')}</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                         <X size={24} />
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-6 overflow-y-auto flex-1">
                     {/* Profile & Strength */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -293,6 +296,25 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                             <option value="CrossFit">CrossFit</option>
                             <option value="General Fitness">General Fitness</option>
                         </select>
+
+                        {sport === "Cycling" && (
+                            <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={alsoRuns}
+                                        onChange={(e) => setAlsoRuns(e.target.checked)}
+                                        className="w-4 h-4 text-garmin-blue bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-2 focus:ring-garmin-blue"
+                                    />
+                                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100 flex-1">
+                                        Do you also run?
+                                    </span>
+                                </label>
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 ml-6">
+                                    If unchecked, AI Coach won't prescribe running workouts.
+                                </p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Language Selection */}
@@ -356,17 +378,17 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3 shrink-0">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                        className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white font-medium"
                     >
                         {t('cancel')}
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={loading}
-                        className="px-4 py-2 bg-garmin-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                        className="px-4 py-2 bg-garmin-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium shadow-sm"
                     >
                         {loading ? t('saving') : t('save_settings')}
                     </button>

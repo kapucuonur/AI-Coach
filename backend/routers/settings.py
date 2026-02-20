@@ -16,6 +16,7 @@ class Race(BaseModel):
 
 class UserSettings(BaseModel):
     primary_sport: str = "Running"
+    also_runs: bool = True
     language: str = "en"
     age: Optional[int] = None
     gender: Optional[str] = None

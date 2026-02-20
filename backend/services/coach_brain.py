@@ -88,6 +88,7 @@ class CoachBrain:
 
         if user_settings:
             sport_context = user_settings.get("primary_sport", "Endurance Sports")
+            also_runs = user_settings.get("also_runs", True)
             language_code = user_settings.get("language", "en")
             
             # Profile Stats
@@ -158,6 +159,7 @@ class CoachBrain:
         - Name: {name}
         - VO2max: {vo2max} ml/kg/min
         - Sport: {sport_context}
+        - Runs: {"Yes" if also_runs else "No"}
         {profile_context}
         {metrics_context}
         {goals_context}
@@ -185,6 +187,7 @@ class CoachBrain:
            - **IF No training yet:**
              - Late Evening (20:00+): "Mobility/Yoga or Rest."
              - Normal hours: Specific workout recommendation based on data.
+           - **CRITICAL RESTRICTION:** If the Athlete is a Cyclist AND "Runs: No", you MUST NOT prescribe ANY running/jogging activities. Prescribe cycling, strength, mobility, or rest instead.
         4. **Nutrition:** Bullet points for Pre/During/Post (short & specific).
         5. **Mindset:** One punchy, professional tip.
 
