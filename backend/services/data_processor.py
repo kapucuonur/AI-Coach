@@ -46,6 +46,12 @@ class DataProcessor:
             return pd.DataFrame()
             
         df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
+        
+        # Ensure columns exist before aggregation to prevent KeyErrors
+        for col in ['distance', 'duration', 'tss']:
+            if col not in df.columns:
+                df[col] = 0.0
+                
         return df.groupby('week').agg({
             'distance': 'sum',
             'duration': 'sum',
