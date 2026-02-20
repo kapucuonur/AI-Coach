@@ -171,7 +171,8 @@ class GarminClient:
 
         # 2. Filesystem Fallback (Legacy/Local dev) - Keep attempting just in case
         home_dir = os.path.expanduser("~")
-        garth_dir = os.path.join(home_dir, ".garth")
+        safe_email = self.email.replace('@', '_').replace('.', '_') if self.email else "unknown"
+        garth_dir = os.path.join(home_dir, f".garth_{safe_email}")
         if not mfa_code and os.path.exists(garth_dir):
              try:
                 pwd = self.password if self.password else "session_restore_placeholder"
@@ -258,7 +259,7 @@ class GarminClient:
                         return session.mfa_code
 
                     # Init client
-                    client = Garmin(self.email, self.password)
+                    client = Garmin(self.email, self.password, prompt_mfa=mfa_callback)
                     if not client.login():
                         raise Exception("Garmin login failed (invalid credentials or captcha)")
                     
