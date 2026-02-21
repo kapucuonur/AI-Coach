@@ -109,6 +109,7 @@ class AIAdviceRequest(GarminLoginSchema):
     health_stats: dict = {}
     sleep_data: dict = {}
     profile: dict = {}
+    available_time_mins: int = None
 
 @router.post("/generate-advice")
 async def generate_advice(payload: AIAdviceRequest):
@@ -129,7 +130,8 @@ async def generate_advice(payload: AIAdviceRequest):
             payload.sleep_data, 
             user_settings_dict, 
             payload.todays_activities,
-            client_local_time=payload.client_local_time
+            client_local_time=payload.client_local_time,
+            available_time_mins=payload.available_time_mins
         )
         
         # Parse the JSON string from Gemini

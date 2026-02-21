@@ -13,7 +13,7 @@ import { MetricDetailModal } from './components/MetricDetailModal';
 import { NutritionTracker } from './components/NutritionTracker';
 import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
-import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap } from 'lucide-react';
+import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock } from 'lucide-react';
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -23,6 +23,8 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
+  const [trainingHours, setTrainingHours] = useState("");
+  const [trainingMinutes, setTrainingMinutes] = useState("");
 
   // Interaction States
   const [selectedActivityId, setSelectedActivityId] = useState(null);
@@ -46,43 +48,55 @@ function App() {
   const [credentials, setCredentials] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
 
+  const fetchAIAdvice = async (forceMins = null) => {
+    if (!isAuthenticated || !credentials || !data) return;
+    if (data.advice && forceMins === null) return; // Only skip if we already have advice AND we aren't forcing a regeneration
+
+    setIsGeneratingAdvice(true);
+    try {
+      const payload = {
+        ...credentials, // email, password, mfa etc
+        todays_activities: data.todays_activities || [],
+        activities_summary_dict: data.metrics?.weekly_volume || {},
+        health_stats: data.metrics?.health || {},
+        sleep_data: data.metrics?.sleep || {},
+        profile: data.metrics?.profile || {}
+      };
+
+      if (forceMins !== null && forceMins > 0) {
+        payload.available_time_mins = forceMins;
+      }
+
+      const res = await client.post('/coach/generate-advice', payload);
+
+      setData(prev => ({
+        ...prev,
+        advice: res.data.advice,
+        workout: res.data.workout
+      }));
+    } catch (err) {
+      console.error("Failed to generate AI advice", err);
+      setData(prev => ({
+        ...prev,
+        advice: "Sorry, I could not generate your advice right now. Please try again later.",
+        workout: null
+      }));
+    } finally {
+      setIsGeneratingAdvice(false);
+    }
+  };
+
   // Trigger AI generation AFTER dashboard loads
   useEffect(() => {
-    const fetchAIAdvice = async () => {
-      if (!isAuthenticated || !credentials || !data || data.advice) return;
-
-      setIsGeneratingAdvice(true);
-      try {
-        const payload = {
-          ...credentials, // email, password, mfa etc
-          todays_activities: data.todays_activities || [],
-          activities_summary_dict: data.metrics?.weekly_volume || {},
-          health_stats: data.metrics?.health || {},
-          sleep_data: data.metrics?.sleep || {},
-          profile: data.metrics?.profile || {}
-        };
-
-        const res = await client.post('/coach/generate-advice', payload);
-
-        setData(prev => ({
-          ...prev,
-          advice: res.data.advice,
-          workout: res.data.workout
-        }));
-      } catch (err) {
-        console.error("Failed to generate AI advice in background", err);
-        setData(prev => ({
-          ...prev,
-          advice: "Sorry, I could not generate your advice right now. Please try again later.",
-          workout: null
-        }));
-      } finally {
-        setIsGeneratingAdvice(false);
-      }
-    };
-
     fetchAIAdvice();
   }, [isAuthenticated]);
+
+  const handleManualGenerate = () => {
+    let totalMins = 0;
+    if (trainingHours) totalMins += parseInt(trainingHours, 10) * 60;
+    if (trainingMinutes) totalMins += parseInt(trainingMinutes, 10);
+    fetchAIAdvice(totalMins > 0 ? totalMins : null);
+  };
 
   const handleLogin = async (briefingData, creds) => {
     setLoading(true);
@@ -179,6 +193,31 @@ function App() {
             <p className="text-gray-500 dark:text-gray-400">{t('daily_intelligence')}</p>
           </div>
           <div className="flex items-center gap-4">
+            <select
+              value={settingsData?.language || i18n.language || 'en'}
+              onChange={async (e) => {
+                const newLang = e.target.value;
+                i18n.changeLanguage(newLang);
+                if (settingsData) {
+                  setSettingsData(prev => ({ ...prev, language: newLang }));
+                }
+                try {
+                  await client.post('/settings', { language: newLang });
+                } catch (err) {
+                  console.error("Failed to update language", err);
+                }
+              }}
+              className="bg-white dark:bg-garmin-gray text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-garmin-blue shadow-sm"
+            >
+              <option value="en">EN</option>
+              <option value="tr">TR</option>
+              <option value="de">DE</option>
+              <option value="fr">FR</option>
+              <option value="es">ES</option>
+              <option value="it">IT</option>
+              <option value="ru">RU</option>
+            </select>
+
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
@@ -290,6 +329,51 @@ function App() {
           {/* Left: Coach Advice & Plan (Merged column) */}
           <div className="lg:col-span-2 space-y-6">
             <DeviceCard />
+
+            {/* Daily Training Time Configuration */}
+            <div className="bg-white dark:bg-garmin-card rounded-2xl p-4 md:p-6 border border-gray-200 dark:border-white/10 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Clock size={20} className="text-garmin-blue" />
+                  {t('daily_training_time') || "Daily Training Time"}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {t('daily_training_desc') || "How much time do you have to train today?"}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Hrs"
+                    value={trainingHours}
+                    onChange={(e) => setTrainingHours(e.target.value)}
+                    className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                  />
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">h</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="59"
+                    placeholder="Min"
+                    value={trainingMinutes}
+                    onChange={(e) => setTrainingMinutes(e.target.value)}
+                    className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                  />
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">m</span>
+                </div>
+                <button
+                  onClick={handleManualGenerate}
+                  disabled={isGeneratingAdvice}
+                  className="px-4 py-2 bg-garmin-blue hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isGeneratingAdvice ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                  {t('update_plan') || "Update Plan"}
+                </button>
+              </div>
+            </div>
+
             <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} />
             <YearlyStats />
             <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />

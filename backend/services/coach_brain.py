@@ -19,7 +19,7 @@ class CoachBrain:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-3-flash-preview')
 
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None):
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
@@ -151,6 +151,8 @@ class CoachBrain:
 
         target_language = language_map.get(language_code, "English")
 
+        time_limit_str = f"- **Time Constraint**: The athlete has specified they only have {available_time_mins} minutes to train today. YOU MUST fit the overall recommended workout duration strictly within this time limit." if available_time_mins is not None else ""
+
         prompt = f"""
         You are a World-Class Performance Coach for an elite athlete.
         Your tone is professional, concise, data-driven, and authoritative yet encouraging.
@@ -167,6 +169,7 @@ class CoachBrain:
         **Current Context:**
         - Local Time: {time_context_str}
         - Race Schedule: {race_context}
+        {time_limit_str}
         
         **Data Snapshot:**
         - Resting HR: {resting_hr} bpm
@@ -192,6 +195,12 @@ class CoachBrain:
              - Late Evening (20:00+): "Mobility/Yoga or Rest."
              - Normal hours: Specific workout recommendation based on data.
            - **CRITICAL RESTRICTION:** If the Athlete is a Cyclist AND "Runs: No", you MUST NOT prescribe ANY running/jogging activities. Prescribe cycling, strength, mobility, or rest instead.
+           - **PRO COACHING METRICS:** You MUST include precise target metrics for the workout based on the sport type:
+             - Running: Specify precise Pace (min/km) or Heart Rate Zone (Z1-Z5).
+             - Cycling: Specify Power (Watts) or HR Zone.
+             - Swimming: Specify Pace per 100m.
+             - Strength/Mobility: Specify precise sets and reps.
+             The workout MUST include specific Warmup, Main Set (with precise targets), and Cooldown structure in the JSON response.
         4. **[Translate to {target_language}: Nutrition]**: Bullet points for Pre/During/Post (short & specific).
         5. **[Translate to {target_language}: Mindset]**: One punchy, professional tip.
 
