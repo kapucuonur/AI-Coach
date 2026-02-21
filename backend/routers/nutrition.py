@@ -54,7 +54,7 @@ async def analyze_food_photo(
             raise HTTPException(status_code=500, detail="AI service not configured")
         
         genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel('gemini-3-flash-preview')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Create prompt for nutrition analysis
         prompt = """Analyze this food image and provide nutritional information in the following JSON format:

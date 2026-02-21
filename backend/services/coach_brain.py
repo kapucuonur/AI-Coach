@@ -17,7 +17,7 @@ class CoachBrain:
             raise ValueError("GEMINI_API_KEY is missing.")
         
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-3-flash-preview')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
     def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None):
         """
