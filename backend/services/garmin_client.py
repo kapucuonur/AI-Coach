@@ -335,22 +335,45 @@ class GarminClient:
             return None
 
     def get_health_stats(self, date_str=None):
-        """Fetch health stats for a specific date (YYYY-MM-DD). Defaults to today."""
+        """Fetch health stats, looking back up to 3 days if today's data is empty."""
         if not self.client:
             logger.error("Client not authenticated.")
             return None
         
-        target_date = date_str if date_str else date.today().isoformat()
-        return self.client.get_stats_and_body(target_date)
+        target_date = date.fromisoformat(date_str) if date_str else date.today()
+        
+        # Look back up to 3 days to find populated health stats
+        for i in range(4):
+            check_date = (target_date - timedelta(days=i)).isoformat()
+            try:
+                stats = self.client.get_stats_and_body(check_date)
+                # Check if it has actual data (like restingHeartRate)
+                if stats and stats.get('restingHeartRate'):
+                    return stats
+            except Exception as e:
+                logger.debug(f"Failed to fetch health stats for {check_date}: {e}")
+                
+        # Fallback to today's (likely empty) stats if nothing found
+        return self.client.get_stats_and_body(target_date.isoformat())
     
     def get_sleep_data(self, date_str=None):
-        """Fetch sleep data for a specific date (YYYY-MM-DD). Defaults to today."""
+        """Fetch sleep data, looking back up to 3 days if today's data is empty."""
         if not self.client:
             logger.error("Client not authenticated.")
             return None
         
-        target_date = date_str if date_str else date.today().isoformat()
-        return self.client.get_sleep_data(target_date)
+        target_date = date.fromisoformat(date_str) if date_str else date.today()
+        
+        for i in range(4):
+            check_date = (target_date - timedelta(days=i)).isoformat()
+            try:
+                sleep = self.client.get_sleep_data(check_date)
+                if sleep and sleep.get('dailySleepDTO'):
+                    return sleep
+            except Exception as e:
+                logger.debug(f"Failed to fetch sleep data for {check_date}: {e}")
+                
+        return self.client.get_sleep_data(target_date.isoformat())
     
     def get_vo2_max(self):
         """
