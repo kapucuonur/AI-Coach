@@ -13,6 +13,7 @@ import { MetricDetailModal } from './components/MetricDetailModal';
 import { NutritionTracker } from './components/NutritionTracker';
 import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
+import { GarminConnectModal } from './components/GarminConnectModal';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock } from 'lucide-react';
 
 function App() {
@@ -99,20 +100,16 @@ function App() {
     fetchAIAdvice(totalMins > 0 ? totalMins : null);
   };
 
-  const handleLogin = async (briefingData, creds) => {
+  const [showGarminConnectModal, setShowGarminConnectModal] = useState(false);
+
+  // Helper to fetch all dashboard data once authenticated
+  const fetchDashboardData = async () => {
     setLoading(true);
     setError(null);
-    setCredentials(creds);
-
-    // Merge briefing data with profile data
-    let enrichedData = { ...briefingData };
-
     try {
-      // Store JWT token if present in response
-      if (briefingData.access_token) {
-        localStorage.setItem('access_token', briefingData.access_token);
-        console.log('JWT token stored successfully');
-      }
+      // Fetch daily metrics
+      const response = await client.post('/coach/daily-metrics');
+      let enrichedData = response.data;
 
       // Fetch settings
       try {
@@ -125,10 +122,9 @@ function App() {
         console.warn("Could not fetch settings", e);
       }
 
-      // Fetch profile data for VO2 max and other metrics
+      // Fetch profile data
       try {
         const profileRes = await client.get('/dashboard/profile');
-        // Merge profile into metrics if it exists
         if (profileRes.data) {
           enrichedData = {
             ...enrichedData,
@@ -143,20 +139,60 @@ function App() {
       }
 
       setData(enrichedData);
-      setIsAuthenticated(true);
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.detail || "Login failed or could not fetch settings.";
-      setError(msg);
+      if (err.response?.data?.detail === "GARMIN_NOT_CONNECTED") {
+        setShowGarminConnectModal(true);
+      } else {
+        const msg = err.response?.data?.detail || "Could not fetch dashboard data.";
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleLogin = async (token, hasGarmin) => {
+    if (token) {
+      localStorage.setItem('access_token', token);
+      client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+
+    setIsAuthenticated(true);
+    setLoading(true);
+
+    if (hasGarmin) {
+      await fetchDashboardData();
+    } else {
+      setShowGarminConnectModal(true);
+      setLoading(false);
+    }
+  };
+
+  // If we have a token on load, try to authenticate instantly
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      // Optimistically log in
+      client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      client.get('/auth/me').then(res => {
+        setIsAuthenticated(true);
+        if (res.data.has_garmin_connected) {
+          fetchDashboardData();
+        } else {
+          setShowGarminConnectModal(true);
+        }
+      }).catch(() => {
+        localStorage.removeItem('access_token');
+        delete client.defaults.headers.common['Authorization'];
+      });
+    }
+  }, []);
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark transition-colors duration-300">
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 z-50">
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors"
@@ -164,7 +200,7 @@ function App() {
             {darkMode ? <Sun size={24} /> : <Moon size={24} />}
           </button>
         </div>
-        <Login onLogin={handleLogin} isLoading={loading} error={error} />
+        <Login onLogin={handleLogin} />
       </div>
     );
   }
@@ -184,235 +220,249 @@ function App() {
   const profile = metrics?.profile || {};
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white p-4 md:p-8 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <>
+      <div className={`min-h-screen bg-gray-50 dark:bg-garmin-dark text-gray-900 dark:text-white p-4 md:p-8 transition-colors duration-300 ${showGarminConnectModal ? 'blur-md pointer-events-none select-none' : ''}`}>
+        <div className="max-w-7xl mx-auto space-y-8">
 
-        {/* Header */}
-        <header className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{t('dashboard_title')}</h1>
-            <p className="text-gray-500 dark:text-gray-400">{t('daily_intelligence')}</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <select
-              value={settingsData?.language || i18n.language || 'en'}
-              onChange={async (e) => {
-                const newLang = e.target.value;
-                i18n.changeLanguage(newLang);
-                if (settingsData) {
-                  setSettingsData(prev => ({ ...prev, language: newLang }));
-                }
-                try {
-                  await client.post('/settings', { language: newLang });
-                  // Immediately fetch new advice with updated language
-                  fetchAIAdvice(null);
-                } catch (err) {
-                  console.error("Failed to update language", err);
-                }
-              }}
-              className="bg-white dark:bg-garmin-gray text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-garmin-blue shadow-sm"
-            >
-              <option value="en">EN</option>
-              <option value="tr">TR</option>
-              <option value="de">DE</option>
-              <option value="fr">FR</option>
-              <option value="es">ES</option>
-              <option value="it">IT</option>
-              <option value="ru">RU</option>
-            </select>
-
-            <button
-              onClick={() => setDarkMode(!darkMode)}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
-              title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
-            >
-              {darkMode ? <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div> : <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>}
-            </button>
-
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
-            >
-              <Settings size={24} />
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('online')}</span>
+          {/* Header */}
+          <header className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{t('dashboard_title')}</h1>
+              <p className="text-gray-500 dark:text-gray-400">{t('daily_intelligence')}</p>
             </div>
+            <div className="flex items-center gap-4">
+              <select
+                value={settingsData?.language || i18n.language || 'en'}
+                onChange={async (e) => {
+                  const newLang = e.target.value;
+                  i18n.changeLanguage(newLang);
+                  if (settingsData) {
+                    setSettingsData(prev => ({ ...prev, language: newLang }));
+                  }
+                  try {
+                    await client.post('/settings', { language: newLang });
+                    // Immediately fetch new advice with updated language
+                    fetchAIAdvice(null);
+                  } catch (err) {
+                    console.error("Failed to update language", err);
+                  }
+                }}
+                className="bg-white dark:bg-garmin-gray text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-garmin-blue shadow-sm"
+              >
+                <option value="en">EN</option>
+                <option value="tr">TR</option>
+                <option value="de">DE</option>
+                <option value="fr">FR</option>
+                <option value="es">ES</option>
+                <option value="it">IT</option>
+                <option value="ru">RU</option>
+              </select>
 
-            <button
-              onClick={() => setIsAuthenticated(false)}
-              className="text-sm text-red-500 hover:text-red-400 ml-2"
-            >
-              {t('logout')}
-            </button>
-          </div>
-        </header>
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
+                title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
+              >
+                {darkMode ? <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div> : <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>}
+              </button>
 
-        {/* Sync Reminder Note */}
-        <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Activity className="h-5 w-5 text-red-500" />
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
+              >
+                <Settings size={24} />
+              </button>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('online')}</span>
+              </div>
+
+              <button
+                onClick={() => {
+                  setIsAuthenticated(false);
+                  localStorage.removeItem('access_token');
+                  delete client.defaults.headers.common['Authorization'];
+                }}
+                className="text-sm text-red-500 hover:text-red-400 ml-2"
+              >
+                {t('logout')}
+              </button>
             </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-                {t('sync_reminder')}
-              </p>
-            </div>
-          </div>
-        </div>
+          </header>
 
-        <SettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          onSave={() => {
-            setIsSettingsOpen(false);
-          }}
-        />
-
-        {/* Stats Grid - Now Clickable */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <StatsCard
-            title={t('resting_hr')}
-            value={health.restingHeartRate || '--'}
-            unit={t('bpm')}
-            icon={Heart}
-            className="border-red-500/20"
-            onClick={() => setSelectedMetric({ key: 'resting_hr', title: t('resting_hr'), unit: t('bpm'), color: '#ef4444' })}
-          />
-          <StatsCard
-            title={t('vo2_max')}
-            value={profile.vo2Max || profile.vo2MaxValue || profile.vo2MaxRunning || profile.vo2MaxPrecise || '--'}
-            unit="ml/kg"
-            icon={Zap}
-            className="border-yellow-500/20"
-            onClick={() => setSelectedMetric({ key: 'vo2_max', title: t('vo2_max'), unit: 'ml/kg', color: '#eab308' })}
-          />
-          <StatsCard
-            title={t('stress')}
-            value={health.averageStressLevel || '--'}
-            unit="/100"
-            icon={Activity}
-            className="border-orange-500/20"
-            onClick={() => setSelectedMetric({ key: 'stress', title: t('stress'), unit: '', color: '#f97316' })}
-          />
-          <StatsCard
-            title={t('body_battery')}
-            value={health.bodyBatteryMostRecentValue || '--'}
-            unit="%"
-            icon={Battery}
-            className="border-blue-500/20"
-            onClick={() => setSelectedMetric({ key: 'body_battery', title: t('body_battery'), unit: '%', color: '#3b82f6' })}
-          />
-          <StatsCard
-            title={t('sleep')}
-            value={sleep.dailySleepDTO?.sleepTimeSeconds ? (sleep.dailySleepDTO.sleepTimeSeconds / 3600).toFixed(1) : '--'}
-            unit={t('hrs')}
-            icon={Moon}
-            className="border-purple-500/20"
-            onClick={() => setSelectedMetric({ key: 'sleep', title: t('sleep'), unit: t('hrs'), color: '#a855f7' })}
-          />
-          <StatsCard
-            title={t('fitness_age')}
-            value={profile.fitnessAge ? Number(profile.fitnessAge).toFixed(1) : '--'}
-            unit={t('yrs')}
-            icon={Zap}
-            className="border-green-500/20"
-          />
-        </div>
-
-        {/* Nutrition Tracking */}
-        <NutritionTracker />
-
-
-        {/* Main Content Split */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* Left: Coach Advice & Plan (Merged column) */}
-          <div className="lg:col-span-2 space-y-6">
-            <DeviceCard />
-
-            {/* Daily Training Time Configuration */}
-            <div className="bg-white dark:bg-garmin-card rounded-2xl p-4 md:p-6 border border-gray-200 dark:border-white/10 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Clock size={20} className="text-garmin-blue" />
-                  {t('daily_training_time') || "Daily Training Time"}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t('daily_training_desc') || "How much time do you have to train today?"}
+          {/* Sync Reminder Note */}
+          <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Activity className="h-5 w-5 text-red-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-700 dark:text-red-300 font-medium">
+                  {t('sync_reminder')}
                 </p>
               </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Hrs"
-                    value={trainingHours}
-                    onChange={(e) => setTrainingHours(e.target.value)}
-                    className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                  />
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">h</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="59"
-                    placeholder="Min"
-                    value={trainingMinutes}
-                    onChange={(e) => setTrainingMinutes(e.target.value)}
-                    className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                  />
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">m</span>
-                </div>
-                <button
-                  onClick={handleManualGenerate}
-                  disabled={isGeneratingAdvice}
-                  className="px-4 py-2 bg-garmin-blue hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isGeneratingAdvice ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                  {t('update_plan') || "Update Plan"}
-                </button>
-              </div>
             </div>
-
-            <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} />
-            <YearlyStats />
-            <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
           </div>
 
-          {/* Right: Activities */}
-          <div className="lg:col-span-1">
-            <ActivityList
-              activities={metrics?.recent_activities || []}
-              onSelect={setSelectedActivityId}
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            onSave={() => {
+              setIsSettingsOpen(false);
+            }}
+          />
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <StatsCard
+              title={t('resting_hr')}
+              value={health.restingHeartRate || '--'}
+              unit={t('bpm')}
+              icon={Heart}
+              className="border-red-500/20"
+              onClick={() => setSelectedMetric({ key: 'resting_hr', title: t('resting_hr'), unit: t('bpm'), color: '#ef4444' })}
+            />
+            <StatsCard
+              title={t('vo2_max')}
+              value={profile.vo2Max || profile.vo2MaxValue || profile.vo2MaxRunning || profile.vo2MaxPrecise || '--'}
+              unit="ml/kg"
+              icon={Zap}
+              className="border-yellow-500/20"
+              onClick={() => setSelectedMetric({ key: 'vo2_max', title: t('vo2_max'), unit: 'ml/kg', color: '#eab308' })}
+            />
+            <StatsCard
+              title={t('stress')}
+              value={health.averageStressLevel || '--'}
+              unit="/100"
+              icon={Activity}
+              className="border-orange-500/20"
+              onClick={() => setSelectedMetric({ key: 'stress', title: t('stress'), unit: '', color: '#f97316' })}
+            />
+            <StatsCard
+              title={t('body_battery')}
+              value={health.bodyBatteryMostRecentValue || '--'}
+              unit="%"
+              icon={Battery}
+              className="border-blue-500/20"
+              onClick={() => setSelectedMetric({ key: 'body_battery', title: t('body_battery'), unit: '%', color: '#3b82f6' })}
+            />
+            <StatsCard
+              title={t('sleep')}
+              value={sleep.dailySleepDTO?.sleepTimeSeconds ? (sleep.dailySleepDTO.sleepTimeSeconds / 3600).toFixed(1) : '--'}
+              unit={t('hrs')}
+              icon={Moon}
+              className="border-purple-500/20"
+              onClick={() => setSelectedMetric({ key: 'sleep', title: t('sleep'), unit: t('hrs'), color: '#a855f7' })}
+            />
+            <StatsCard
+              title={t('fitness_age')}
+              value={profile.fitnessAge ? Number(profile.fitnessAge).toFixed(1) : '--'}
+              unit={t('yrs')}
+              icon={Zap}
+              className="border-green-500/20"
             />
           </div>
+
+          {/* Nutrition Tracking */}
+          <NutritionTracker />
+
+          {/* Main Content Split */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            {/* Left: Coach Advice & Plan */}
+            <div className="lg:col-span-2 space-y-6">
+              <DeviceCard />
+
+              {/* Daily Training Time Configuration */}
+              <div className="bg-white dark:bg-garmin-card rounded-2xl p-4 md:p-6 border border-gray-200 dark:border-white/10 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Clock size={20} className="text-garmin-blue" />
+                    {t('daily_training_time') || "Daily Training Time"}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    {t('daily_training_desc') || "How much time do you have to train today?"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Hrs"
+                      value={trainingHours}
+                      onChange={(e) => setTrainingHours(e.target.value)}
+                      className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                    />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">h</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      placeholder="Min"
+                      value={trainingMinutes}
+                      onChange={(e) => setTrainingMinutes(e.target.value)}
+                      className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                    />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">m</span>
+                  </div>
+                  <button
+                    onClick={handleManualGenerate}
+                    disabled={isGeneratingAdvice}
+                    className="px-4 py-2 bg-garmin-blue hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isGeneratingAdvice ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                    {t('update_plan') || "Update Plan"}
+                  </button>
+                </div>
+              </div>
+
+              <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} />
+              <YearlyStats />
+              <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
+            </div>
+
+            {/* Right: Activities */}
+            <div className="lg:col-span-1">
+              <ActivityList
+                activities={metrics?.recent_activities || []}
+                onSelect={setSelectedActivityId}
+              />
+            </div>
+          </div>
         </div>
+
+        {/* Activity Analysis Modal */}
+        {selectedActivityId && (
+          <ActivityAnalysis
+            activityId={selectedActivityId}
+            onClose={() => setSelectedActivityId(null)}
+          />
+        )}
+
+        {/* Metric Detail Modal */}
+        {selectedMetric && (
+          <MetricDetailModal
+            metricKey={selectedMetric.key}
+            title={selectedMetric.title}
+            unit={selectedMetric.unit}
+            color={selectedMetric.color}
+            onClose={() => setSelectedMetric(null)}
+          />
+        )}
+
+        <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
       </div>
 
-      {/* Activity Analysis Modal */}
-      {selectedActivityId && (
-        <ActivityAnalysis
-          activityId={selectedActivityId}
-          onClose={() => setSelectedActivityId(null)}
+      {showGarminConnectModal && (
+        <GarminConnectModal
+          onConnected={() => {
+            setShowGarminConnectModal(false);
+            fetchDashboardData();
+          }}
         />
       )}
-
-      {/* Metric Detail Modal */}
-      {selectedMetric && (
-        <MetricDetailModal
-          metricKey={selectedMetric.key}
-          title={selectedMetric.title}
-          unit={selectedMetric.unit}
-          color={selectedMetric.color}
-          onClose={() => setSelectedMetric(null)}
-        />
-      )}
-
-      <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
-    </div>
+    </>
   );
 }
 

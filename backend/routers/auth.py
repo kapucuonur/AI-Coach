@@ -1,95 +1,107 @@
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from backend.services.garmin_client import GarminClient
+from pydantic import BaseModel, EmailStr
 from backend.database import get_db
-from backend.auth_utils import create_access_token
-import logging
+from backend.models import User
+from backend.auth_utils import verify_password, get_password_hash, create_access_token
 
-router = APIRouter()
-logger = logging.getLogger(__name__)
+router = APIRouter(tags=["auth"])
 
-class LoginRequest(BaseModel):
-    email: str
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
 
-class MFARequest(BaseModel):
-    email: str
-    code: str
-    password: str = "" # Optional, needed if we need to re-instantiate client
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class GarminConnectRequest(BaseModel):
+    garmin_email: str
+    garmin_password: str
+
+@router.post("/register")
+def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.email == user_data.email).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    
+    # Create new native user
+    hashed_pass = get_password_hash(user_data.password)
+    new_user = User(
+        email=user_data.email, 
+        hashed_password=hashed_pass
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    
+    # Generate token immediately after registration so they are logged in
+    access_token = create_access_token(data={"sub": new_user.email})
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "has_garmin_connected": False
+    }
+
 
 @router.post("/login")
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == user_data.email).first()
+    if not user or not verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
+    access_token = create_access_token(data={"sub": user.email})
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "has_garmin_connected": bool(user.garmin_email and user.garmin_password)
+    }
+
+
+from backend.auth_utils import verify_password, get_password_hash, create_access_token, get_current_user
+
+@router.get("/me")
+def get_current_user_info(current_user: User = Depends(get_current_user)):
+    return {
+        "email": current_user.email,
+        "has_garmin_connected": bool(current_user.garmin_email and current_user.garmin_password)
+    }
+
+@router.post("/connect-garmin")
+def connect_garmin_account(
+    garmin_data: GarminConnectRequest, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from backend.services.garmin_client import GarminClient
+    
+    # 1. Verify Garmin credentials are valid before saving them
     try:
-        # Initialize client
-        client = GarminClient(credentials.email, credentials.password)
+        # Warning: This is a synchronous call blocking the thread. 
+        # In a high-throughput env, consider offloading to a BackgroundTask/Thread
+        client = GarminClient(garmin_data.garmin_email, garmin_data.garmin_password)
+        success, status, error_msg = client.login(db=db)
         
-        # Attempt login with DB persistence
-        success, status, message = client.login(db=db)
-        
-        if success:
-            # Generate JWT token for authenticated user
-            access_token = create_access_token(email=credentials.email)
+        if not success:
+            raise HTTPException(status_code=400, detail=f"Garmin login failed: {status}")
             
-            return {
-                "status": "success", 
-                "message": message, 
-                "display_name": client.client.display_name,
-                "access_token": access_token,
-                "token_type": "bearer"
-            }
-        elif status == "MFA_REQUIRED":
-            return {
-                "status": "mfa_required",
-                "message": "Verify identity", 
-                "detail": message
-            }
-        else:
-             raise HTTPException(status_code=401, detail=message)
-            
-    except HTTPException:
-        raise
     except Exception as e:
-        logger.error(f"Login error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/login/mfa")
-def mfa_login(data: MFARequest, db: Session = Depends(get_db)):
-    try:
-        # Re-instantiate client. Ideally we'd have the password in PENDING_SESSIONS 
-        # checking based on email, but simpler is to pass it.
-        # However, for security, the frontend should ideally send it or we should retrieve it if we stored it properly.
-        # Current implementation assumes we might need to start a fresh thread if the old one died, 
-        # so password is safer to have.
+        raise HTTPException(status_code=400, detail=f"Failed to connect to Garmin: {str(e)}")
         
-        client = GarminClient(data.email, data.password)
-        
-        success, status, message = client.login(db=db, mfa_code=data.code)
-        
-        if success:
-            # Generate JWT token for authenticated user
-            access_token = create_access_token(email=data.email)
-            
-            return {
-                "status": "success", 
-                "message": message, 
-                "display_name": client.client.display_name if client.client and hasattr(client.client, 'display_name') else "User",
-                "access_token": access_token,
-                "token_type": "bearer"
-            }
-        else:
-            raise HTTPException(status_code=401, detail=message)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"MFA Login error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/status")
-def auth_status(db: Session = Depends(get_db)):
-    """
-    Check authentication status.
-    """
-    return {"authenticated": False}
-
+    # 2. Save credentials to user profile securely
+    current_user.garmin_email = garmin_data.garmin_email
+    current_user.garmin_password = garmin_data.garmin_password
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return {"message": "Garmin account connected successfully"}

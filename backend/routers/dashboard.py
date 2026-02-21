@@ -32,34 +32,26 @@ def clean_nans(obj):
         return [clean_nans(v) for v in obj]
     return obj
 
+from backend.auth_utils import get_current_user
+from backend.models import User
+
 def get_garmin_client(
-    email: str = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> GarminClient:
     """
     Get authenticated Garmin client for the current user.
-    
-    This dependency:
-    1. Validates the JWT token and extracts user email
-    2. Loads the user's Garmin session from database
-    3. Returns an authenticated GarminClient
-    
-    Multi-user safe: Each user's session is isolated in the database.
     """
-    logger.info(f"Getting Garmin client for user: {email}")
+    logger.info(f"Getting Garmin client for user: {current_user.email}")
     
-    # Get credentials from environment as fallback (for testing/single-user mode)
-    env_email = os.getenv("GARMIN_EMAIL")
-    env_password = os.getenv("GARMIN_PASSWORD")
-    
-    # Use environment credentials if available and match the authenticated user
-    if env_email and env_email == email and env_password:
-        logger.info(f"Using environment credentials for {email}")
-        client = GarminClient(env_email, env_password)
-    else:
-        logger.info(f"Using database session for {email}")
-        # Create client with email - it will try to load session from DB
-        client = GarminClient(email, password=None)
+    if not current_user.garmin_email or not current_user.garmin_password:
+        raise HTTPException(
+            status_code=400, 
+            detail="GARMIN_NOT_CONNECTED"
+        )
+        
+    logger.info(f"Using database session for {current_user.email}")
+    client = GarminClient(current_user.garmin_email, current_user.garmin_password)
     
     # Attempt to authenticate/resume session from DB
     try:

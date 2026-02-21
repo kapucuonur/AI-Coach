@@ -18,20 +18,30 @@ logger = logging.getLogger(__name__)
 from backend.schemas import GarminLoginSchema
 from backend.routers.settings import load_settings
 
+from backend.auth_utils import get_current_user
+from backend.models import User
+
 @router.post("/daily-metrics")
-async def get_daily_metrics(user_data: GarminLoginSchema, db: Session = Depends(get_db)):
+async def get_daily_metrics(
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
     try:
-        client = GarminClient(user_data.email, user_data.password)
+        if not current_user.garmin_email or not current_user.garmin_password:
+            # Return specific error so frontend shows "Connect Garmin" modal
+            raise HTTPException(status_code=400, detail="GARMIN_NOT_CONNECTED")
+            
+        client = GarminClient(current_user.garmin_email, current_user.garmin_password)
         
         # Pass DB session to login for persistence
         # We run login in a thread since it's synchronous
-        success, status, error_msg = await asyncio.to_thread(client.login, db, user_data.mfa_code)
+        success, status, error_msg = await asyncio.to_thread(client.login, db)
         
         if not success:
              logger.warning(f"Login failed: {status} - {error_msg}")
              if status == "MFA_REQUIRED":
-                 raise HTTPException(status_code=401, detail="MFA_REQUIRED")
-             raise HTTPException(status_code=401, detail=error_msg)
+                 raise HTTPException(status_code=401, detail="GARMIN_MFA_REQUIRED")
+             raise HTTPException(status_code=401, detail=f"Garmin auth failed: {error_msg}")
              
         processor = DataProcessor()
         

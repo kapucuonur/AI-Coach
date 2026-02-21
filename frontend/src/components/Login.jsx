@@ -1,27 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge } from 'lucide-react';
+import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus } from 'lucide-react';
 import client from '../api/client';
 
-// --- PAZARLAMA İÇİN YÜKLEME MESAJLARI ---
-// Render.com waking up messages
-const LOADING_MESSAGES = [
-    "AI Coach is waking up...",
-    "Establishing secure connection to Garmin...",
-    "Analyzing your last 30 days of training...",
-    "Calculating acute training load...",
-    "Optimizing your recovery metrics...",
-    "Generating metabolic profile..."
-];
-
 export function Login({ onLogin }) {
+    const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [mfaCode, setMfaCode] = useState('');
-    const [showMfa, setShowMfa] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
 
     const backgroundVideos = [
         {
@@ -55,46 +42,29 @@ export function Login({ onLogin }) {
         return () => clearInterval(interval);
     }, [backgroundVideos.length]);
 
-    // Loading message cycle
-    useEffect(() => {
-        if (loading) {
-            const interval = setInterval(() => {
-                setLoadingMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
-            }, 2500);
-            return () => clearInterval(interval);
-        }
-    }, [loading]);
-
-    const handleLogin = async (e) => {
+    const handleAuth = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            const payload = {
-                email,
-                password,
-                mfa_code: mfaCode || null,
-                client_local_time: new Date().toISOString()
-            };
+            const payload = { email, password };
+            const endpoint = isRegistering ? '/auth/register' : '/auth/login';
 
-            const response = await client.post('/coach/daily-metrics', payload);
+            const response = await client.post(endpoint, payload);
 
-            // If successful, pass data and credentials to parent
-            // Also pass payload so App.jsx knows the credentials used
-            onLogin(response.data, payload);
+            // Expected response: { access_token, token_type, has_garmin_connected }
+            const { access_token, has_garmin_connected } = response.data;
+
+            // Pass the token and the garmin connection status to App.jsx
+            onLogin(access_token, has_garmin_connected);
+
         } catch (err) {
-            console.error("Login Error:", err);
-            const errorMsg = err.response?.data?.detail || "Login failed. Check credentials.";
-
-            if (errorMsg === "MFA_REQUIRED") {
-                setShowMfa(true);
-                setError("Garmin sent a verification code to your email. Please into it below.");
-                setLoading(false);
-            } else {
-                setError(errorMsg);
-                setLoading(false);
-            }
+            console.error("Auth Error:", err);
+            const errorMsg = err.response?.data?.detail || (isRegistering ? "Registration failed." : "Login failed. Check credentials.");
+            setError(errorMsg);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -235,10 +205,14 @@ export function Login({ onLogin }) {
                         <div className="p-8">
                             <div className="mb-8 text-center">
                                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500">
-                                    <Lock className="text-white" size={20} />
+                                    {isRegistering ? <UserPlus className="text-white" size={20} /> : <Lock className="text-white" size={20} />}
                                 </div>
-                                <h2 className="text-2xl font-semibold">Connect Garmin</h2>
-                                <p className="text-sm text-gray-400">Sync your history to generate your plan</p>
+                                <h2 className="text-2xl font-semibold">
+                                    {isRegistering ? "Create Account" : "Login"}
+                                </h2>
+                                <p className="text-sm text-gray-400">
+                                    {isRegistering ? "Join AI Coach today" : "Enter your AI Coach credentials"}
+                                </p>
                             </div>
 
                             {/* --- FORM OR LOADING SCREEN --- */}
@@ -252,15 +226,12 @@ export function Login({ onLogin }) {
                                         className="flex flex-col items-center justify-center py-8 text-center"
                                     >
                                         <div className="mb-6 h-16 w-16 animate-spin rounded-full border-4 border-blue-500/30 border-t-blue-500"></div>
-                                        <h3 className="mb-2 text-lg font-medium text-white">Analyzing Data...</h3>
-                                        <p className="text-sm text-blue-300 animate-pulse">
-                                            {LOADING_MESSAGES[loadingMsgIndex]}
-                                        </p>
+                                        <h3 className="mb-2 text-lg font-medium text-white">Authenticating...</h3>
                                     </motion.div>
                                 ) : (
                                     <motion.form
                                         key="form"
-                                        onSubmit={handleLogin}
+                                        onSubmit={handleAuth}
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
@@ -279,7 +250,7 @@ export function Login({ onLogin }) {
                                             />
                                         </div>
                                         <div>
-                                            <label className="mb-1 block text-xs font-medium text-gray-400">Garmin Password</label>
+                                            <label className="mb-1 block text-xs font-medium text-gray-400">Password</label>
                                             <input
                                                 type="password"
                                                 value={password}
@@ -290,25 +261,6 @@ export function Login({ onLogin }) {
                                                 disabled={loading}
                                             />
                                         </div>
-
-                                        {showMfa && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                className="mt-4"
-                                            >
-                                                <label className="mb-1 block text-xs font-medium text-yellow-400">Verification Code Required</label>
-                                                <input
-                                                    type="text"
-                                                    value={mfaCode}
-                                                    onChange={(e) => setMfaCode(e.target.value)}
-                                                    className="w-full rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-4 py-3 text-white placeholder-gray-500 focus:border-yellow-500 focus:outline-none focus:ring-1 focus:ring-yellow-500 transition-all"
-                                                    placeholder="Enter code from email"
-                                                    required
-                                                    autoFocus
-                                                />
-                                            </motion.div>
-                                        )}
 
                                         {error && (
                                             <div className="text-red-400 text-sm text-center bg-red-900/20 p-2 rounded border border-red-500/20">
@@ -321,12 +273,22 @@ export function Login({ onLogin }) {
                                             disabled={loading}
                                             className="group mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-all hover:bg-gray-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                                         >
-                                            {showMfa ? "Verify & Login" : "Sync & Generate Plan"}
+                                            {isRegistering ? "Sign Up" : "Sign In"}
                                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                                         </button>
 
-                                        <p className="mt-4 text-center text-xs text-gray-500">
-                                            Your credentials are encrypted and never stored permanently.
+                                        <p className="mt-4 text-center text-sm text-gray-400">
+                                            {isRegistering ? "Already have an account?" : "Don't have an account?"}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsRegistering(!isRegistering);
+                                                    setError('');
+                                                }}
+                                                className="ml-2 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                                            >
+                                                {isRegistering ? "Login here" : "Sign up here"}
+                                            </button>
                                         </p>
                                     </motion.form>
                                 )}

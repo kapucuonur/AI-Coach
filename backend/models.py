@@ -8,6 +8,13 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)  # Native app password
+    
+    # Garmin Linked Account Data
+    # In a prod environment, garmin_password SHOULD BE ENCRYPTED, NOT HASHED
+    # because the Garmin API needs the raw password to log in.
+    garmin_email = Column(String, nullable=True) 
+    garmin_password = Column(String, nullable=True)
     
     # Relationships
     nutrition_entries = relationship("NutritionEntry", back_populates="user")

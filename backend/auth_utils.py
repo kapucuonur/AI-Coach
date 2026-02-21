@@ -1,101 +1,60 @@
-"""
-Authentication utilities for JWT token management.
-Handles token creation, verification, and user authentication.
-"""
-
-from datetime import datetime, timedelta
-from typing import Optional
-from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
-import logging
+from datetime import datetime, timedelta
+from jose import jwt, JWTError
+from passlib.context import CryptContext
 
-logger = logging.getLogger(__name__)
-
-# JWT Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production-VERY-IMPORTANT")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-prod")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 24
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
-# Security scheme for token authentication
-security = HTTPBearer()
+import bcrypt
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # bcrypt requires bytes, so we encode strings to utf-8 first
+    return bcrypt.checkpw(
+        plain_password.encode('utf-8'), 
+        hashed_password.encode('utf-8')
+    )
 
-def create_access_token(email: str, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create a JWT access token for a user.
-    
-    Args:
-        email: User's email address
-        expires_delta: Optional custom expiration time
-        
-    Returns:
-        Encoded JWT token string
-    """
-    to_encode = {"sub": email}
-    
+def get_password_hash(password: str) -> str:
+    # Hash the password and return it as a string
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
+
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
-    
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    
     return encoded_jwt
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from backend.database import get_db
 
-def verify_token(token: str) -> str:
-    """
-    Verify a JWT token and extract the user email.
-    
-    Args:
-        token: JWT token string
-        
-    Returns:
-        User email from token
-        
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    from backend.models import User
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        
         if email is None:
-            logger.warning("Token verification failed: no email in payload")
             raise credentials_exception
-            
-        return email
-        
-    except JWTError as e:
-        logger.warning(f"Token verification failed: {e}")
+    except JWTError:
         raise credentials_exception
-
-
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    """
-    FastAPI dependency to get the current authenticated user's email from token.
-    
-    Usage:
-        @router.get("/protected")
-        def protected_route(email: str = Depends(get_current_user)):
-            # email contains the authenticated user's email
-            
-    Returns:
-        User email
         
-    Raises:
-        HTTPException: If token is missing or invalid
-    """
-    token = credentials.credentials
-    email = verify_token(token)
-    logger.info(f"Authenticated request from user: {email}")
-    return email
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user
