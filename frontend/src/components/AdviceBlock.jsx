@@ -4,16 +4,22 @@ import { Bot, Sparkles, Watch, CheckCircle, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import WorkoutVisualizer from './WorkoutVisualizer';
+import { DeviceSelectModal } from './DeviceSelectModal';
 
 export function AdviceBlock({ advice, workout, isGenerating }) {
     const { t } = useTranslation();
     const [syncStatus, setSyncStatus] = useState(null); // 'loading', 'success', 'error'
+    const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
 
-    const handleSync = async () => {
+    const handleSync = async (device) => {
         if (!workout) return;
+        setIsDeviceModalOpen(false);
         setSyncStatus('loading');
         try {
-            await client.post('/coach/sync', { workout });
+            await client.post('/coach/sync', {
+                workout,
+                deviceId: device.deviceId
+            });
             setSyncStatus('success');
             setTimeout(() => setSyncStatus(null), 3000);
         } catch (error) {
@@ -73,9 +79,9 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                 {workout && <WorkoutVisualizer workout={workout} />}
 
                 {workout && (
-                    <div className="flex justify-end border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                    <div className="flex justify-end border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 relative">
                         <button
-                            onClick={handleSync}
+                            onClick={() => setIsDeviceModalOpen(true)}
                             disabled={syncStatus === 'loading' || syncStatus === 'success'}
                             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${syncStatus === 'success'
                                 ? 'bg-green-500/20 text-green-400'
@@ -98,6 +104,12 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                     </div>
                 )}
             </div>
+
+            <DeviceSelectModal
+                isOpen={isDeviceModalOpen}
+                onClose={() => setIsDeviceModalOpen(false)}
+                onSelect={(device) => handleSync(device)}
+            />
         </div>
     );
 }

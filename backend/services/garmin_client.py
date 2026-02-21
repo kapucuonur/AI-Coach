@@ -602,22 +602,64 @@ class GarminClient:
             logger.error(f"Failed to fetch yearly stats: {e}")
             return {}
 
-    def create_workout(self, workout_json):
+    def create_workout(self, workout_json: dict) -> dict:
         """
         Create a structured workout in Garmin Connect.
         workout_json must follow Garmin's workout format.
+        Returns the created workout JSON (which includes the new workoutId).
+        """
+        if not self.client:
+            logger.error("Client not authenticated.")
+            raise Exception("Client not authenticated.")
+        
+        try:
+            logger.info("Creating workout in Garmin Connect...")
+            # Using python-garminconnect's built-in upload_workout
+            created_workout = self.client.upload_workout(workout_json)
+            logger.info(f"Workout created successfully: {created_workout.get('workoutId')}")
+            return created_workout
+        except Exception as e:
+            logger.error(f"Failed to create workout: {e}")
+            raise e
+
+    def schedule_workout(self, workout_id: int, date_str: str) -> bool:
+        """
+        Schedule a workout on a specific date (YYYY-MM-DD) on the Garmin calendar.
         """
         if not self.client:
             logger.error("Client not authenticated.")
             return False
         
         try:
-            logger.info("Creating workout in Garmin Connect...")
-            status = self.client.create_workout(workout_json)
-            logger.info(f"Workout created: {status}")
+            logger.info(f"Scheduling workout {workout_id} for {date_str}...")
+            url = f"/calendar-service/workout/{workout_id}/schedule/{date_str}"
+            response = self.client.garth.post("connectapi", url, api=True)
+            logger.info("Workout scheduled successfully.")
             return True
         except Exception as e:
-            logger.error(f"Failed to create workout: {e}")
+            logger.error(f"Failed to schedule workout: {e}")
+            logger.warning("Continuing anyway, as this might just mean it was already scheduled.")
+            return False
+
+    def send_workout_to_device(self, workout_id: int, device_id: str) -> bool:
+        """
+        Queue a workout to be sent to a specific Garmin device immediately.
+        """
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return False
+            
+        try:
+            logger.info(f"Sending workout {workout_id} to device {device_id}...")
+            url = f"/device-service/devices/{device_id}/workouts"
+            # Payload is usually a list of workout IDs or objects
+            payload = [{"workoutId": workout_id}]
+            
+            response = self.client.garth.post("connectapi", url, json=payload, api=True)
+            logger.info("Workout queued for device sync successfully.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send workout to device: {e}")
             return False
 
 if __name__ == "__main__":

@@ -219,7 +219,16 @@ class CoachBrain:
                     }}
                  ]
             }}
-        }} 
+        }}
+        
+        **CRITICAL GARMIN WORKOUT JSON RULES:**
+        You must strictly adhere to the specific Garmin ID and Key mappings for workouts:
+        - `sportType`: running (1), cycling (2), swimming (5), strength_training (9)
+        - `stepType`: warmup (1), cooldown (2), active (3), rest (4), recovery (5)
+        - `endCondition`: lap.button (1), time (2) [value in seconds], distance (3) [value in meters]
+        - `targetType` for Running: heart.rate.zone (4), pace.zone (2) 
+        - `targetType` for Cycling: power.zone (6), heart.rate.zone (4), cadence.zone (5)
+        - Do not output target values as strings, they MUST be numeric/integers (e.g. `targetValueOne`: 1). If no target, use `no.target` (1).
         (Set "workout": null if it's a rest day/evening. Workout steps should be valid Garmin JSON structure.)
         Output ONLY valid JSON.
         """

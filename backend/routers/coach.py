@@ -155,33 +155,48 @@ async def generate_advice(payload: AIAdviceRequest):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+from backend.routers.dashboard import get_garmin_client
+
 @router.post("/sync")
 def sync_workout_to_watch(
     request: dict,
-    client: GarminClient = Depends(lambda: None)  # Placeholder - will implement proper auth
+    client: GarminClient = Depends(get_garmin_client)
 ):
     """
-    Send AI-generated workout to Garmin Connect.
-    TODO: Implement proper workout format conversion for Garmin API.
+    Send AI-generated workout to Garmin Connect and schedule it for today.
     """
     try:
         workout = request.get("workout")
+        device_id = request.get("deviceId")
         
         if not workout:
             raise HTTPException(status_code=400, detail="No workout data provided")
         
-        logger.info(f"Received workout sync request: {workout.get('workoutName', 'Unnamed')}")
+        logger.info(f"Received workout sync request: {workout.get('workoutName', 'Unnamed')} for device: {device_id}")
         
-        # TODO: Convert AI workout format to Garmin's format and actually create it
-        # For now, just log and return success to test the flow
-        logger.info(f"Workout details: {workout}")
+        # 1. Create Workout in Garmin Connect
+        try:
+            created_workout = client.create_workout(workout)
+            workout_id = created_workout.get("workoutId")
+        except Exception as e:
+            logger.error(f"Failed to create workout: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save workout to Garmin Connect: {e}")
+            
+        if not workout_id:
+            raise HTTPException(status_code=500, detail="Failed to retrieve workout ID after creation")
+            
+        # 2. Schedule Workout for Today
+        today_str = date.today().isoformat()
+        client.schedule_workout(workout_id, today_str)
         
-        # Placeholder - will implement actual Garmin API call
-        # success = client.create_workout(garmin_format_workout)
-        
+        # 3. Queue for specific device (if provided)
+        if device_id:
+            client.send_workout_to_device(workout_id, device_id)
+            
         return {
             "status": "success", 
-            "message": "Workout logged (sync to device pending implementation)"
+            "message": "Workout saved and scheduled for today.",
+            "workoutId": workout_id
         }
         
     except HTTPException as he:
