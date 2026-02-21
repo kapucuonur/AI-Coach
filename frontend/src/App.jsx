@@ -50,13 +50,12 @@ function App() {
   const [settingsData, setSettingsData] = useState(null);
 
   const fetchAIAdvice = async (forceMins = null) => {
-    if (!isAuthenticated || !credentials || !data) return;
+    if (!isAuthenticated || !data) return;
     if (data.advice && forceMins === null) return; // Only skip if we already have advice AND we aren't forcing a regeneration
 
     setIsGeneratingAdvice(true);
     try {
       const payload = {
-        ...credentials, // email, password, mfa etc
         todays_activities: data.todays_activities || [],
         activities_summary_dict: data.metrics?.weekly_volume || {},
         health_stats: data.metrics?.health || {},
@@ -88,10 +87,13 @@ function App() {
     }
   };
 
-  // Trigger AI generation AFTER dashboard loads
+  // Trigger AI generation AFTER dashboard data loads
   useEffect(() => {
-    fetchAIAdvice();
-  }, [isAuthenticated]);
+    // Only fetch if authenticated, data exists, and advice hasn't been generated yet
+    if (isAuthenticated && data && !data.advice) {
+      fetchAIAdvice();
+    }
+  }, [isAuthenticated, data]);
 
   const handleManualGenerate = () => {
     let totalMins = 0;

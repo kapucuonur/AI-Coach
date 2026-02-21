@@ -15,7 +15,7 @@ import asyncio
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-from backend.schemas import GarminLoginSchema
+from pydantic import BaseModel
 from backend.routers.settings import load_settings
 
 from backend.auth_utils import get_current_user
@@ -49,12 +49,17 @@ async def get_daily_metrics(
         activities_task = asyncio.to_thread(client.get_activities, 30)
         health_stats_task = asyncio.to_thread(client.get_health_stats)
         sleep_data_task = asyncio.to_thread(client.get_sleep_data)
-        profile_task = asyncio.to_thread(client.client.get_user_profile)
+        profile_task = asyncio.to_thread(client.get_profile)
+        vo2_max_task = asyncio.to_thread(client.get_vo2_max)
         
-        activities, health_stats, sleep_data, profile = await asyncio.gather(
-            activities_task, health_stats_task, sleep_data_task, profile_task
+        activities, health_stats, sleep_data, profile, vo2_max_data = await asyncio.gather(
+            activities_task, health_stats_task, sleep_data_task, profile_task, vo2_max_task
         )
         
+        # Merge VO2 max data into profile if available
+        if vo2_max_data and profile:
+            profile.update(vo2_max_data)
+            
         # 2. Process Data for summary block
         df = processor.process_activities(activities)
         weekly_summary = processor.calculate_weekly_summary(df)
@@ -113,7 +118,7 @@ async def get_daily_metrics(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-class AIAdviceRequest(GarminLoginSchema):
+class AIAdviceRequest(BaseModel):
     todays_activities: list = []
     activities_summary_dict: dict = {}
     health_stats: dict = {}
