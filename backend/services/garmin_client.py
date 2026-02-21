@@ -312,15 +312,14 @@ class GarminClient:
             return None
         return self.client.get_user_profile()
 
-    def get_activities(self, days=30):
+    def get_activities(self, limit=30):
         """Fetch recent activities."""
         if not self.client:
             logger.error("Client not authenticated.")
             return []
         
-        start_date = date.today() - timedelta(days=days)
-        # Using 0 as start index to get most recent
-        return self.client.get_activities_by_date(start_date.isoformat(), date.today().isoformat())
+        # Using 0 as start index to get 'limit' most recent activities regardless of date
+        return self.client.get_activities(0, limit)
 
     def get_activity_details(self, activity_id):
         """Fetch detailed activity data (splits, streams, etc)."""
