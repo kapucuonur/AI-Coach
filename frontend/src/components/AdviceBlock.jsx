@@ -103,48 +103,52 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                 {/* Visual Workout Builder */}
                 {workout && <WorkoutVisualizer workout={workout} />}
 
-                {workout && (
-                    <div className="flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 relative">
-                        {devices.length > 0 && (
-                            <div className="relative">
-                                <select
-                                    value={selectedDeviceId}
-                                    onChange={(e) => setSelectedDeviceId(e.target.value)}
-                                    className="appearance-none bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-garmin-blue font-medium"
-                                >
-                                    {devices.map(d => (
-                                        <option key={d.deviceId} value={d.deviceId}>
-                                            {d.productDisplayName || d.modelName || 'Garmin Device'} {d.connectionStatus === 'CONNECTED' ? ' (Online)' : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                            </div>
-                        )}
+                {/* Device Selector and Send to Watch Button */}
+                <div className="flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 relative">
+                    {devices.length > 0 && (
+                        <div className="relative">
+                            <select
+                                value={selectedDeviceId}
+                                onChange={(e) => setSelectedDeviceId(e.target.value)}
+                                className="appearance-none bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-garmin-blue font-medium w-full sm:w-auto"
+                                disabled={!workout}
+                                title={!workout ? "No workout available" : ""}
+                            >
+                                {devices.map(d => (
+                                    <option key={d.deviceId} value={d.deviceId}>
+                                        {d.productDisplayName || d.modelName || 'Garmin Device'} {d.connectionStatus === 'CONNECTED' ? ' (Online)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                        </div>
+                    )}
 
-                        <button
-                            onClick={handleSync}
-                            disabled={syncStatus === 'loading' || syncStatus === 'success' || fetchingDevices}
-                            className={`flex items-center gap-2 px-5 py-2 rounded-lg font-medium transition-all ${syncStatus === 'success'
+                    <button
+                        onClick={handleSync}
+                        disabled={!workout || syncStatus === 'loading' || syncStatus === 'success' || fetchingDevices}
+                        title={!workout ? "No workout generated to send" : ""}
+                        className={`flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-medium transition-all w-full sm:w-auto ${!workout
+                            ? 'bg-gray-100 dark:bg-zinc-800 text-gray-400 cursor-not-allowed'
+                            : syncStatus === 'success'
                                 ? 'bg-green-500/20 text-green-500 dark:text-green-400'
                                 : syncStatus === 'error'
                                     ? 'bg-red-500/20 text-red-500 dark:text-red-400'
                                     : 'bg-garmin-blue text-white hover:bg-blue-600 shadow-sm hover:shadow'
-                                }`}
-                        >
-                            {syncStatus === 'loading' && <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />}
-                            {syncStatus === 'success' && <CheckCircle size={18} />}
-                            {syncStatus === 'error' && <AlertCircle size={18} />}
+                            }`}
+                    >
+                        {syncStatus === 'loading' && <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />}
+                        {syncStatus === 'success' && <CheckCircle size={18} />}
+                        {syncStatus === 'error' && <AlertCircle size={18} />}
 
-                            {!syncStatus && <Watch size={18} />}
+                        {!syncStatus && <Watch size={18} />}
 
-                            {syncStatus === 'loading' && t('sending')}
-                            {syncStatus === 'success' && t('sent_to_watch')}
-                            {syncStatus === 'error' && t('failed')}
-                            {!syncStatus && (t('send_to_watch') || "Send to Watch")}
-                        </button>
-                    </div>
-                )}
+                        {syncStatus === 'loading' && t('sending')}
+                        {syncStatus === 'success' && t('sent_to_watch')}
+                        {syncStatus === 'error' && t('failed')}
+                        {!syncStatus && (t('send_to_watch') || "Send to Watch")}
+                    </button>
+                </div>
             </div>
         </div>
     );

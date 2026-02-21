@@ -518,6 +518,34 @@ class GarminClient:
             logger.error(f"Failed to fetch devices: {e}")
             return []
 
+    def sync_all_devices(self):
+        """Trigger an immediate sync for all connected devices to pull latest data."""
+        if not self.client:
+            logger.error("Client not authenticated.")
+            return False
+            
+        try:
+            devices = self.get_devices()
+            sync_count = 0
+            for device in devices:
+                # Optional: Only sync devices that are currently reported as connected or sync all anyway
+                device_id = device.get('deviceId')
+                if device_id:
+                    try:
+                        logger.info(f"Requesting auto-sync for device {device_id}...")
+                        # This endpoint queues a sync command
+                        url = f"/device-service/devices/{device_id}/sync"
+                        self.client.garth.post("connectapi", url, api=True)
+                        sync_count += 1
+                    except Exception as de:
+                        logger.warning(f"Could not queue sync for device {device_id}: {de}")
+                        
+            logger.info(f"Successfully queued auto-sync for {sync_count} devices.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to auto-sync devices: {e}")
+            return False
+
     def get_yearly_stats(self, start_year=None):
         """
         Fetch yearly activity stats (distance) for running, cycling, swimming, etc.

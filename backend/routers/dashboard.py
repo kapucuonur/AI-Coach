@@ -78,6 +78,16 @@ def get_garmin_client(
             detail="Garmin session expired. Please log in again."
         )
     
+    # Fire and forget: trigger an auto-sync to pull latest data from devices to Garmin Connect
+    def fire_sync():
+        try:
+            client.sync_all_devices()
+        except Exception as e:
+            logger.warning(f"Background sync failed for {email}: {e}")
+            
+    import threading
+    threading.Thread(target=fire_sync, daemon=True).start()
+    
     logger.info(f"Garmin client authenticated successfully for {email}")
     return client
 
