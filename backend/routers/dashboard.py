@@ -64,7 +64,7 @@ def get_garmin_client(
         raise HTTPException(status_code=500, detail=f"Failed to load Garmin session: {str(e)}")
     
     if not success:
-        logger.warning(f"Garmin session expired or invalid for {email}")
+        logger.warning(f"Garmin session expired or invalid for {current_user.email}")
         raise HTTPException(
             status_code=401,
             detail="Garmin session expired. Please log in again."
@@ -75,12 +75,12 @@ def get_garmin_client(
         try:
             client.sync_all_devices()
         except Exception as e:
-            logger.warning(f"Background sync failed for {email}: {e}")
+            logger.warning(f"Background sync failed for {current_user.email}: {e}")
             
     import threading
     threading.Thread(target=fire_sync, daemon=True).start()
     
-    logger.info(f"Garmin client authenticated successfully for {email}")
+    logger.info(f"Garmin client authenticated successfully for {current_user.email}")
     return client
 
 @router.get("/summary")
