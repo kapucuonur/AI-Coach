@@ -60,7 +60,8 @@ function App() {
         activities_summary_dict: data.metrics?.weekly_volume || {},
         health_stats: data.metrics?.health || {},
         sleep_data: data.metrics?.sleep || {},
-        profile: data.metrics?.profile || {}
+        profile: data.metrics?.profile || {},
+        language: settingsData?.language || i18n.language || 'en'
       };
 
       if (forceMins !== null && forceMins > 0) {

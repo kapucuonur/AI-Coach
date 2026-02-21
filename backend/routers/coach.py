@@ -110,6 +110,7 @@ class AIAdviceRequest(GarminLoginSchema):
     sleep_data: dict = {}
     profile: dict = {}
     available_time_mins: int = None
+    language: str = None  # Add explicit language parameter
 
 @router.post("/generate-advice")
 async def generate_advice(payload: AIAdviceRequest):
@@ -120,6 +121,10 @@ async def generate_advice(payload: AIAdviceRequest):
         # Load user personalization
         settings = load_settings()
         user_settings_dict = settings.model_dump()
+        
+        # Override language if provided explicitly in the payload
+        if payload.language:
+            user_settings_dict['language'] = payload.language
         
         # 3. AI Generation (Offloaded to second request)
         raw_advice = await asyncio.to_thread(
