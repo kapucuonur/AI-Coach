@@ -540,43 +540,57 @@ class GarminClient:
                 logger.info(f"Fetching stats for {year} ({start_date} to {end_date})...")
                 
                 try:
-                    # Using 'distance' metric as requested (total km)
-                    # groupbyactivities=True gives us breakdown by sport
-                    summary = self.client.get_progress_summary_between_dates(
+                    # Request multiple metrics if possible. If not, we'll request them individually.
+                    # 'distance' for distance, 'elevationGain' for elevation
+                    summary_dist = self.client.get_progress_summary_between_dates(
                         start_date, end_date, metric="distance"
                     )
                     
-                    logger.info(f"Raw summary for {year}: {json.dumps(summary, default=str)}")
+                    summary_elev = self.client.get_progress_summary_between_dates(
+                        start_date, end_date, metric="elevationGain"
+                    )
                     
-                    # RAW structure seen in logs:
-                    # [{"date": "...", "countOfActivities": 4, "stats": {"running": {"distance": {"sum": 89634368.68}}, ...}}]
-                    # Note: "sum" seems to be in centimeters or meters? 
-                    # Comparison: 253674599.12 / 1000 = 253,674 km? That's huge. 
-                    # Let's check a smaller one: swimming sum=6850452. 6850 km? No.
-                    # 6850452 / 100 = 68504 meters = 68.5 km. That sounds more likely.
-                    # Wait, let's look at running: 89634368 sum. 89634 km? No.
-                    # Maybe it's meters? 89634 km is impossible for a year.
-                    # 89,634,368 meters -> 89,634 km. Still too high.
-                    # Maybe centimeters? 89,634,368 cm -> 896,343 m -> 896 km. That sounds reasonable for a year running.
-                    # Let's verify with cycling. 253,674,599 cm -> 2,536,745 m -> 2,536 km. Reasonable.
-                    # So unit is likely CENTIMETERS.
+                    logger.info(f"Raw dist summary for {year}: {json.dumps(summary_dist, default=str)}")
+                    logger.info(f"Raw elev summary for {year}: {json.dumps(summary_elev, default=str)}")
                     
                     stats_for_year = {}
-                    if summary and isinstance(summary, list) and len(summary) > 0:
-                        # summary[0] contains the data for the range
-                        data_item = summary[0]
+                    
+                    # Process distance
+                    if summary_dist and isinstance(summary_dist, list) and len(summary_dist) > 0:
+                        data_item = summary_dist[0]
                         if 'stats' in data_item:
                             stats_obj = data_item['stats']
-                            # Iterate over sports in stats
                             for sport_key, sport_data in stats_obj.items():
-                                # sport_data might look like: {"distance": {"sum": 1234.5, "count": 10 ...}}
                                 if 'distance' in sport_data and 'sum' in sport_data['distance']:
                                     distance_cm = sport_data['distance']['sum']
-                                    # Convert CM to KM: cm / 100 = m / 1000 = km => cm / 100000
                                     distance_km = round(distance_cm / 100000, 2)
-                                    stats_for_year[sport_key] = distance_km
+                                    if sport_key not in stats_for_year:
+                                        stats_for_year[sport_key] = {}
+                                    stats_for_year[sport_key]['distance'] = distance_km
+                    
+                    # Process elevation
+                    if summary_elev and isinstance(summary_elev, list) and len(summary_elev) > 0:
+                        data_item = summary_elev[0]
+                        if 'stats' in data_item:
+                            stats_obj = data_item['stats']
+                            for sport_key, sport_data in stats_obj.items():
+                                if 'elevationGain' in sport_data and 'sum' in sport_data['elevationGain']:
+                                    elevation_cm = sport_data['elevationGain']['sum']
+                                    elevation_m = round(elevation_cm / 100, 2)
+                                    if sport_key not in stats_for_year:
+                                        stats_for_year[sport_key] = {}
+                                    stats_for_year[sport_key]['elevationGain'] = elevation_m
 
-                    yearly_stats[year] = stats_for_year
+                    # Formatting fallback for frontend compat: if distance exists, flatten it
+                    # But we want to send structured data if we have both
+                    flat_stats_for_year = {}
+                    for sport, metrics in stats_for_year.items():
+                        if 'distance' in metrics:
+                            flat_stats_for_year[sport] = metrics['distance']
+                        if 'elevationGain' in metrics:
+                            flat_stats_for_year[f"{sport}_elevation"] = metrics['elevationGain']
+
+                    yearly_stats[year] = flat_stats_for_year
                     
                 except Exception as ye:
                     logger.error(f"Failed to fetch stats for {year}: {ye}")

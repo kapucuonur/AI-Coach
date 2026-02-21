@@ -178,34 +178,24 @@ class CoachBrain:
         - Completed Today: {today_context}
 
         **Task:**
-        Generate a Daily Briefing in {target_language}.
+        Generate a Daily Briefing. 
         
-        **CRITICAL LANGUAGE RULE:**
-        The ENTIRE response MUST be written in {target_language}. This includes the Markdown headers!
-        Do NOT output headers like "1. Recovery Status" or "2. Training Focus" in English if the target language is not English. You MUST translate the headers themselves to {target_language}.
-        
-        **Structure (Markdown):**
-        1. **[Translate to {target_language}: Recovery Status]**: One line summary with an emoji status (🟢 Prime / 🟡 Maintenance / 🔴 Recovery). Mention key driver (e.g., "RHR is low", "Sleep was poor").
-        2. **[Translate to {target_language}: Training Focus]**: One concise paragraph analyzing load and today's goal.
-        3. **[Translate to {target_language}: Workout of the Day]**:
-           - **IF User has ALREADY trained today:**
-             - Evening (18:00+): "Recovery Mode. No more training."
-             - Early: Suggest double session ONLY if elite.
-           - **IF No training yet:**
-             - Late Evening (20:00+): "Mobility/Yoga or Rest."
-             - Normal hours: Specific workout recommendation based on data.
-           - **CRITICAL RESTRICTION:** If the Athlete is a Cyclist AND "Runs: No", you MUST NOT prescribe ANY running/jogging activities. Prescribe cycling, strength, mobility, or rest instead.
-           - **PRO COACHING METRICS:** You MUST include precise target metrics for the workout based on the sport type:
-             - Running: Specify precise Pace (min/km) or Heart Rate Zone (Z1-Z5).
-             - Cycling: Specify Power (Watts) or HR Zone.
-             - Swimming: Specify Pace per 100m.
-             - Strength/Mobility: Specify precise sets and reps.
-             The workout MUST include specific Warmup, Main Set (with precise targets), and Cooldown structure in the JSON response.
-        4. **[Translate to {target_language}: Nutrition]**: Bullet points for Pre/During/Post (short & specific).
-        5. **[Translate to {target_language}: Mindset]**: One punchy, professional tip.
+        **CRITICAL LANGUAGE INSTRUCTION: YOU MUST WRITE THE ENTIRE BRIEFING IN {target_language.upper()}!** 
+        ALL text, sentences, guidance, and markdown headers MUST be translated into {target_language}. If {target_language} is Turkish, write everything in Turkish. If German, write in German, etc. DO NOT output English text if {target_language} is not English!
+
+        **Structure Details (Format this structure into {target_language}, retaining the markdown formatting):**
+        1. **Recovery Status**: One line summary with an emoji status (🟢 / 🟡 / 🔴). Mention key driver based on provided data.
+        2. **Training Focus**: One concise paragraph analyzing load and today's goal.
+        3. **Workout of the Day**: Provide your specific workout recommendation based on the current context.
+           - IF trained today already: No more training if evening. Double session only if early and elite.
+           - IF not trained yet: If it's late evening, mobility/yoga/rest. Otherwise, prescribe based on data.
+           - CYCLING RESTRICTION: No running if "Runs: No", only cycle, stretch, strength, or rest.
+           - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc based on sport. Warmup/Main Set/Cooldown required in the JSON workout section.
+        4. **Nutrition**: Bullet points for Pre/During/Post.
+        5. **Mindset**: One punchy, professional tip.
 
         **Mandatory Footer:**
-        *"Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!"*
+        Translate this exactly into {target_language}: *"Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!"*
 
         **Output Format:**
         JSON object:

@@ -53,10 +53,12 @@ export function YearlyStats() {
         return null; // Don't show if no data
     }
 
-    // Determine active sports for the chart keys
+    // Determine active sports for the chart keys (excluding elevation for bars)
     const allKeys = new Set();
     data.forEach(item => Object.keys(item).forEach(key => {
-        if (key !== 'year' && key !== 'error') allKeys.add(key);
+        if (key !== 'year' && key !== 'error' && !key.endsWith('_elevation')) {
+            allKeys.add(key);
+        }
     }));
     const sportKeys = Array.from(allKeys);
 
@@ -79,6 +81,53 @@ export function YearlyStats() {
     const currentYearData = data.find(d => d.year === currentYear) || {};
     const totalKmThisYear = sportKeys.reduce((sum, sport) => sum + (currentYearData[sport] || 0), 0);
 
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            // Find the original data point for the hovered year
+            const yearData = data.find(d => d.year === label) || {};
+
+            return (
+                <div className="bg-zinc-800 border border-zinc-700 p-3 rounded-lg shadow-xl text-sm min-w-[150px]">
+                    <p className="text-white font-bold mb-2 border-b border-zinc-700 pb-1">{label} Total</p>
+                    <div className="space-y-1.5">
+                        {payload.map((entry, index) => {
+                            if (entry.value === 0 || !entry.value) return null;
+                            const sportKey = entry.dataKey;
+                            const elevationKey = `${sportKey}_elevation`;
+                            const hasElevation = yearData[elevationKey] != null;
+
+                            return (
+                                <div key={index} className="flex flex-col mb-1">
+                                    <div className="flex justify-between items-center gap-4">
+                                        <span className="flex items-center gap-1.5 text-gray-300">
+                                            <span
+                                                className="w-2.5 h-2.5 rounded-full"
+                                                style={{ backgroundColor: entry.color }}
+                                            />
+                                            <span className="capitalize">{entry.name}</span>
+                                        </span>
+                                        <span className="font-semibold text-white">
+                                            {entry.value.toLocaleString()} km
+                                        </span>
+                                    </div>
+                                    {hasElevation && (
+                                        <div className="flex justify-between items-center gap-4 pl-4 text-xs">
+                                            <span className="text-gray-400">Elevation</span>
+                                            <span className="text-gray-300">
+                                                {yearData[elevationKey].toLocaleString()} m
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
         <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-zinc-800 transition-all duration-300 hover:shadow-md">
             <div className="flex items-center justify-between mb-6">
@@ -88,7 +137,7 @@ export function YearlyStats() {
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-900 dark:text-white">Yearly Progression</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Total distance (km) by sport</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Total distance (km) & Elevation (m) by sport</p>
                     </div>
                 </div>
 
@@ -123,16 +172,7 @@ export function YearlyStats() {
                             tick={{ fill: '#9ca3af', fontSize: 12 }}
                             dx={-10}
                         />
-                        <Tooltip
-                            contentStyle={{
-                                backgroundColor: '#1f2937',
-                                borderRadius: '0.5rem',
-                                border: 'none',
-                                color: '#f3f4f6'
-                            }}
-                            itemStyle={{ color: '#d1d5db' }}
-                            cursor={{ fill: 'transparent' }}
-                        />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
                         <Legend
                             wrapperStyle={{ paddingTop: '20px' }}
                             iconType="circle"
@@ -143,9 +183,6 @@ export function YearlyStats() {
                                 dataKey={sport}
                                 stackId="a"
                                 fill={getColor(sport)}
-                                radius={[4, 4, 0, 0]} // Only top corners rounded for the top bar? No, this applies to all.
-                                // Stacked bars: only top one should have radius. Recharts handles this awkwardly.
-                                // Let's just remove radius for stacked, or keep it small.
                                 maxBarSize={50}
                                 name={sport.charAt(0).toUpperCase() + sport.slice(1).replace('_', ' ')}
                                 animationDuration={1500}
@@ -162,8 +199,13 @@ export function YearlyStats() {
                         <div key={sport} className="flex flex-col">
                             <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{sport.replace('_', ' ')}</span>
                             <span className="text-lg font-semibold text-gray-900 dark:text-white" style={{ color: getColor(sport) }}>
-                                {currentYearData[sport]} <span className="text-xs text-gray-400">km</span>
+                                {currentYearData[sport].toLocaleString()} <span className="text-xs text-gray-400">km</span>
                             </span>
+                            {currentYearData[`${sport}_elevation`] != null && (
+                                <span className="text-xs text-gray-500 mt-0.5">
+                                    {currentYearData[`${sport}_elevation`].toLocaleString()} m elev
+                                </span>
+                            )}
                         </div>
                     )
                 ))}
