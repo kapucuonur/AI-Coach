@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from backend.database import get_db
 from backend.models import User
 from backend.auth_utils import verify_password, get_password_hash, create_access_token
@@ -8,16 +8,20 @@ from backend.auth_utils import verify_password, get_password_hash, create_access
 router = APIRouter(tags=["auth"])
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class GarminConnectRequest(BaseModel):
     garmin_email: str
     garmin_password: str
+
+class GarminMFARequest(BaseModel):
+    garmin_email: str
+    mfa_code: str
 
 @router.post("/register")
 def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
@@ -83,20 +87,26 @@ def connect_garmin_account(
 ):
     from backend.services.garmin_client import GarminClient
     
-    # 1. Verify Garmin credentials are valid before saving them
     try:
-        # Warning: This is a synchronous call blocking the thread. 
-        # In a high-throughput env, consider offloading to a BackgroundTask/Thread
         client = GarminClient(garmin_data.garmin_email, garmin_data.garmin_password)
-        success, status, error_msg = client.login(db=db)
+        success, login_status, error_msg = client.login(db=db)
         
         if not success:
-            raise HTTPException(status_code=400, detail=f"Garmin login failed: {status}")
+            if login_status == "MFA_REQUIRED":
+                # MFA is needed — return a 200 with status so the frontend can show a code input
+                return {
+                    "status": "MFA_REQUIRED",
+                    "message": error_msg or "Please enter the authentication code sent to your email.",
+                    "garmin_email": garmin_data.garmin_email
+                }
+            raise HTTPException(status_code=400, detail=f"Garmin login failed: {error_msg}")
             
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to connect to Garmin: {str(e)}")
         
-    # 2. Save credentials to user profile securely
+    # Login succeeded without MFA — save credentials
     current_user.garmin_email = garmin_data.garmin_email
     current_user.garmin_password = garmin_data.garmin_password
     
@@ -104,4 +114,40 @@ def connect_garmin_account(
     db.commit()
     db.refresh(current_user)
     
-    return {"message": "Garmin account connected successfully"}
+    return {"status": "SUCCESS", "message": "Garmin account connected successfully"}
+
+
+@router.post("/connect-garmin/mfa")
+def connect_garmin_mfa(
+    mfa_data: GarminMFARequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Submit MFA code to complete Garmin login."""
+    from backend.services.garmin_client import GarminClient
+    
+    try:
+        client = GarminClient(mfa_data.garmin_email)
+        success, login_status, error_msg = client.login(db=db, mfa_code=mfa_data.mfa_code)
+        
+        if not success:
+            raise HTTPException(status_code=400, detail=f"MFA verification failed: {error_msg}")
+        
+        # MFA succeeded — save credentials
+        # We need the password too; it's stored in the PENDING_SESSION's GarminClient
+        current_user.garmin_email = mfa_data.garmin_email
+        # The password was already set during the initial /connect-garmin call
+        # Retrieve it from the client if available
+        if client.password and client.password != "session_restore_placeholder":
+            current_user.garmin_password = client.password
+        
+        db.add(current_user)
+        db.commit()
+        db.refresh(current_user)
+        
+        return {"status": "SUCCESS", "message": "Garmin account connected successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"MFA verification failed: {str(e)}")
