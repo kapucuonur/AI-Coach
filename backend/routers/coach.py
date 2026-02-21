@@ -100,7 +100,7 @@ async def get_daily_metrics(
                 "profile": profile
             },
             "todays_activities": todays_activities, # Pass down for the AI to use later
-            "access_token": create_access_token(email=user_data.email),
+            "access_token": create_access_token(email=current_user.email),
             "token_type": "bearer"
         }
         

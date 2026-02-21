@@ -37,7 +37,7 @@ class NutritionEntryResponse(BaseModel):
 @router.post("/analyze-food", response_model=NutritionAnalysis)
 async def analyze_food_photo(
     file: UploadFile = File(...),
-    email: str = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -92,7 +92,7 @@ Return ONLY the JSON, no other text."""
         
         # Save to database
         entry = NutritionEntry(
-            user_email=email,
+            user_email=current_user.email,
             meal_time=datetime.utcnow(),
             food_description=nutrition_data["food_description"],
             calories=float(nutrition_data["calories"]),
@@ -107,7 +107,7 @@ Return ONLY the JSON, no other text."""
         db.commit()
         db.refresh(entry)
         
-        logger.info(f"Nutrition entry created for {email}: {nutrition_data['food_description']}")
+        logger.info(f"Nutrition entry created for {current_user.email}: {nutrition_data['food_description']}")
         
         return NutritionAnalysis(**nutrition_data)
         
@@ -120,7 +120,7 @@ Return ONLY the JSON, no other text."""
 
 @router.get("/today", response_model=dict)
 def get_today_nutrition(
-    email: str = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get today's nutrition totals"""
@@ -129,7 +129,7 @@ def get_today_nutrition(
     today_start = datetime.combine(date.today(), datetime.min.time())
     
     entries = db.query(NutritionEntry).filter(
-        NutritionEntry.user_email == email,
+        NutritionEntry.user_email == current_user.email,
         NutritionEntry.meal_time >= today_start
     ).all()
     
@@ -163,7 +163,7 @@ def get_today_nutrition(
 @router.get("/history")
 def get_nutrition_history(
     days: int = 7,
-    email: str = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get nutrition history for the past N days"""
@@ -172,7 +172,7 @@ def get_nutrition_history(
     start_date = datetime.combine(date.today() - timedelta(days=days), datetime.min.time())
     
     entries = db.query(NutritionEntry).filter(
-        NutritionEntry.user_email == email,
+        NutritionEntry.user_email == current_user.email,
         NutritionEntry.meal_time >= start_date
     ).order_by(NutritionEntry.meal_time.desc()).all()
     
