@@ -1,10 +1,15 @@
 import React from 'react';
 
 const WorkoutVisualizer = ({ workout }) => {
-    if (!workout || !workout.steps) return null;
+    if (!workout) return null;
+
+    // Extract steps from either the old flat structure or the new nested Garmin structure
+    const steps = workout.steps || (workout.workoutSegments && workout.workoutSegments.flatMap(segment => segment.workoutSteps)) || [];
+
+    if (steps.length === 0) return null;
 
     // Calculate total duration to determine width percentages
-    const totalDuration = workout.steps.reduce((acc, step) => {
+    const totalDuration = steps.reduce((acc, step) => {
         // Assuming endConditionValue is in seconds for time-based steps
         // For distance based, we might need an estimated duration or just use relative width
         return acc + (step.endConditionValue || 300); // Default to 5 mins if unknown
@@ -17,7 +22,7 @@ const WorkoutVisualizer = ({ workout }) => {
         if (type === 'warmup' || desc.includes('warm')) return 'bg-blue-400 dark:bg-blue-500';
         if (type === 'cooldown' || desc.includes('cool')) return 'bg-teal-400 dark:bg-teal-500';
         if (type === 'recovery' || type === 'rest' || desc.includes('rest') || desc.includes('recover')) return 'bg-green-400 dark:bg-green-500';
-        if (type === 'interval' || desc.includes('run') || desc.includes('fast') || desc.includes('hard')) return 'bg-orange-500 dark:bg-orange-600';
+        if (type === 'interval' || type === 'active' || desc.includes('run') || desc.includes('fast') || desc.includes('hard')) return 'bg-orange-500 dark:bg-orange-600';
 
         return 'bg-gray-400';
     };
@@ -35,7 +40,7 @@ const WorkoutVisualizer = ({ workout }) => {
 
             {/* Visual Bar */}
             <div className="flex w-full h-12 rounded-lg overflow-hidden shadow-sm">
-                {workout.steps.map((step, index) => {
+                {steps.map((step, index) => {
                     const duration = step.endConditionValue || 300;
                     const widthPct = (duration / totalDuration) * 100;
 

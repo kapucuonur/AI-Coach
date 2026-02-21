@@ -641,7 +641,9 @@ class GarminClient:
             raise Exception("Client not authenticated.")
         
         try:
+            import json
             logger.info("Creating workout in Garmin Connect...")
+            logger.info(f"PAYLOAD: {json.dumps(workout_json)}")
             # Using python-garminconnect's built-in upload_workout
             created_workout = self.client.upload_workout(workout_json)
             logger.info(f"Workout created successfully: {created_workout.get('workoutId')}")

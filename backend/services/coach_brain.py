@@ -194,9 +194,6 @@ class CoachBrain:
         4. **Nutrition**: Bullet points for Pre/During/Post.
         5. **Mindset**: One punchy, professional tip.
 
-        **Mandatory Footer:**
-        Translate this exactly into {target_language}: *"Note to athlete: Please sync your device with Garmin Connect to ensure I have your latest data!"*
-
         **Output Format:**
         JSON object:
         {{
@@ -205,19 +202,27 @@ class CoachBrain:
                 "workoutName": "AI Coach - Duration/Type",
                 "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
                 "description": "Short description",
-                "steps": [
+                "workoutSegments": [
                     {{
-                        "type": "ExecutableStepDTO",
-                        "stepOrder": 1,
-                        "description": "Warmup",
-                        "stepType": {{ "stepTypeId": 1, "stepTypeKey": "warmup" }},
-                        "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
-                        "endConditionValue": 600,
-                        "targetType": {{ "targetTypeId": 4, "targetTypeKey": "heart.rate.zone" }},
-                        "targetValueOne": 1, 
-                        "targetValueTwo": 2
+                        "segmentOrder": 1,
+                        "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
+                        "workoutSteps": [
+                            {{
+                                "type": "ExecutableStepDTO",
+                                "stepOrder": 1,
+                                "description": "Warmup",
+                                "stepType": {{ "stepTypeId": 1, "stepTypeKey": "warmup" }},
+                                "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
+                                "preferredEndConditionUnit": null,
+                                "endConditionValue": 600,
+                                "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
+                                "targetValueOne": 1, 
+                                "targetValueTwo": 2,
+                                "zoneNumber": null
+                            }}
+                        ]
                     }}
-                 ]
+                ]
             }}
         }}
         
