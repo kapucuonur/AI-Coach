@@ -203,6 +203,8 @@ function App() {
                 }
                 try {
                   await client.post('/settings', { language: newLang });
+                  // Immediately fetch new advice with updated language
+                  fetchAIAdvice(null);
                 } catch (err) {
                   console.error("Failed to update language", err);
                 }

@@ -174,7 +174,9 @@ export function YearlyStats() {
                         />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
                         <Legend
-                            wrapperStyle={{ paddingTop: '20px' }}
+                            verticalAlign="top"
+                            align="center"
+                            wrapperStyle={{ paddingBottom: '20px' }}
                             iconType="circle"
                         />
                         {sportKeys.map((sport) => (

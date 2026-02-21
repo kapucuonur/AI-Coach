@@ -48,7 +48,6 @@ export function DeviceCard() {
 
     // Sort devices by score descending
     const sortedDevices = [...devices].sort((a, b) => getDeviceScore(b) - getDeviceScore(a));
-    const primaryDevice = sortedDevices[0];
 
     // Helper to get image URL if available
     const getDeviceImage = (device) => {
@@ -60,27 +59,30 @@ export function DeviceCard() {
     };
 
     return (
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-zinc-800 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {getDeviceImage(primaryDevice) ? (
-                    <img src={getDeviceImage(primaryDevice)} alt={primaryDevice.productDisplayName} className="w-full h-full object-cover" />
-                ) : (
-                    <Watch className="w-8 h-8 text-gray-400" />
-                )}
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {sortedDevices.map((device, idx) => (
+                <div key={device.deviceId || idx} className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-zinc-800 flex items-center gap-4 transition-all duration-300 hover:shadow-md">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {getDeviceImage(device) ? (
+                            <img src={getDeviceImage(device)} alt={device.productDisplayName} className="w-full h-full object-cover" />
+                        ) : (
+                            <Watch className="w-8 h-8 text-gray-400" />
+                        )}
+                    </div>
 
-            <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white text-lg">
-                    {primaryDevice.productDisplayName || primaryDevice.modelName || 'Garmin Device'}
-                </h3>
-                <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    <span className="flex items-center gap-1">
-                        <span className={`w-2 h-2 rounded-full ${primaryDevice.connectionStatus === 'CONNECTED' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        {primaryDevice.connectionStatus === 'CONNECTED' ? 'Connected' : 'Last Synced'}
-                    </span>
-                    {/* Add more details if available, e.g., battery if exposed */}
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-base truncate" title={device.productDisplayName || device.modelName || 'Garmin Device'}>
+                            {device.productDisplayName || device.modelName || 'Garmin Device'}
+                        </h3>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                            <span className="flex items-center gap-1">
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${device.connectionStatus === 'CONNECTED' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                {device.connectionStatus === 'CONNECTED' ? 'Connected' : 'Last Synced'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            ))}
         </div>
     );
 }

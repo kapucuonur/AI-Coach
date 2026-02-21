@@ -1,24 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Sparkles, Watch, CheckCircle, AlertCircle } from 'lucide-react';
+import { Bot, Sparkles, Watch, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import WorkoutVisualizer from './WorkoutVisualizer';
-import { DeviceSelectModal } from './DeviceSelectModal';
 
 export function AdviceBlock({ advice, workout, isGenerating }) {
     const { t } = useTranslation();
     const [syncStatus, setSyncStatus] = useState(null); // 'loading', 'success', 'error'
-    const [isDeviceModalOpen, setIsDeviceModalOpen] = useState(false);
+    const [devices, setDevices] = useState([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState('');
+    const [fetchingDevices, setFetchingDevices] = useState(false);
 
-    const handleSync = async (device) => {
+    useEffect(() => {
+        if (workout) {
+            const fetchDevices = async () => {
+                setFetchingDevices(true);
+                try {
+                    const response = await client.get('/garmin/devices');
+                    const sorted = response.data.sort((a, b) => {
+                        // basic sort to put connected/primary first
+                        if (a.connectionStatus === 'CONNECTED' && b.connectionStatus !== 'CONNECTED') return -1;
+                        if (a.primary && !b.primary) return -1;
+                        return 0;
+                    });
+                    setDevices(sorted);
+                    if (sorted.length > 0) {
+                        setSelectedDeviceId(sorted[0].deviceId);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch devices:', err);
+                } finally {
+                    setFetchingDevices(false);
+                }
+            };
+            fetchDevices();
+        }
+    }, [workout]);
+
+    const handleSync = async () => {
         if (!workout) return;
-        setIsDeviceModalOpen(false);
         setSyncStatus('loading');
         try {
             await client.post('/coach/sync', {
                 workout,
-                deviceId: device.deviceId
+                deviceId: selectedDeviceId || null
             });
             setSyncStatus('success');
             setTimeout(() => setSyncStatus(null), 3000);
@@ -34,7 +60,6 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
         if (!workout) return <Bot size={24} className="text-garmin-blue" />;
         const type = workout.sportType?.sportTypeKey || '';
         const adviceStr = (advice || "").toLowerCase();
-        // keywords check
         if (type === 'running' || adviceStr.includes('run')) return <div className="text-2xl">🏃</div>;
         if (type === 'cycling' || adviceStr.includes('ride') || adviceStr.includes('cycle')) return <div className="text-2xl">🚴</div>;
         if (type === 'swimming' || adviceStr.includes('swim')) return <div className="text-2xl">🏊</div>;
@@ -79,15 +104,32 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                 {workout && <WorkoutVisualizer workout={workout} />}
 
                 {workout && (
-                    <div className="flex justify-end border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 relative">
+                    <div className="flex flex-col sm:flex-row justify-end items-center gap-3 border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 relative">
+                        {devices.length > 0 && (
+                            <div className="relative">
+                                <select
+                                    value={selectedDeviceId}
+                                    onChange={(e) => setSelectedDeviceId(e.target.value)}
+                                    className="appearance-none bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-garmin-blue font-medium"
+                                >
+                                    {devices.map(d => (
+                                        <option key={d.deviceId} value={d.deviceId}>
+                                            {d.productDisplayName || d.modelName || 'Garmin Device'} {d.connectionStatus === 'CONNECTED' ? ' (Online)' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                            </div>
+                        )}
+
                         <button
-                            onClick={() => setIsDeviceModalOpen(true)}
-                            disabled={syncStatus === 'loading' || syncStatus === 'success'}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${syncStatus === 'success'
-                                ? 'bg-green-500/20 text-green-400'
+                            onClick={handleSync}
+                            disabled={syncStatus === 'loading' || syncStatus === 'success' || fetchingDevices}
+                            className={`flex items-center gap-2 px-5 py-2 rounded-lg font-medium transition-all ${syncStatus === 'success'
+                                ? 'bg-green-500/20 text-green-500 dark:text-green-400'
                                 : syncStatus === 'error'
-                                    ? 'bg-red-500/20 text-red-400'
-                                    : 'bg-garmin-blue text-white hover:bg-blue-600'
+                                    ? 'bg-red-500/20 text-red-500 dark:text-red-400'
+                                    : 'bg-garmin-blue text-white hover:bg-blue-600 shadow-sm hover:shadow'
                                 }`}
                         >
                             {syncStatus === 'loading' && <div className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />}
@@ -99,17 +141,11 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                             {syncStatus === 'loading' && t('sending')}
                             {syncStatus === 'success' && t('sent_to_watch')}
                             {syncStatus === 'error' && t('failed')}
-                            {!syncStatus && t('send_to_watch')}
+                            {!syncStatus && (t('send_to_watch') || "Send to Watch")}
                         </button>
                     </div>
                 )}
             </div>
-
-            <DeviceSelectModal
-                isOpen={isDeviceModalOpen}
-                onClose={() => setIsDeviceModalOpen(false)}
-                onSelect={(device) => handleSync(device)}
-            />
         </div>
     );
 }
