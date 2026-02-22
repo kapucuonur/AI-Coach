@@ -5,7 +5,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 const resources = {
     en: {
         translation: {
-            "dashboard_title": "AI Coach Dashboard",
+            "dashboard_title": "CoachOnur - AI Training Dashboard",
             "daily_intelligence": "Your daily training intelligence",
             "online": "Online",
             "logout": "Logout",
@@ -71,7 +71,7 @@ const resources = {
             "chat_placeholder": "Ask your coach...",
             "chat_conn_error": "Sorry, I'm having trouble connecting to the Coach Brain right now.",
             "also_runs": "Do you also run?",
-            "also_runs_desc": "If unchecked, AI Coach won't prescribe running workouts.",
+            "also_runs_desc": "If unchecked, CoachOnur - AI Training won't prescribe running workouts.",
             "daily_training_time": "Daily Training Time",
             "daily_training_desc": "How much time do you have to train today?",
             "update_plan": "Update Plan"
@@ -79,7 +79,7 @@ const resources = {
     },
     tr: {
         translation: {
-            "dashboard_title": "AI Koç Paneli",
+            "dashboard_title": "CoachOnur - AI Training Paneli",
             "daily_intelligence": "Günlük antrenman zekanız",
             "online": "Çevrimiçi",
             "logout": "Çıkış Yap",
@@ -146,7 +146,7 @@ const resources = {
             "chat_placeholder": "Koçuna sor...",
             "chat_conn_error": "Üzgünüm, şu anda Coach Brain ile bağlantı kuramıyorum.",
             "also_runs": "Ayrıca koşuyor musunuz?",
-            "also_runs_desc": "İşaretlenmezse, AI Koç koşu antrenmanları yazmayacaktır.",
+            "also_runs_desc": "İşaretlenmezse, CoachOnur - AI Training koşu antrenmanları yazmayacaktır.",
             "daily_training_time": "Günlük Antrenman Süresi",
             "daily_training_desc": "Bugün antrenman için ne kadar vaktiniz var?",
             "update_plan": "Planı Güncelle"
@@ -154,7 +154,7 @@ const resources = {
     },
     de: {
         translation: {
-            "dashboard_title": "AI Coach Dashboard",
+            "dashboard_title": "CoachOnur - AI Training Dashboard",
             "daily_intelligence": "Ihre tägliche Trainingsintelligenz",
             "online": "Online",
             "logout": "Abmelden",
@@ -171,7 +171,7 @@ const resources = {
             "send_to_watch": "An Uhr senden",
             "language": "Sprache",
             "also_runs": "Laufen Sie auch?",
-            "also_runs_desc": "Falls nicht markiert, verschreibt der AI Coach keine Lauftrainings.",
+            "also_runs_desc": "Falls nicht markiert, verschreibt CoachOnur - AI Training keine Lauftrainings.",
             "daily_training_time": "Tägliche Trainingszeit",
             "daily_training_desc": "Wie viel Zeit haben Sie heute für das Training?",
             "update_plan": "Plan aktualisieren"
@@ -179,7 +179,7 @@ const resources = {
     },
     fr: {
         translation: {
-            "dashboard_title": "Tableau de Bord AI Coach",
+            "dashboard_title": "Tableau de Bord CoachOnur - AI Training",
             "daily_intelligence": "Votre intelligence d'entraînement quotidienne",
             "online": "En ligne",
             "logout": "Déconnexion",
@@ -196,7 +196,7 @@ const resources = {
             "send_to_watch": "Envoyer à la montre",
             "language": "Langue",
             "also_runs": "Courez-vous aussi ?",
-            "also_runs_desc": "Si décoché, AI Coach ne prescrira pas d'entraînements de course à pied.",
+            "also_runs_desc": "Si décoché, CoachOnur - AI Training ne prescrira pas d'entraînements de course à pied.",
             "daily_training_time": "Temps d'entraînement quotidien",
             "daily_training_desc": "Combien de temps avez-vous pour vous entraîner aujourd'hui ?",
             "update_plan": "Mettre à jour le plan"
@@ -204,7 +204,7 @@ const resources = {
     },
     it: {
         translation: {
-            "dashboard_title": "Dashboard AI Coach",
+            "dashboard_title": "Dashboard CoachOnur - AI Training",
             "daily_intelligence": "La tua intelligenza di allenamento quotidiana",
             "online": "Online",
             "logout": "Logout",
@@ -221,7 +221,7 @@ const resources = {
             "send_to_watch": "Invia all'orologio",
             "language": "Lingua",
             "also_runs": "Corri anche tu?",
-            "also_runs_desc": "Se deselezionato, AI Coach non prescriverà allenamenti di corsa.",
+            "also_runs_desc": "Se deselezionato, CoachOnur - AI Training non prescriverà allenamenti di corsa.",
             "daily_training_time": "Tempo di allenamento giornaliero",
             "daily_training_desc": "Quanto tempo hai a disposizione per allenarti oggi?",
             "update_plan": "Aggiorna il piano"
@@ -229,7 +229,7 @@ const resources = {
     },
     es: {
         translation: {
-            "dashboard_title": "Panel de Control AI Coach",
+            "dashboard_title": "Panel de Control CoachOnur - AI Training",
             "daily_intelligence": "Tu inteligencia de entrenamiento diaria",
             "online": "En línea",
             "logout": "Cerrar sesión",
@@ -246,7 +246,7 @@ const resources = {
             "send_to_watch": "Enviar al reloj",
             "language": "Idioma",
             "also_runs": "¿También corres?",
-            "also_runs_desc": "Si no está marcado, AI Coach no prescribirá entrenamientos de carrera.",
+            "also_runs_desc": "Si no está marcado, CoachOnur - AI Training no prescribirá entrenamientos de carrera.",
             "daily_training_time": "Tiempo de entrenamiento diario",
             "daily_training_desc": "¿Cuánto tiempo tienes para entrenar hoy?",
             "update_plan": "Actualizar plan"
@@ -254,7 +254,7 @@ const resources = {
     },
     ru: {
         translation: {
-            "dashboard_title": "Панель управления AI коуча",
+            "dashboard_title": "Панель управления CoachOnur - AI Training",
             "daily_intelligence": "Ваша ежедневная тренировочная аналитика",
             "online": "В сети",
             "logout": "Выйти",
@@ -271,7 +271,7 @@ const resources = {
             "send_to_watch": "Отправить на часы",
             "language": "Язык",
             "also_runs": "Вы также бегаете?",
-            "also_runs_desc": "Если не отмечено, ИИ-тренер не будет назначать беговые тренировки.",
+            "also_runs_desc": "Если не отмечено, CoachOnur - AI Training не будет назначать беговые тренировки.",
             "daily_training_time": "Ежедневное время тренировки",
             "daily_training_desc": "Сколько у вас сегодня времени на тренировку?",
             "update_plan": "Обновить план"

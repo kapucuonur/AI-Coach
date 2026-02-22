@@ -211,7 +211,7 @@ export function Login({ onLogin }) {
                                     {isRegistering ? "Create Account" : "Login"}
                                 </h2>
                                 <p className="text-sm text-gray-400">
-                                    {isRegistering ? "Join AI Coach today" : "Enter your AI Coach credentials"}
+                                    {isRegistering ? "Join CoachOnur - AI Training today" : "Enter your CoachOnur - AI Training credentials"}
                                 </p>
                             </div>
 
