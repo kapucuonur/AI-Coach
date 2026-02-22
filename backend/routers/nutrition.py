@@ -11,7 +11,7 @@ import google.generativeai as genai
 
 from backend.database import get_db
 from backend.auth_utils import get_current_user
-from backend.models import NutritionEntry
+from backend.models import NutritionEntry, User
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/nutrition", tags=["nutrition"])
