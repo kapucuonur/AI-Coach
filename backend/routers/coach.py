@@ -126,6 +126,7 @@ class AIAdviceRequest(BaseModel):
     profile: dict = {}
     available_time_mins: int = None
     language: str = None  # Add explicit language parameter
+    client_local_time: str = None
 
 @router.post("/generate-advice")
 async def generate_advice(payload: AIAdviceRequest):
