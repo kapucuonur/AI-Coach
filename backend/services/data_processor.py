@@ -42,17 +42,22 @@ class DataProcessor:
 
     def calculate_weekly_summary(self, df):
         """Calculate weekly distance, duration, and load."""
-        if df.empty:
+        if df.empty or 'date' not in df.columns:
             return pd.DataFrame()
             
-        df['week'] = df['date'].dt.to_period('W').apply(lambda r: r.start_time)
+        # Drop activities without a valid date
+        valid_df = df.dropna(subset=['date']).copy()
+        if valid_df.empty:
+            return pd.DataFrame()
+            
+        valid_df['week'] = valid_df['date'].dt.to_period('W').apply(lambda r: r.start_time if pd.notna(r) else pd.NaT)
         
         # Ensure columns exist before aggregation to prevent KeyErrors
         for col in ['distance', 'duration', 'tss']:
-            if col not in df.columns:
-                df[col] = 0.0
+            if col not in valid_df.columns:
+                valid_df[col] = 0.0
                 
-        return df.groupby('week').agg({
+        return valid_df.groupby('week').agg({
             'distance': 'sum',
             'duration': 'sum',
             'tss': 'sum',

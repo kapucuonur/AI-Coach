@@ -66,7 +66,7 @@ async def get_daily_metrics(
         
         # Filter for TODAY'S activities
         todays_activities = []
-        if not df.empty:
+        if not df.empty and 'date' in df.columns:
             today = date.today()
             todays_df = df[df['date'].dt.date == today]
             if not todays_df.empty:
@@ -105,7 +105,7 @@ async def get_daily_metrics(
                 "profile": profile
             },
             "todays_activities": todays_activities, # Pass down for the AI to use later
-            "access_token": create_access_token(email=current_user.email),
+            "access_token": create_access_token(data={"sub": current_user.email}),
             "token_type": "bearer"
         }
         
