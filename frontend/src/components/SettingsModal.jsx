@@ -4,9 +4,8 @@ import { X, Plus, Trash2 } from 'lucide-react';
 import client from '../api/client';
 
 export function SettingsModal({ isOpen, onClose, onSave }) {
-    const { t, i18n } = useTranslation();
+    const { t } = useTranslation();
     const [sport, setSport] = useState("Running");
-    const [language, setLanguage] = useState("en");
     const [age, setAge] = useState("");
     const [gender, setGender] = useState("Male");
     const [strengthDays, setStrengthDays] = useState(0);
@@ -27,7 +26,6 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
         try {
             const res = await client.get('/settings');
             setSport(res.data.primary_sport);
-            setLanguage(res.data.language || "en");
             setAge(res.data.age || "");
             setGender(res.data.gender || "Male");
             setStrengthDays(res.data.strength_days || 0);
@@ -46,17 +44,14 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
         try {
             await client.post('/settings', {
                 primary_sport: sport,
-                language: language,
                 age: age ? parseInt(age) : null,
                 gender: gender,
                 strength_days: parseInt(strengthDays),
-                off_days: offDays,
                 off_days: offDays,
                 races: races,
                 goals: goals,
                 also_runs: sport === "Cycling" ? alsoRuns : true,
             });
-            i18n.changeLanguage(language);
             onSave(); // Refresh data
             onClose();
         } catch (error) {
@@ -315,24 +310,6 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                                 </p>
                             </div>
                         )}
-                    </div>
-
-                    {/* Language Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('language')}</label>
-                        <select
-                            value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-garmin-blue focus:outline-none"
-                        >
-                            <option value="en">English</option>
-                            <option value="tr">Turkish (Türkçe)</option>
-                            <option value="de">German (Deutsch)</option>
-                            <option value="fr">French (Français)</option>
-                            <option value="es">Spanish (Español)</option>
-                            <option value="it">Italian (Italiano)</option>
-                            <option value="ru">Russian (Русский)</option>
-                        </select>
                     </div>
 
                     {/* Races */}
