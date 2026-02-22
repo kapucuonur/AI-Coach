@@ -49,9 +49,9 @@ function App() {
   const [credentials, setCredentials] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
 
-  const fetchAIAdvice = async (forceMins = null) => {
+  const fetchAIAdvice = async (forceMins = null, languageOverride = null) => {
     if (!isAuthenticated || !data) return;
-    if (data.advice && forceMins === null) return; // Only skip if we already have advice AND we aren't forcing a regeneration
+    if (data.advice && forceMins === null && languageOverride === null) return; // Only skip if we already have advice AND we aren't forcing a regeneration
 
     setIsGeneratingAdvice(true);
     try {
@@ -61,7 +61,7 @@ function App() {
         health_stats: data.metrics?.health || {},
         sleep_data: data.metrics?.sleep || {},
         profile: data.metrics?.profile || {},
-        language: settingsData?.language || i18n.language || 'en'
+        language: languageOverride || settingsData?.language || i18n.language || 'en'
       };
 
       if (forceMins !== null && forceMins > 0) {
@@ -244,7 +244,7 @@ function App() {
                   try {
                     await client.post('/settings', { language: newLang });
                     // Immediately fetch new advice with updated language
-                    fetchAIAdvice(null);
+                    fetchAIAdvice(null, newLang);
                   } catch (err) {
                     console.error("Failed to update language", err);
                   }

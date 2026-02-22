@@ -233,7 +233,8 @@ class CoachBrain:
         - `endCondition`: lap.button (1), time (2) [value in seconds], distance (3) [value in meters]
         - `targetType` for Running: heart.rate.zone (4), pace.zone (2) 
         - `targetType` for Cycling: power.zone (6), heart.rate.zone (4), cadence.zone (5)
-        - Do not output target values as strings, they MUST be numeric/integers (e.g. `targetValueOne`: 1). If no target, use `no.target` (1).
+        - Do not output target values as strings, they MUST be numeric/integers (e.g. `targetValueOne`: 1).
+        - IF NO TARGET: use `no.target` (1). CRITICAL: If using no.target, you MUST OMIT the `targetValueOne`, `targetValueTwo`, and `zoneNumber` fields completely from that step's JSON. Sending them as null causes a server crash.
         (Set "workout": null if it's a rest day/evening. Workout steps should be valid Garmin JSON structure.)
         Output ONLY valid JSON.
         """
