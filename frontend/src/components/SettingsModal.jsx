@@ -48,6 +48,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                 gender: gender,
                 strength_days: parseInt(strengthDays),
                 off_days: offDays,
+                metrics: metrics,
                 races: races,
                 goals: goals,
                 also_runs: sport === "Cycling" ? alsoRuns : true,

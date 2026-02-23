@@ -42,6 +42,20 @@ class CoachBrain:
 
         is_evening = current_hour >= 18
         
+        is_rest_day = False
+        today_name = "Unknown"
+        if client_local_time:
+            try:
+                from datetime import datetime
+                cleaned_time = client_local_time.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(cleaned_time)
+                today_name = dt.strftime('%A')
+                off_days = user_settings.get("off_days", []) if user_settings else []
+                if today_name in off_days:
+                    is_rest_day = True
+            except:
+                pass
+        
         # Prepare context strings
         activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
         
@@ -70,6 +84,9 @@ class CoachBrain:
         if sleep_data and 'dailySleepDTO' in sleep_data:
             sleep_quality = sleep_data['dailySleepDTO'].get('sleepQualityType', 'N/A')
             sleep_score = sleep_data['dailySleepDTO'].get('sleepScore', 'N/A')
+            
+        stress = health_stats.get('averageStressLevel', 'N/A') if health_stats else 'N/A'
+        body_battery = health_stats.get('bodyBatteryHighestValue', 'N/A') if health_stats else 'N/A'
 
         # Settings Context
         sport_context = "Endurance Sports"
@@ -152,6 +169,10 @@ class CoachBrain:
         target_language = language_map.get(language_code, "English")
 
         time_limit_str = f"- **Time Constraint**: The athlete has specified they only have {available_time_mins} minutes to train today. YOU MUST fit the overall recommended workout duration strictly within this time limit." if available_time_mins is not None else ""
+        
+        rest_day_instruction = ""
+        if is_rest_day:
+            rest_day_instruction = f"\\n        - **CRITICAL**: Today ({today_name}) is explicitly marked as an OFF DAY (Rest Day) in the athlete's settings. You MUST NOT prescribe any active workout. Your workout recommendation must be strictly rest, light stretching, or recovery. Provide `null` for the workout JSON or a pure rest day JSON."
 
         prompt = f"""
         You are a World-Class Performance Coach for an elite athlete.
@@ -169,11 +190,13 @@ class CoachBrain:
         **Current Context:**
         - Local Time: {time_context_str}
         - Race Schedule: {race_context}
-        {time_limit_str}
+        {time_limit_str}{rest_day_instruction}
         
         **Data Snapshot:**
         - Resting HR: {resting_hr} bpm
         - Sleep: {sleep_score}/100 ({sleep_quality})
+        - Stress Level: {stress}
+        - Body Battery: {body_battery}
         - Recent Load: {activities_str}
         - Completed Today: {today_context}
 
