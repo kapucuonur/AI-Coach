@@ -54,5 +54,6 @@ async def startup_event():
     logger.info(">>> STARTING AI COACH API - VERSION: THREADED_MFA_FIX_CONFIRMED <<<")
 
 @app.get("/")
+@app.head("/")
 def read_root():
     return {"message": "Welcome to AI Coach API"}
