@@ -330,7 +330,6 @@ export function Login({ onLogin }) {
                                                 theme="filled_black"
                                                 shape="circle"
                                                 size="large"
-                                                width="100%"
                                             />
 
                                             <FacebookLogin
