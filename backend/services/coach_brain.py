@@ -227,12 +227,10 @@ class CoachBrain:
                 "description": "Short description",
                 "workoutSegments": [
                     {{
-                        "segmentOrder": 1,
                         "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
                         "workoutSteps": [
                             {{
                                 "type": "ExecutableStepDTO",
-                                "stepOrder": 1,
                                 "description": "Warmup",
                                 "stepType": {{ "stepTypeId": 1, "stepTypeKey": "warmup" }},
                                 "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
@@ -241,6 +239,18 @@ class CoachBrain:
                                 "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
                                 "targetValueOne": 1, 
                                 "targetValueTwo": 2,
+                                "zoneNumber": null
+                            }},
+                            {{
+                                "type": "ExecutableStepDTO",
+                                "description": "Main Set",
+                                "stepType": {{ "stepTypeId": 3, "stepTypeKey": "active" }},
+                                "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
+                                "preferredEndConditionUnit": null,
+                                "endConditionValue": 1200,
+                                "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
+                                "targetValueOne": 3, 
+                                "targetValueTwo": 4,
                                 "zoneNumber": null
                             }}
                         ]
@@ -258,6 +268,8 @@ class CoachBrain:
         - `targetType` for Cycling: power.zone (6), heart.rate.zone (4), cadence.zone (5)
         - Do not output target values as strings, they MUST be numeric/integers (e.g. `targetValueOne`: 1).
         - IF NO TARGET: use `no.target` (1). CRITICAL: If using no.target, you MUST OMIT the `targetValueOne`, `targetValueTwo`, and `zoneNumber` fields completely from that step's JSON. Sending them as null causes a server crash.
+        - CRITICAL: DO NOT include `segmentOrder` or `stepOrder` anywhere in the JSON. Garmin will reject the upload if you do.
+        - CRITICAL: The `workoutSegments` array MUST contain ALWAYS exactly ONE item (one segment map). You must place ALL `workoutSteps` sequentially inside that single piece of segment logic. Do NOT create multiple segment items. Garmin API crashes if multiple segments are used for running/cycling.
         (Set "workout": null if it's a rest day/evening. Workout steps should be valid Garmin JSON structure.)
         Output ONLY valid JSON.
         """
