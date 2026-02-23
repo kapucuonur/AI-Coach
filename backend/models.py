@@ -8,7 +8,9 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)  # Native app password
+    hashed_password = Column(String, nullable=True)  # Native app password (optional for social logins)
+    google_id = Column(String, unique=True, nullable=True, index=True)
+    facebook_id = Column(String, unique=True, nullable=True, index=True)
     
     # Garmin Linked Account Data
     # In a prod environment, garmin_password SHOULD BE ENCRYPTED, NOT HASHED

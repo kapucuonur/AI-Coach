@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
 import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus } from 'lucide-react';
 import client from '../api/client';
+import { GoogleLogin } from '@react-oauth/google';
+import FacebookLogin from 'react-facebook-login/render-props';
+
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID";
 
 export function Login({ onLogin }) {
     const [isRegistering, setIsRegistering] = useState(false);
@@ -64,6 +68,38 @@ export function Login({ onLogin }) {
             const errorMsg = err.response?.data?.detail || (isRegistering ? "Registration failed." : "Login failed. Check credentials.");
             setError(errorMsg);
         } finally {
+            setLoading(false);
+        }
+    };
+
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        setLoading(true);
+        setError('');
+        try {
+            const response = await client.post('/auth/google', { credential: credentialResponse.credential });
+            const { access_token, has_garmin_connected } = response.data;
+            onLogin(access_token, has_garmin_connected);
+        } catch (err) {
+            console.error("Google Auth Error:", err);
+            setError(err.response?.data?.detail || "Google Login failed.");
+            setLoading(false);
+        }
+    };
+
+    const handleFacebookResponse = async (facebookResponse) => {
+        if (!facebookResponse.accessToken) {
+            return; // user cancelled login
+        }
+        setLoading(true);
+        setError('');
+        try {
+            const response = await client.post('/auth/facebook', { accessToken: facebookResponse.accessToken });
+            const { access_token, has_garmin_connected } = response.data;
+            onLogin(access_token, has_garmin_connected);
+        } catch (err) {
+            console.error("Facebook Auth Error:", err);
+            setError(err.response?.data?.detail || "Facebook Login failed.");
             setLoading(false);
         }
     };
@@ -276,6 +312,46 @@ export function Login({ onLogin }) {
                                             {isRegistering ? "Sign Up" : "Sign In"}
                                             <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
                                         </button>
+
+                                        <div className="relative my-6">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full border-t border-white/10"></div>
+                                            </div>
+                                            <div className="relative flex justify-center text-xs text-gray-400">
+                                                <span className="bg-[#111] px-2 shadow-inner">OR CONTINUE WITH</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-col gap-3">
+                                            <GoogleLogin
+                                                onSuccess={handleGoogleSuccess}
+                                                onError={() => setError("Google Login Failed")}
+                                                useOneTap
+                                                theme="filled_black"
+                                                shape="circle"
+                                                size="large"
+                                                width="100%"
+                                            />
+
+                                            <FacebookLogin
+                                                appId={FACEBOOK_APP_ID}
+                                                autoLoad={false}
+                                                fields="name,email,picture"
+                                                callback={handleFacebookResponse}
+                                                render={renderProps => (
+                                                    <button
+                                                        type="button"
+                                                        onClick={renderProps.onClick}
+                                                        className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-[#1877F2]/10 px-4 py-2 text-sm font-medium text-[#1877F2] transition-all hover:bg-[#1877F2]/20 shadow-sm"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+                                                        </svg>
+                                                        Facebook
+                                                    </button>
+                                                )}
+                                            />
+                                        </div>
 
                                         <p className="mt-4 text-center text-sm text-gray-400">
                                             {isRegistering ? "Already have an account?" : "Don't have an account?"}

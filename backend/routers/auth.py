@@ -23,6 +23,12 @@ class GarminMFARequest(BaseModel):
     garmin_email: str
     mfa_code: str
 
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+class FacebookLoginRequest(BaseModel):
+    accessToken: str
+
 @router.post("/register")
 def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     # Check if user already exists
@@ -55,10 +61,10 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email).first()
-    if not user or not verify_password(user_data.password, user.hashed_password):
+    if not user or not user.hashed_password or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="Incorrect email or password. If you registered via Google/Facebook, please use that to log in.",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
@@ -68,6 +74,102 @@ def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "has_garmin_connected": bool(user.garmin_email and user.garmin_password)
     }
+
+import os
+import requests
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+
+GOOGLE_CLIENT_ID = os.getenv("VITE_GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID")
+
+@router.post("/google")
+def google_login(token_data: GoogleLoginRequest, db: Session = Depends(get_db)):
+    try:
+        # Verify the Google ID token
+        idinfo = id_token.verify_oauth2_token(
+            token_data.credential, 
+            google_requests.Request(), 
+            GOOGLE_CLIENT_ID
+        )
+
+        email = idinfo.get('email')
+        google_id = idinfo.get('sub')
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Google token missing email")
+
+        # Find user or create
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            # Create new user without a password
+            user = User(
+                email=email,
+                google_id=google_id,
+                hashed_password=None
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        elif not user.google_id:
+            # Upgrade existing email user with google_id
+            user.google_id = google_id
+            db.commit()
+            db.refresh(user)
+
+        access_token = create_access_token(data={"sub": user.email})
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "has_garmin_connected": bool(user.garmin_email and user.garmin_password)
+        }
+
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+@router.post("/facebook")
+def facebook_login(token_data: FacebookLoginRequest, db: Session = Depends(get_db)):
+    try:
+        # Verify Facebook access token by requesting user details
+        facebook_url = f"https://graph.facebook.com/me?access_token={token_data.accessToken}&fields=id,email,name"
+        response = requests.get(facebook_url)
+        data = response.json()
+
+        if "error" in data:
+            raise HTTPException(status_code=401, detail="Invalid Facebook token")
+
+        facebook_id = data.get("id")
+        email = data.get("email")
+
+        if not email:
+            raise HTTPException(status_code=400, detail="Facebook token missing email. Make sure the user granted email permissions.")
+
+        # Find user or create
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
+            user = User(
+                email=email,
+                facebook_id=facebook_id,
+                hashed_password=None
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        elif not user.facebook_id:
+            # Upgrade existing user with faceook_id
+            user.facebook_id = facebook_id
+            db.commit()
+            db.refresh(user)
+
+        access_token = create_access_token(data={"sub": user.email})
+        return {
+            "access_token": access_token, 
+            "token_type": "bearer",
+            "has_garmin_connected": bool(user.garmin_email and user.garmin_password)
+        }
+
+    except requests.RequestException:
+        raise HTTPException(status_code=500, detail="Error communicating with Facebook")
+
 
 
 from backend.auth_utils import verify_password, get_password_hash, create_access_token, get_current_user
