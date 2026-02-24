@@ -14,6 +14,7 @@ import { NutritionTracker } from './components/NutritionTracker';
 import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
 import { GarminConnectModal } from './components/GarminConnectModal';
+import { PremiumPaywallModal } from './components/PremiumPaywallModal';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock } from 'lucide-react';
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
   const [trainingHours, setTrainingHours] = useState("");
   const [trainingMinutes, setTrainingMinutes] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   // Interaction States
   const [selectedActivityId, setSelectedActivityId] = useState(null);
@@ -96,10 +99,20 @@ function App() {
   }, [isAuthenticated, data]);
 
   const handleManualGenerate = () => {
-    let totalMins = 0;
-    if (trainingHours) totalMins += parseInt(trainingHours, 10) * 60;
-    if (trainingMinutes) totalMins += parseInt(trainingMinutes, 10);
-    fetchAIAdvice(totalMins > 0 ? totalMins : null);
+    requirePremium(() => {
+      let totalMins = 0;
+      if (trainingHours) totalMins += parseInt(trainingHours, 10) * 60;
+      if (trainingMinutes) totalMins += parseInt(trainingMinutes, 10);
+      fetchAIAdvice(totalMins > 0 ? totalMins : null);
+    });
+  };
+
+  const requirePremium = (action) => {
+    if (isPremium) {
+      action();
+    } else {
+      setShowPaywall(true);
+    }
   };
 
   const [showGarminConnectModal, setShowGarminConnectModal] = useState(false);
@@ -179,6 +192,7 @@ function App() {
       client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       client.get('/auth/me').then(res => {
         setIsAuthenticated(true);
+        setIsPremium(res.data.is_premium || false);
         if (res.data.has_garmin_connected) {
           fetchDashboardData();
         } else {
@@ -269,7 +283,7 @@ function App() {
               </button>
 
               <button
-                onClick={() => setIsSettingsOpen(true)}
+                onClick={() => requirePremium(() => setIsSettingsOpen(true))}
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors"
               >
                 <Settings size={24} />
@@ -321,47 +335,48 @@ function App() {
               value={health.restingHeartRate || '--'}
               unit={t('bpm')}
               icon={Heart}
-              className="border-red-500/20"
-              onClick={() => setSelectedMetric({ key: 'resting_hr', title: t('resting_hr'), unit: t('bpm'), color: '#ef4444' })}
+              className="border-red-500/20 cursor-pointer transition-transform hover:scale-105"
+              onClick={() => requirePremium(() => setSelectedMetric({ key: 'resting_hr', title: t('resting_hr'), unit: t('bpm'), color: '#ef4444' }))}
             />
             <StatsCard
               title={t('vo2_max')}
               value={profile.vo2Max || profile.vo2MaxValue || profile.vo2MaxRunning || profile.vo2MaxPrecise || '--'}
               unit="ml/kg"
               icon={Zap}
-              className="border-yellow-500/20"
-              onClick={() => setSelectedMetric({ key: 'vo2_max', title: t('vo2_max'), unit: 'ml/kg', color: '#eab308' })}
+              className="border-yellow-500/20 cursor-pointer transition-transform hover:scale-105"
+              onClick={() => requirePremium(() => setSelectedMetric({ key: 'vo2_max', title: t('vo2_max'), unit: 'ml/kg', color: '#eab308' }))}
             />
             <StatsCard
               title={t('stress')}
               value={health.averageStressLevel || '--'}
               unit="/100"
               icon={Activity}
-              className="border-orange-500/20"
-              onClick={() => setSelectedMetric({ key: 'stress', title: t('stress'), unit: '', color: '#f97316' })}
+              className="border-orange-500/20 cursor-pointer transition-transform hover:scale-105"
+              onClick={() => requirePremium(() => setSelectedMetric({ key: 'stress', title: t('stress'), unit: '', color: '#f97316' }))}
             />
             <StatsCard
               title={t('body_battery')}
               value={health.bodyBatteryMostRecentValue || '--'}
               unit="%"
               icon={Battery}
-              className="border-blue-500/20"
-              onClick={() => setSelectedMetric({ key: 'body_battery', title: t('body_battery'), unit: '%', color: '#3b82f6' })}
+              className="border-blue-500/20 cursor-pointer transition-transform hover:scale-105"
+              onClick={() => requirePremium(() => setSelectedMetric({ key: 'body_battery', title: t('body_battery'), unit: '%', color: '#3b82f6' }))}
             />
             <StatsCard
               title={t('sleep')}
               value={sleep.dailySleepDTO?.sleepTimeSeconds ? (sleep.dailySleepDTO.sleepTimeSeconds / 3600).toFixed(1) : '--'}
               unit={t('hrs')}
               icon={Moon}
-              className="border-purple-500/20"
-              onClick={() => setSelectedMetric({ key: 'sleep', title: t('sleep'), unit: t('hrs'), color: '#a855f7' })}
+              className="border-purple-500/20 cursor-pointer transition-transform hover:scale-105"
+              onClick={() => requirePremium(() => setSelectedMetric({ key: 'sleep', title: t('sleep'), unit: t('hrs'), color: '#a855f7' }))}
             />
             <StatsCard
               title={t('fitness_age')}
               value={profile.fitnessAge ? Number(profile.fitnessAge).toFixed(1) : '--'}
               unit={t('yrs')}
               icon={Zap}
-              className="border-green-500/20"
+              className="border-green-500/20 cursor-pointer transition-transform hover:scale-105"
+              onClick={() => requirePremium(() => setSelectedMetric({ key: 'fitness_age', title: t('fitness_age'), unit: t('yrs'), color: '#22c55e' }))}
             />
           </div>
 
@@ -421,15 +436,37 @@ function App() {
 
               <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} />
               <YearlyStats />
-              <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
+              <div className="relative">
+                {/* Blur Overlay for Free Users */}
+                {!isPremium && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/10 dark:bg-black/20 backdrop-blur-md">
+                    <button
+                      onClick={() => setShowPaywall(true)}
+                      className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-6 py-4 font-bold text-white shadow-xl transition-all hover:scale-[1.02] hover:shadow-blue-500/25 active:scale-[0.98]"
+                    >
+                      Unlock AI Workouts
+                    </button>
+                    <p className="mt-4 text-sm font-medium text-gray-800 dark:text-gray-200">
+                      Pro Feature Only
+                    </p>
+                  </div>
+                )}
+
+                <div className={!isPremium ? "opacity-30 pointer-events-none select-none" : ""}>
+                  <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
+                </div>
+              </div>
             </div>
 
             {/* Right: Activities */}
-            <div className="lg:col-span-1">
-              <ActivityList
-                activities={metrics?.recent_activities || []}
-                onSelect={setSelectedActivityId}
-              />
+            <div className="lg:col-span-1 cursor-pointer" onClick={() => requirePremium(() => { })}>
+              {/* Note: The ActivityList is made unclickable inside by wrapping the wrapper */}
+              <div className={!isPremium ? "pointer-events-none" : ""}>
+                <ActivityList
+                  activities={metrics?.recent_activities || []}
+                  onSelect={(id) => requirePremium(() => setSelectedActivityId(id))}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -453,8 +490,16 @@ function App() {
           />
         )}
 
-        <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
+        {/* Only show ChatWidget if Premium */}
+        {isPremium && (
+          <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
+        )}
       </div>
+
+      <PremiumPaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+      />
 
       {showGarminConnectModal && (
         <GarminConnectModal
