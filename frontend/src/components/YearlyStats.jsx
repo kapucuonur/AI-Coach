@@ -73,15 +73,23 @@ export function YearlyStats() {
         other: '#9ca3af'   // gray
     };
 
-    // Helper to get color with fallback
-    const getColor = (sport) => colors[sport] || '#' + Math.floor(Math.random() * 16777215).toString(16);
+    // Helper to get color with fallback. Use a hash instead of random for stability
+    const getColor = (sport) => {
+        if (colors[sport]) return colors[sport];
+        let hash = 0;
+        for (let i = 0; i < sport.length; i++) {
+            hash = sport.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return '#' + (hash & 0x00FFFFFF).toString(16).padStart(6, '0');
+    };
 
     // Calculate totals for summary
     const currentYear = new Date().getFullYear().toString();
     const currentYearData = data.find(d => d.year === currentYear) || {};
     const totalKmThisYear = sportKeys.reduce((sum, sport) => sum + (currentYearData[sport] || 0), 0);
 
-    const CustomTooltip = ({ active, payload, label }) => {
+    // Instead of a React Component inside a component, use a regular function returning JSX
+    const renderTooltip = ({ active, payload, label }) => {
         if (active && payload && payload.length) {
             // Find the original data point for the hovered year
             const yearData = data.find(d => d.year === label) || {};
@@ -172,7 +180,7 @@ export function YearlyStats() {
                             tick={{ fill: '#9ca3af', fontSize: 12 }}
                             dx={-10}
                         />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
+                        <Tooltip content={renderTooltip} cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }} />
                         <Legend
                             verticalAlign="top"
                             align="center"

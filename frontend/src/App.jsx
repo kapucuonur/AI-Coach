@@ -28,7 +28,10 @@ function App() {
   const [trainingHours, setTrainingHours] = useState("");
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+
+  const ADMIN_EMAILS = ['kapucuonur@hotmail.com', 'onurbenn@gmail.com'];
 
   // Interaction States
   const [selectedActivityId, setSelectedActivityId] = useState(null);
@@ -108,7 +111,7 @@ function App() {
   };
 
   const requirePremium = (action) => {
-    if (isPremium) {
+    if (isPremium || isAdmin) {
       action();
     } else {
       setShowPaywall(true);
@@ -176,6 +179,15 @@ function App() {
     setIsAuthenticated(true);
     setLoading(true);
 
+    try {
+      // Fetch /me to ensure we have the correct premium & admin state on fresh login
+      const res = await client.get('/auth/me');
+      setIsPremium(res.data.is_premium || false);
+      setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
+    } catch (e) {
+      console.error("Failed to fetch user state format during login");
+    }
+
     if (hasGarmin) {
       await fetchDashboardData();
     } else {
@@ -193,6 +205,7 @@ function App() {
       client.get('/auth/me').then(res => {
         setIsAuthenticated(true);
         setIsPremium(res.data.is_premium || false);
+        setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
         if (res.data.has_garmin_connected) {
           fetchDashboardData();
         } else {
@@ -279,7 +292,11 @@ function App() {
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
                 title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
               >
-                {darkMode ? <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div> : <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>}
+                {darkMode ? (
+                  <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div>
+                ) : (
+                  <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>
+                )}
               </button>
 
               <button
@@ -305,6 +322,34 @@ function App() {
               </button>
             </div>
           </header>
+
+          {/* Admin Banner */}
+          {isAdmin && (
+            <div className="bg-garmin-blue/20 border border-garmin-blue text-garmin-blue-dark dark:text-blue-200 px-4 py-3 rounded-xl flex items-center justify-between">
+              <span className="font-semibold">🚀 Admin Mode Active</span>
+              <span className="text-sm opacity-80">You bypass all paywalls for testing.</span>
+            </div>
+          )}
+
+          {/* Premium Upgrade Banner (Top of page) */}
+          {!isPremium && !isAdmin && (
+            <div className="bg-gradient-to-r from-blue-600/10 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-sm -mt-2">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Zap className="text-emerald-500" /> Unlock AI Workouts & Deeper Insights
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mt-1 max-w-xl">
+                  You are currently on the Free "View-Only" tier. Upgrade to Premium to generate personalized daily AI training plans, send them to your Garmin watch, and interact with your deeper fitness metrics.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPaywall(true)}
+                className="group w-full sm:w-auto flex-shrink-0 relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-8 py-4 font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-emerald-500/25 active:scale-[0.98]"
+              >
+                Upgrade to Premium
+              </button>
+            </div>
+          )}
 
           {/* Sync Reminder Note */}
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">
@@ -438,21 +483,25 @@ function App() {
               <YearlyStats />
               <div className="relative">
                 {/* Blur Overlay for Free Users */}
-                {!isPremium && (
+                {!isPremium && !isAdmin && (
                   <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-white/10 dark:bg-black/20 backdrop-blur-md">
-                    <button
-                      onClick={() => setShowPaywall(true)}
-                      className="group relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-6 py-4 font-bold text-white shadow-xl transition-all hover:scale-[1.02] hover:shadow-blue-500/25 active:scale-[0.98]"
-                    >
-                      Unlock AI Workouts
-                    </button>
-                    <p className="mt-4 text-sm font-medium text-gray-800 dark:text-gray-200">
-                      Pro Feature Only
-                    </p>
+                    <div className="bg-white/80 dark:bg-black/60 backdrop-blur-lg px-6 py-4 rounded-xl border border-gray-200 dark:border-gray-800 text-center shadow-xl">
+                      <div className="mx-auto w-12 h-12 bg-emerald-500/20 text-emerald-500 flex items-center justify-center rounded-full mb-3">
+                        <Zap className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">Premium Feature</h3>
+                      <p className="text-sm text-gray-500 mt-1 mb-4">Upgrade to view and generate AI workouts.</p>
+                      <button
+                        onClick={() => setShowPaywall(true)}
+                        className="text-sm font-semibold text-white bg-garmin-blue hover:bg-garmin-blue-light transition-colors px-6 py-2 rounded-lg"
+                      >
+                        Unlock Now
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                <div className={!isPremium ? "opacity-30 pointer-events-none select-none" : ""}>
+                <div className={!isPremium && !isAdmin ? "opacity-30 pointer-events-none select-none" : ""}>
                   <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
                 </div>
               </div>
@@ -490,8 +539,8 @@ function App() {
           />
         )}
 
-        {/* Only show ChatWidget if Premium */}
-        {isPremium && (
+        {/* Only show ChatWidget if Premium or Admin */}
+        {(isPremium || isAdmin) && (
           <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
         )}
       </div>

@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Crown, Sparkles, X, Activity, Zap, ShieldCheck } from 'lucide-react';
 import client from '../api/client';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Ensure you wrap this with the actual environment variable in App.jsx or main.jsx
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "pk_test_fallback");
 
 export function PremiumPaywallModal({ isOpen, onClose }) {
     const [loading, setLoading] = useState(false);
