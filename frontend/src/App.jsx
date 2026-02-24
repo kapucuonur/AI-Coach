@@ -332,7 +332,7 @@ function App() {
           )}
 
           {/* Premium Upgrade Banner (Top of page) */}
-          {!isPremium && !isAdmin && (
+          {!isPremium && (
             <div className="bg-gradient-to-r from-blue-600/10 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-sm -mt-2">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
