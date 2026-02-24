@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import client from '../api/client';
 

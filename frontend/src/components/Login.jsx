@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AnimatePresence } from "framer-motion";
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
 import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus } from 'lucide-react';
 import client from '../api/client';
 import { GoogleLogin } from '@react-oauth/google';

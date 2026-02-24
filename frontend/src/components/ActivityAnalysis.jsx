@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity, Heart, Clock, Zap, MapPin, Gauge } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';

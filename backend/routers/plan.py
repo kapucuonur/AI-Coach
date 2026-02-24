@@ -6,6 +6,7 @@ from backend.services.coach_brain import CoachBrain
 from backend.services.garmin_client import GarminClient
 from backend.services.data_processor import DataProcessor
 from backend.routers.settings import load_settings
+from backend.routers.dashboard import get_garmin_client
 from backend.database import get_db
 import os
 import logging
@@ -15,27 +16,22 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 class PlanRequest(BaseModel):
-    email: str
-    password: str
     duration: str = "1-Week" # "1-Week" or "1-Month"
+    language: Optional[str] = "en"
 
 @router.post("/generate")
-def generate_plan(request: PlanRequest, db: Session = Depends(get_db)):
+def generate_plan(request: PlanRequest, client: GarminClient = Depends(get_garmin_client)):
     try:
         gemini_key = os.getenv("GEMINI_API_KEY")
         
-        # 1. Fetch Data (Reuse Garmin Client logic or just persistent session)
-        
-        client = GarminClient(request.email, request.password)
-        # Try login with DB persistence
-        success, status, msg = client.login(db=db) 
-        if not success:
-             raise HTTPException(status_code=401, detail=f"Authentication failed: {msg}")
+        # 1. Fetch Data (Client is already authenticated via Depends)
 
         brain = CoachBrain(gemini_key)
         processor = DataProcessor()
         settings = load_settings()
         user_settings_dict = settings.model_dump()
+        if request.language:
+            user_settings_dict["language"] = request.language
         
         # Fetch necessary context
         activities = client.get_activities(30)
