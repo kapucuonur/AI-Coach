@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus } from 'lucide-react';
 import client from '../api/client';
 import { GoogleLogin } from '@react-oauth/google';
-import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
+import FacebookLogin from '@greatsumini/react-facebook-login';
 
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID";
 
@@ -334,13 +334,21 @@ export function Login({ onLogin }) {
 
                                             <FacebookLogin
                                                 appId={FACEBOOK_APP_ID}
-                                                autoLoad={false}
-                                                fields="name,email,picture"
-                                                callback={handleFacebookResponse}
-                                                render={renderProps => (
+                                                onSuccess={(response) => {
+                                                    // The response object contains the accessToken
+                                                    handleFacebookResponse({ accessToken: response.accessToken });
+                                                }}
+                                                onFail={(error) => {
+                                                    console.warn('Facebook Login Failed!', error);
+                                                    setError("Facebook Login failed.");
+                                                }}
+                                                onProfileSuccess={(response) => {
+                                                    console.log('Get Profile Success!', response);
+                                                }}
+                                                render={({ onClick }) => (
                                                     <button
                                                         type="button"
-                                                        onClick={renderProps.onClick}
+                                                        onClick={onClick}
                                                         className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-[#1877F2]/10 px-4 py-2 text-sm font-medium text-[#1877F2] transition-all hover:bg-[#1877F2]/20 shadow-sm"
                                                     >
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
