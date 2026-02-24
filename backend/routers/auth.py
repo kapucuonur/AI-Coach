@@ -178,6 +178,7 @@ from backend.auth_utils import verify_password, get_password_hash, create_access
 def get_current_user_info(current_user: User = Depends(get_current_user)):
     return {
         "email": current_user.email,
+        "is_premium": getattr(current_user, 'is_premium', False),
         "has_garmin_connected": bool(current_user.garmin_email and current_user.garmin_password)
     }
 

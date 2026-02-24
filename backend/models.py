@@ -18,6 +18,13 @@ class User(Base):
     garmin_email = Column(String, nullable=True) 
     garmin_password = Column(String, nullable=True)
     
+    # Monetization - Stripe Integration
+    from sqlalchemy import Boolean
+    is_premium = Column(Boolean, default=False)
+    stripe_customer_id = Column(String, unique=True, index=True, nullable=True)
+    stripe_subscription_id = Column(String, unique=True, index=True, nullable=True)
+    subscription_status = Column(String, default="inactive")
+
     # Relationships
     nutrition_entries = relationship("NutritionEntry", back_populates="user")
 
