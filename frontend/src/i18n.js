@@ -74,7 +74,15 @@ const resources = {
             "also_runs_desc": "If unchecked, CoachOnur - AI Training won't prescribe running workouts.",
             "daily_training_time": "Daily Training Time",
             "daily_training_desc": "How much time do you have to train today?",
-            "update_plan": "Update Plan"
+            "update_plan": "Update Plan",
+            "upgrade_title": "Unlock AI Workouts & Deeper Insights",
+            "upgrade_desc": "You are currently on the Free \"View-Only\" tier. Upgrade to Premium to generate personalized daily AI training plans, send them to your Garmin watch, and interact with your deeper fitness metrics.",
+            "upgrade_button": "Upgrade to Premium",
+            "admin_mode": "Admin Mode Active",
+            "admin_mode_desc": "You bypass all paywalls for testing.",
+            "premium_feature": "Premium Feature",
+            "premium_feature_desc": "Upgrade to view and generate AI workouts.",
+            "unlock_now": "Unlock Now"
         }
     },
     tr: {
@@ -149,7 +157,15 @@ const resources = {
             "also_runs_desc": "İşaretlenmezse, CoachOnur - AI Training koşu antrenmanları yazmayacaktır.",
             "daily_training_time": "Günlük Antrenman Süresi",
             "daily_training_desc": "Bugün antrenman için ne kadar vaktiniz var?",
-            "update_plan": "Planı Güncelle"
+            "update_plan": "Planı Güncelle",
+            "upgrade_title": "AI Antrenmanlarını ve Derin Analizleri Açın",
+            "upgrade_desc": "Şu anda Ücretsiz \"Sadece Görüntüleme\" paketindesiniz. Kişiselleştirilmiş günlük AI antrenman planları oluşturmak, bunları Garmin saatinize göndermek ve daha derin fitness metriklerinizle etkileşime geçmek için Premium'a yükseltin.",
+            "upgrade_button": "Premium'a Yükselt",
+            "admin_mode": "Yönetici Modu Aktif",
+            "admin_mode_desc": "Test için tüm ödeme duvarlarını atlarsınız.",
+            "premium_feature": "Premium Özellik",
+            "premium_feature_desc": "AI antrenmanlarını görmek ve oluşturmak için yükseltin.",
+            "unlock_now": "Şimdi Aç"
         }
     },
     de: {
@@ -174,7 +190,15 @@ const resources = {
             "also_runs_desc": "Falls nicht markiert, verschreibt CoachOnur - AI Training keine Lauftrainings.",
             "daily_training_time": "Tägliche Trainingszeit",
             "daily_training_desc": "Wie viel Zeit haben Sie heute für das Training?",
-            "update_plan": "Plan aktualisieren"
+            "update_plan": "Plan aktualisieren",
+            "upgrade_title": "Schalten Sie KI-Workouts und tiefere Einblicke frei",
+            "upgrade_desc": "Sie befinden sich derzeit in der kostenlosen \"Nur-Lese\"-Stufe. Führen Sie ein Upgrade auf Premium durch, um personalisierte tägliche KI-Trainingspläne zu erstellen, diese an Ihre Garmin-Uhr zu senden und mit Ihren tiefergehenden Fitnessmetriken zu interagieren.",
+            "upgrade_button": "Auf Premium upgraden",
+            "admin_mode": "Admin-Modus aktiv",
+            "admin_mode_desc": "Sie umgehen alle Paywalls zu Testzwecken.",
+            "premium_feature": "Premium-Funktion",
+            "premium_feature_desc": "Führen Sie ein Upgrade durch, um KI-Workouts anzuzeigen und zu generieren.",
+            "unlock_now": "Jetzt freischalten"
         }
     },
     fr: {
@@ -199,7 +223,15 @@ const resources = {
             "also_runs_desc": "Si décoché, CoachOnur - AI Training ne prescrira pas d'entraînements de course à pied.",
             "daily_training_time": "Temps d'entraînement quotidien",
             "daily_training_desc": "Combien de temps avez-vous pour vous entraîner aujourd'hui ?",
-            "update_plan": "Mettre à jour le plan"
+            "update_plan": "Mettre à jour le plan",
+            "upgrade_title": "Débloquez les entraînements IA et des informations plus approfondies",
+            "upgrade_desc": "Vous êtes actuellement sur le niveau gratuit \"Vue seule\". Passez à Premium pour générer des plans d'entraînement IA quotidiens personnalisés, les envoyer à votre montre Garmin et interagir avec vos mesures de forme physique plus approfondies.",
+            "upgrade_button": "Passer à Premium",
+            "admin_mode": "Mode Administrateur actif",
+            "admin_mode_desc": "Vous contournez tous les murs de paiement pour tester.",
+            "premium_feature": "Fonctionnalité Premium",
+            "premium_feature_desc": "Passez à la version supérieure pour afficher et générer des entraînements IA.",
+            "unlock_now": "Débloquer maintenant"
         }
     },
     it: {
@@ -224,7 +256,15 @@ const resources = {
             "also_runs_desc": "Se deselezionato, CoachOnur - AI Training non prescriverà allenamenti di corsa.",
             "daily_training_time": "Tempo di allenamento giornaliero",
             "daily_training_desc": "Quanto tempo hai a disposizione per allenarti oggi?",
-            "update_plan": "Aggiorna il piano"
+            "update_plan": "Aggiorna il piano",
+            "upgrade_title": "Sblocca gli allenamenti IA e approfondimenti",
+            "upgrade_desc": "Attualmente sei sul livello gratuito \"Sola visualizzazione\". Passa a Premium per generare piani di allenamento IA giornalieri personalizzati, inviarli al tuo orologio Garmin e interagire con le tue metriche di fitness più approfondite.",
+            "upgrade_button": "Passa a Premium",
+            "admin_mode": "Modalità Amministratore attiva",
+            "admin_mode_desc": "Ignora tutti i paywall per i test.",
+            "premium_feature": "Funzione Premium",
+            "premium_feature_desc": "Esegui l'upgrade per visualizzare e generare allenamenti IA.",
+            "unlock_now": "Sblocca ora"
         }
     },
     es: {
@@ -249,7 +289,15 @@ const resources = {
             "also_runs_desc": "Si no está marcado, CoachOnur - AI Training no prescribirá entrenamientos de carrera.",
             "daily_training_time": "Tiempo de entrenamiento diario",
             "daily_training_desc": "¿Cuánto tiempo tienes para entrenar hoy?",
-            "update_plan": "Actualizar plan"
+            "update_plan": "Actualizar plan",
+            "upgrade_title": "Desbloquea entrenamientos de IA y métricas profundas",
+            "upgrade_desc": "Actualmente estás en el nivel gratuito de \"Solo lectura\". Actualiza a Premium para generar planes de entrenamiento de IA diarios personalizados, enviarlos a tu reloj Garmin e interactuar con tus métricas de estado físico más profundas.",
+            "upgrade_button": "Actualizar a Premium",
+            "admin_mode": "Modo Administrador activo",
+            "admin_mode_desc": "Ignoras todos los muros de pago para realizar pruebas.",
+            "premium_feature": "Función Premium",
+            "premium_feature_desc": "Actualiza para ver y generar entrenamientos de IA.",
+            "unlock_now": "Desbloquear ahora"
         }
     },
     ru: {
@@ -274,7 +322,15 @@ const resources = {
             "also_runs_desc": "Если не отмечено, CoachOnur - AI Training не будет назначать беговые тренировки.",
             "daily_training_time": "Ежедневное время тренировки",
             "daily_training_desc": "Сколько у вас сегодня времени на тренировку?",
-            "update_plan": "Обновить план"
+            "update_plan": "Обновить план",
+            "upgrade_title": "Разблокируйте ИИ-тренировки и глубокую аналитику",
+            "upgrade_desc": "В настоящее время вы находитесь на бесплатном уровне «Только просмотр». Перейдите на Premium, чтобы создавать персонализированные ежедневные планы ИИ-тренировок, отправлять их на часы Garmin и взаимодействовать с более глубокими показателями вашей физической формы.",
+            "upgrade_button": "Перейти на Premium",
+            "admin_mode": "Режим администратора активен",
+            "admin_mode_desc": "Вы обходите все платные экраны для тестирования.",
+            "premium_feature": "Премиум-функция",
+            "premium_feature_desc": "Обновитесь для просмотра и создания ИИ-тренировок.",
+            "unlock_now": "Разблокировать сейчас"
         }
     }
 };

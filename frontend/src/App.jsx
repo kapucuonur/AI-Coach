@@ -326,8 +326,8 @@ function App() {
           {/* Admin Banner */}
           {isAdmin && (
             <div className="bg-garmin-blue/20 border border-garmin-blue text-garmin-blue-dark dark:text-blue-200 px-4 py-3 rounded-xl flex items-center justify-between">
-              <span className="font-semibold">🚀 Admin Mode Active</span>
-              <span className="text-sm opacity-80">You bypass all paywalls for testing.</span>
+              <span className="font-semibold">🚀 {t('admin_mode')}</span>
+              <span className="text-sm opacity-80">{t('admin_mode_desc')}</span>
             </div>
           )}
 
@@ -336,17 +336,17 @@ function App() {
             <div className="bg-gradient-to-r from-blue-600/10 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-sm -mt-2">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Zap className="text-emerald-500" /> Unlock AI Workouts & Deeper Insights
+                  <Zap className="text-emerald-500" /> {t('upgrade_title')}
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300 mt-1 max-w-xl">
-                  You are currently on the Free "View-Only" tier. Upgrade to Premium to generate personalized daily AI training plans, send them to your Garmin watch, and interact with your deeper fitness metrics.
+                  {t('upgrade_desc')}
                 </p>
               </div>
               <button
                 onClick={() => setShowPaywall(true)}
                 className="group w-full sm:w-auto flex-shrink-0 relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-8 py-4 font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-emerald-500/25 active:scale-[0.98]"
               >
-                Upgrade to Premium
+                {t('upgrade_button')}
               </button>
             </div>
           )}
@@ -489,13 +489,13 @@ function App() {
                       <div className="mx-auto w-12 h-12 bg-emerald-500/20 text-emerald-500 flex items-center justify-center rounded-full mb-3">
                         <Zap className="w-6 h-6" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">Premium Feature</h3>
-                      <p className="text-sm text-gray-500 mt-1 mb-4">Upgrade to view and generate AI workouts.</p>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('premium_feature')}</h3>
+                      <p className="text-sm text-gray-500 mt-1 mb-4">{t('premium_feature_desc')}</p>
                       <button
                         onClick={() => setShowPaywall(true)}
                         className="text-sm font-semibold text-white bg-garmin-blue hover:bg-garmin-blue-light transition-colors px-6 py-2 rounded-lg"
                       >
-                        Unlock Now
+                        {t('unlock_now')}
                       </button>
                     </div>
                   </div>
