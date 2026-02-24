@@ -21,7 +21,7 @@ function App() {
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
+  const [_error, setError] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
@@ -52,7 +52,6 @@ function App() {
     localStorage.setItem('darkMode', JSON.stringify(darkMode));
   }, [darkMode]);
 
-  const [credentials, setCredentials] = useState(null);
   const [settingsData, setSettingsData] = useState(null);
 
   const fetchAIAdvice = async (forceMins = null, languageOverride = null) => {
@@ -185,7 +184,7 @@ function App() {
       setIsPremium(res.data.is_premium || false);
       setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
     } catch (e) {
-      console.error("Failed to fetch user state format during login");
+      console.error("Failed to fetch user state format during login", e);
     }
 
     if (hasGarmin) {
@@ -502,7 +501,7 @@ function App() {
                 )}
 
                 <div className={!isPremium && !isAdmin ? "opacity-30 pointer-events-none select-none" : ""}>
-                  <TrainingPlan userContext={{ ...data, credentials }} language={settingsData?.language || 'en'} />
+                  <TrainingPlan userContext={{ ...data }} language={settingsData?.language || 'en'} />
                 </div>
               </div>
             </div>
@@ -510,7 +509,7 @@ function App() {
             {/* Right: Activities */}
             <div className="lg:col-span-1 cursor-pointer" onClick={() => requirePremium(() => { })}>
               {/* Note: The ActivityList is made unclickable inside by wrapping the wrapper */}
-              <div className={!isPremium ? "pointer-events-none" : ""}>
+              <div className={!isPremium && !isAdmin ? "pointer-events-none" : ""}>
                 <ActivityList
                   activities={metrics?.recent_activities || []}
                   onSelect={(id) => requirePremium(() => setSelectedActivityId(id))}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { X, Activity, Heart, Clock, Zap, MapPin, Gauge } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';
@@ -204,7 +204,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             Heart Rate Profile (Per Lap)
                                         </h3>
                                         <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorHr" x1="0" y1="0" x2="0" y2="1">
@@ -232,7 +232,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             Pace Profile (Per Lap - min/km)
                                         </h3>
                                         <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorPace" x1="0" y1="0" x2="0" y2="1">
