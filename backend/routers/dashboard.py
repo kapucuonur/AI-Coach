@@ -134,7 +134,11 @@ def get_recent_activities(limit: int = 5, client: GarminClient = Depends(get_gar
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/activities/{activity_id}/details")
-def get_activity_details(activity_id: int, client: GarminClient = Depends(get_garmin_client)):
+def get_activity_details(
+    activity_id: int, 
+    client: GarminClient = Depends(get_garmin_client),
+    current_user: User = Depends(get_current_user)
+):
     logger.info(f"Fetching activity details for {activity_id}")
     analysis = None
     details = None
@@ -171,7 +175,7 @@ def get_activity_details(activity_id: int, client: GarminClient = Depends(get_ga
                 
                 user_settings_dict = {}
                 try:
-                    settings = load_settings()
+                    settings = load_settings(current_user.email)
                     user_settings_dict = settings.model_dump()
                 except Exception as se:
                     logger.warning(f"Failed to load settings: {se}")

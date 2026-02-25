@@ -129,13 +129,16 @@ class AIAdviceRequest(BaseModel):
     client_local_time: str = None
 
 @router.post("/generate-advice")
-async def generate_advice(payload: AIAdviceRequest):
+async def generate_advice(
+    payload: AIAdviceRequest,
+    current_user: User = Depends(get_current_user)
+):
     try:
         gemini_key = os.getenv("GEMINI_API_KEY")
         brain = CoachBrain(gemini_key)
         
         # Load user personalization
-        settings = load_settings()
+        settings = load_settings(current_user.email)
         user_settings_dict = settings.model_dump()
         
         # Override language if provided explicitly in the payload

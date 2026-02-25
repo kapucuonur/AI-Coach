@@ -11,6 +11,8 @@ from backend.database import get_db
 import os
 import logging
 import json
+from backend.auth_utils import get_current_user
+from backend.models import User
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -20,7 +22,11 @@ class PlanRequest(BaseModel):
     language: Optional[str] = "en"
 
 @router.post("/generate")
-def generate_plan(request: PlanRequest, client: GarminClient = Depends(get_garmin_client)):
+def generate_plan(
+    request: PlanRequest, 
+    client: GarminClient = Depends(get_garmin_client),
+    current_user: User = Depends(get_current_user)
+):
     try:
         gemini_key = os.getenv("GEMINI_API_KEY")
         
@@ -28,7 +34,7 @@ def generate_plan(request: PlanRequest, client: GarminClient = Depends(get_garmi
 
         brain = CoachBrain(gemini_key)
         processor = DataProcessor()
-        settings = load_settings()
+        settings = load_settings(current_user.email)
         user_settings_dict = settings.model_dump()
         if request.language:
             user_settings_dict["language"] = request.language
