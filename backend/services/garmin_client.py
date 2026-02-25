@@ -322,14 +322,25 @@ class GarminClient:
         return self.client.get_activities(0, limit)
 
     def get_activity_details(self, activity_id):
-        """Fetch detailed activity data (splits, streams, etc)."""
+        """Fetch detailed activity data (summary and splits)."""
         if not self.client:
             logger.error("Client not authenticated.")
             return None
         try:
-            # Check if we can get details. 
-            # The garminconnect library has `get_activity(activity_id)`
-            return self.client.get_activity(activity_id)
+            # Fetch summary
+            details = self.client.get_activity(activity_id)
+            if not details:
+                return None
+            
+            # Fetch splits (laps) - This resolves the empty charts issue
+            try:
+                splits = self.client.get_activity_splits(activity_id)
+                if splits:
+                    details['splits'] = splits
+            except Exception as e:
+                logger.warning(f"Could not fetch splits for {activity_id}: {e}")
+                
+            return details
         except Exception as e:
             logger.error(f"Failed to fetch activity details for {activity_id}: {e}")
             return None
