@@ -30,7 +30,7 @@ class UserSettings(BaseModel):
 
 @router.get("/", response_model=UserSettings)
 def get_settings(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    setting_key = f"{current_user.email}_config"
+    setting_key = f"{current_user.email.lower()}_config"
     setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
     
     if setting and setting.value:
@@ -43,7 +43,7 @@ def get_settings(db: Session = Depends(get_db), current_user = Depends(get_curre
 
 @router.post("/", response_model=UserSettings)
 def save_settings(settings: UserSettings, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    setting_key = f"{current_user.email}_config"
+    setting_key = f"{current_user.email.lower()}_config"
     db_setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
     
     if not db_setting:
@@ -62,7 +62,7 @@ def load_settings(email: str = None):
     db = SessionLocal()
     try:
         # Default fallback to main_config if no email provided, though email should ideally be passed in now
-        setting_key = f"{email}_config" if email else "main_config"
+        setting_key = f"{email.lower()}_config" if email else "main_config"
         setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
         if setting and setting.value:
             default_settings = UserSettings().model_dump()
