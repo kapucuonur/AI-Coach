@@ -68,6 +68,7 @@ const resources = {
             "friday": "Friday",
             "saturday": "Saturday",
             "sunday": "Sunday",
+            "chat_greeting": "Hello! How are you feeling today? Any soreness, fatigue, or anything else I should know about? (Use the buttons on the dashboard to generate your training plan!)",
             "chat_placeholder": "Ask your coach...",
             "chat_conn_error": "Sorry, I'm having trouble connecting to the Coach Brain right now.",
             "also_runs": "Do you also run?",
@@ -198,7 +199,8 @@ const resources = {
             "admin_mode_desc": "Sie umgehen alle Paywalls zu Testzwecken.",
             "premium_feature": "Premium-Funktion",
             "premium_feature_desc": "Führen Sie ein Upgrade durch, um KI-Workouts anzuzeigen und zu generieren.",
-            "unlock_now": "Jetzt freischalten"
+            "unlock_now": "Jetzt freischalten",
+            "chat_greeting": "Hallo! Wie fühlst du dich heute? Hast du Muskelkater, Müdigkeit oder gibt es etwas anderes, das ich wissen sollte?"
         }
     },
     fr: {
@@ -231,7 +233,8 @@ const resources = {
             "admin_mode_desc": "Vous contournez tous les murs de paiement pour tester.",
             "premium_feature": "Fonctionnalité Premium",
             "premium_feature_desc": "Passez à la version supérieure pour afficher et générer des entraînements IA.",
-            "unlock_now": "Débloquer maintenant"
+            "unlock_now": "Débloquer maintenant",
+            "chat_greeting": "Salut ! Comment te sens-tu aujourd'hui ? Des douleurs, de la fatigue ou autre chose que je devrais savoir ?"
         }
     },
     it: {
@@ -264,7 +267,8 @@ const resources = {
             "admin_mode_desc": "Ignora tutti i paywall per i test.",
             "premium_feature": "Funzione Premium",
             "premium_feature_desc": "Esegui l'upgrade per visualizzare e generare allenamenti IA.",
-            "unlock_now": "Sblocca ora"
+            "unlock_now": "Sblocca ora",
+            "chat_greeting": "Ciao! Come ti senti oggi? Ci sono dolori, affaticamento o qualcos'altro che dovrei sapere?"
         }
     },
     es: {
@@ -297,7 +301,8 @@ const resources = {
             "admin_mode_desc": "Ignoras todos los muros de pago para realizar pruebas.",
             "premium_feature": "Función Premium",
             "premium_feature_desc": "Actualiza para ver y generar entrenamientos de IA.",
-            "unlock_now": "Desbloquear ahora"
+            "unlock_now": "Desbloquear ahora",
+            "chat_greeting": "¡Hola! ¿Cómo te sientes hoy? ¿Tienes dolores, fatiga o algo más que deba saber?"
         }
     },
     ru: {
@@ -330,7 +335,8 @@ const resources = {
             "admin_mode_desc": "Вы обходите все платные экраны для тестирования.",
             "premium_feature": "Премиум-функция",
             "premium_feature_desc": "Обновитесь для просмотра и создания ИИ-тренировок.",
-            "unlock_now": "Разблокировать сейчас"
+            "unlock_now": "Разблокировать сейчас",
+            "chat_greeting": "Привет! Как ты себя чувствуешь сегодня? Есть ли боль, усталость или что-то еще, что я должен знать?"
         }
     }
 };
