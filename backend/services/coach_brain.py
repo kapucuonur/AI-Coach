@@ -211,10 +211,11 @@ class CoachBrain:
         1. **生理 Analytics & Readiness (Physiological Analytics & Readiness)**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Don't just list the numbers; explain what they mean for their central nervous system and capacity for strain today.
         2. **Training Directive (Training Directive)**: A concise paragraph analyzing their recent load and defining the precise objective for today's session (e.g., aerobic maintenance, lactate clearance, neuromuscular recruitment).
         3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context.
-           - IF trained today already: Prescribe active recovery, mobility, or total rest. Double sessions only if they are clearly an elite athlete with high capacity.
-           - IF not trained yet: If it's late evening, prescribe mobility/yoga/rest. Otherwise, prescribe a structured session.
+           - OVERTRAINING PROTECTION (CRITICAL): If the athlete has already completed >= 2 sessions today, OR if the total duration of today's training exceeds 90 minutes, YOU MUST PRESCRIBE TOTAL REST. Professional athletes need recovery. Provide `null` for the workout JSON.
+           - IF trained today already (but < 90 mins): Prescribe active recovery, mobility, or total rest. Double sessions only if they are clearly an elite athlete with high capacity.
+           - IF not trained yet: If it's late evening (local time >= 18:00), prescribe mobility/yoga/rest. Otherwise, prescribe a structured session.
            - CYCLING RESTRICTION: No running if "Runs: No", only cycle, stretch, strength, or rest.
-           - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport. Warmup/Main Set/Cooldown required in the JSON workout section.
+           - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport. Warmup/Main Set/Cooldown required in the JSON workout section if providing an active workout.
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout (if applicable), and Post-workout macronutrient focus.
         5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
 
