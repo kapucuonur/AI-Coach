@@ -34,7 +34,10 @@ def get_settings(db: Session = Depends(get_db), current_user = Depends(get_curre
     setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
     
     if setting and setting.value:
-        return UserSettings(**setting.value)
+        # Create default model, then update with stored values to ensure no missing keys
+        default_settings = UserSettings().model_dump()
+        default_settings.update(setting.value)
+        return UserSettings(**default_settings)
     
     return UserSettings() # Return defaults
 
@@ -62,7 +65,9 @@ def load_settings(email: str = None):
         setting_key = f"{email}_config" if email else "main_config"
         setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
         if setting and setting.value:
-            return UserSettings(**setting.value)
+            default_settings = UserSettings().model_dump()
+            default_settings.update(setting.value)
+            return UserSettings(**default_settings)
         return UserSettings()
     finally:
         db.close()

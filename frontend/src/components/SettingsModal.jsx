@@ -25,15 +25,23 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const fetchSettings = async () => {
         try {
             const res = await client.get('/settings');
-            setSport(res.data.primary_sport);
-            setAge(res.data.age || "");
-            setGender(res.data.gender || "Male");
-            setStrengthDays(res.data.strength_days || 0);
-            setOffDays(res.data.off_days || []);
-            setMetrics(res.data.metrics || { threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
-            setRaces(res.data.races || []);
-            setGoals(res.data.goals || { running: "", triathlon: "", cycling: "" });
-            setAlsoRuns(res.data.also_runs !== undefined ? res.data.also_runs : true);
+            const data = res.data || {};
+            setSport(data.primary_sport || "Running");
+            setAge(data.age || "");
+            setGender(data.gender || "Male");
+            setStrengthDays(data.strength_days || 0);
+            setOffDays(data.off_days || []);
+            setMetrics(data.metrics || { threshold_pace: "", ftp: "", max_hr: "", bike_max_power: "", swim_pace_100m: "" });
+            setRaces(data.races || []);
+
+            // Ensure goals object exists and has default keys
+            setGoals({
+                running: data.goals?.running || "",
+                triathlon: data.goals?.triathlon || "",
+                cycling: data.goals?.cycling || ""
+            });
+
+            setAlsoRuns(data.also_runs !== undefined ? data.also_runs : true);
         } catch (error) {
             console.error("Failed to load settings", error);
         }
