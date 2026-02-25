@@ -287,6 +287,16 @@ function App() {
               </select>
 
               <button
+                onClick={() => fetchDashboardData()}
+                disabled={loading}
+                className="flex items-center gap-2 p-2 px-3 lg:px-4 text-white bg-garmin-blue hover:bg-blue-600 rounded-full transition-colors shadow-sm disabled:opacity-50"
+                title={t('sync_garmin') || "Sync Garmin Data"}
+              >
+                <Activity size={18} className={loading && isGeneratingAdvice === false ? "animate-spin" : ""} />
+                <span className="text-sm font-medium hidden sm:inline">{t('sync_garmin') || "Sync"}</span>
+              </button>
+
+              <button
                 onClick={() => setDarkMode(!darkMode)}
                 className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
                 title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}

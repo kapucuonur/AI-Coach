@@ -85,16 +85,28 @@ GOOGLE_CLIENT_ID = os.getenv("VITE_GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID")
 @router.post("/google")
 def google_login(token_data: GoogleLoginRequest, db: Session = Depends(get_db)):
     try:
-        # Verify the Google ID token
-        idinfo = id_token.verify_oauth2_token(
-            token_data.credential, 
-            google_requests.Request(), 
-            GOOGLE_CLIENT_ID
-        )
-
-        email = idinfo.get('email')
-        google_id = idinfo.get('sub')
-        
+        # Try to use as credential (ID Token) first to maintain backward compatibility
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token_data.credential, 
+                google_requests.Request(), 
+                GOOGLE_CLIENT_ID
+            )
+            email = idinfo.get('email')
+            google_id = idinfo.get('sub')
+        except ValueError:
+            # If it fails, assume it's an access token from useGoogleLogin
+            response = requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {token_data.credential}"}
+            )
+            if response.status_code != 200:
+                raise HTTPException(status_code=401, detail="Invalid Google token")
+            
+            data = response.json()
+            email = data.get("email")
+            google_id = data.get("sub")
+            
         if not email:
             raise HTTPException(status_code=400, detail="Google token missing email")
 
@@ -123,8 +135,8 @@ def google_login(token_data: GoogleLoginRequest, db: Session = Depends(get_db)):
             "has_garmin_connected": bool(user.garmin_email and user.garmin_password)
         }
 
-    except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid Google token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
 
 @router.post("/facebook")
 def facebook_login(token_data: FacebookLoginRequest, db: Session = Depends(get_db)):
