@@ -38,13 +38,35 @@ export function ActivityAnalysis({ activityId, onClose }) {
     // For now, let's try to visualize splits since they are reliable.
     // Garmin API uses summaryDTO wrapper or root level fields
     const summary = data?.details?.summaryDTO || data?.details || {};
-    const chartData = data?.details?.splitSummaries?.map((split, index) => ({
-        name: `Lap ${index + 1}`,
-        distance: Math.round(split.distance || 0),
-        avgHR: split.averageHR || split.average_hr,
-        avgSpeed: split.averageSpeed || split.average_speed,
-        pace: (split.averageSpeed || split.average_speed) ? (1000 / (split.averageSpeed || split.average_speed)) / 60 : 0
-    })) || [];
+
+    // Extract lap data for charts - Garmin usually stores this in details.splits.lapDTOs
+    let laps = [];
+    if (data?.details?.splits?.lapDTOs) {
+        laps = data.details.splits.lapDTOs;
+    } else if (Array.isArray(data?.details?.splits)) {
+        laps = data.details.splits;
+    }
+
+    const chartData = laps.map((split, index) => {
+        const avgSpeed = split.averageSpeed || split.average_speed || 0;
+        let paceStr = 0;
+        let paceNum = 0;
+
+        if (avgSpeed > 0) {
+            // Speed is m/s. Pace is min/km. 
+            // min/km = (1000 / m/s) / 60
+            const pacePerKmSec = 1000 / avgSpeed;
+            paceNum = pacePerKmSec / 60; // Decimal minutes
+        }
+
+        return {
+            name: `Lap ${index + 1}`,
+            distance: Math.round(split.distance || 0),
+            avgHR: split.averageHR || split.average_hr || null,
+            avgSpeed: avgSpeed,
+            pace: paceNum
+        };
+    }).filter(point => point.avgHR !== null || point.pace > 0);
 
     return (
         <AnimatePresence>
