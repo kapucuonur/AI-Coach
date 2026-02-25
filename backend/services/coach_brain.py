@@ -1,7 +1,11 @@
 import os
 import logging
+import warnings
 import google.generativeai as genai
 from dotenv import load_dotenv
+
+# Suppress the FutureWarning from the deprecated package to keep logs clean
+warnings.filterwarnings('ignore', category=FutureWarning, module='google.generativeai')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

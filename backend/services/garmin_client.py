@@ -541,28 +541,15 @@ class GarminClient:
             return []
 
     def sync_all_devices(self):
-        """Trigger an immediate sync for all connected devices to pull latest data."""
+        """Trigger an immediate sync for all connected devices to pull latest data.
+        Note: The explicit /device-service/devices/{id}/sync endpoint often 404s now,
+        so we rely on Garmin's passive sync when fetching data instead of explicit queueing."""
         if not self.client:
             logger.error("Client not authenticated.")
             return False
             
         try:
-            devices = self.get_devices()
-            sync_count = 0
-            for device in devices:
-                # Optional: Only sync devices that are currently reported as connected or sync all anyway
-                device_id = device.get('deviceId')
-                if device_id:
-                    try:
-                        logger.info(f"Requesting auto-sync for device {device_id}...")
-                        # This endpoint queues a sync command
-                        url = f"/device-service/devices/{device_id}/sync"
-                        self.client.garth.post("connectapi", url, api=True)
-                        sync_count += 1
-                    except Exception as de:
-                        logger.warning(f"Could not queue sync for device {device_id}: {de}")
-                        
-            logger.info(f"Successfully queued auto-sync for {sync_count} devices.")
+            logger.info("Auto-sync requested. Note: Explicit device sync queuing is disabled to prevent 404 errors.")
             return True
         except Exception as e:
             logger.error(f"Failed to auto-sync devices: {e}")
