@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+    <linearGradient id="lightningGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="50" cy="50" r="48" fill="url(#bgGradient)" />
+
+  <path d="M 50 15 
+           L 80 25 
+           C 80 55 65 75 50 85 
+           C 35 75 20 55 20 25 
+           Z" 
+        fill="rgba(255, 255, 255, 0.2)" 
+        stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
+
+  <circle cx="38" cy="40" r="4" fill="#ffffff" />
+  <circle cx="62" cy="40" r="4" fill="#ffffff" />
+  <circle cx="50" cy="62" r="5" fill="#ffffff" />
+  
+  <path d="M 38 40 L 50 62 L 62 40" stroke="#ffffff" stroke-width="2.5" fill="none" />
+  <path d="M 50 25 L 50 62" stroke="#ffffff" stroke-width="2.5" fill="none" opacity="0.6"/>
+
+  <path d="M 45 28 L 65 28 L 52 48 L 60 48 L 40 78 L 45 52 L 35 52 Z" 
+        fill="url(#lightningGradient)" 
+        stroke="#ffffff" stroke-width="1.5" />
+</svg>
