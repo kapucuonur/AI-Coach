@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Activity, Heart, Clock, Zap, MapPin, Gauge } from 'lucide-react';
+import { X, Activity, Heart, Clock, Zap, MapPin, Gauge, Mountain } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
@@ -59,14 +59,19 @@ export function ActivityAnalysis({ activityId, onClose }) {
             paceNum = pacePerKmSec / 60; // Decimal minutes
         }
 
+        const avgElevation = split.averageElevation || split.average_elevation || split.elevationGain || null;
+        const avgPower = split.averagePower || split.average_power || null;
+
         return {
             name: `Lap ${index + 1}`,
             distance: Math.round(split.distance || 0),
             avgHR: split.averageHR || split.average_hr || null,
             avgSpeed: avgSpeed,
-            pace: paceNum
+            pace: paceNum,
+            elevation: avgElevation,
+            power: avgPower
         };
-    }).filter(point => point.avgHR !== null || point.pace > 0);
+    }).filter(point => point.avgHR !== null || point.pace > 0 || point.power !== null);
 
     return (
         <AnimatePresence>
@@ -276,6 +281,66 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             </ResponsiveContainer>
                                         </div>
                                     </div>
+
+                                    {/* Elevation Chart */}
+                                    <div className="bg-white/5 border border-white/5 p-6 rounded-2xl">
+                                        <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                                            <Mountain size={18} className="text-emerald-500" />
+                                            Elevation Profile (Per Lap)
+                                        </h3>
+                                        <div className="h-[300px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                                                <AreaChart data={chartData}>
+                                                    <defs>
+                                                        <linearGradient id="colorElev" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                                                    <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={false} />
+                                                    <YAxis stroke="#9ca3af" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={false} domain={['dataMin', 'dataMax + 10']} />
+                                                    <Tooltip
+                                                        contentStyle={{ backgroundColor: '#171717', border: '1px solid #374151', borderRadius: '8px' }}
+                                                        itemStyle={{ color: '#fff' }}
+                                                        formatter={(value) => [`${Math.round(value)}m`, 'Elevation']}
+                                                    />
+                                                    <Area type="monotone" dataKey="elevation" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorElev)" activeDot={{ r: 6 }} />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    {/* Power Chart */}
+                                    {chartData.some(d => d.power) && (
+                                        <div className="bg-white/5 border border-white/5 p-6 rounded-2xl">
+                                            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                                                <Zap size={18} className="text-orange-500" />
+                                                Power Profile (Per Lap)
+                                            </h3>
+                                            <div className="h-[300px] w-full">
+                                                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                                                    <AreaChart data={chartData}>
+                                                        <defs>
+                                                            <linearGradient id="colorPower" x1="0" y1="0" x2="0" y2="1">
+                                                                <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                                                <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                                            </linearGradient>
+                                                        </defs>
+                                                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
+                                                        <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={false} />
+                                                        <YAxis stroke="#9ca3af" tick={{ fill: '#6b7280', fontSize: 12 }} tickLine={false} axisLine={false} domain={['auto', 'auto']} />
+                                                        <Tooltip
+                                                            contentStyle={{ backgroundColor: '#171717', border: '1px solid #374151', borderRadius: '8px' }}
+                                                            itemStyle={{ color: '#fff' }}
+                                                            formatter={(value) => [`${Math.round(value)} W`, 'Power']}
+                                                        />
+                                                        <Area type="monotone" dataKey="power" stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#colorPower)" activeDot={{ r: 6 }} />
+                                                    </AreaChart>
+                                                </ResponsiveContainer>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         )}

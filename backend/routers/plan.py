@@ -42,8 +42,13 @@ def generate_plan(
         # Fetch necessary context
         activities = client.get_activities(30)
         health_stats = client.get_health_stats()
-        # Sleep data is less critical for a long-term plan but good for context
-        # sleep_data = client.get_sleep_data() 
+        sleep_data = client.get_sleep_data() 
+        
+        # Get profile with VO2 max
+        profile = client.get_profile()
+        vo2_data = client.get_vo2_max()
+        if profile and vo2_data:
+            profile.update(vo2_data)
         
         # Process Activity Data
         df = processor.process_activities(activities)
@@ -72,9 +77,10 @@ def generate_plan(
 
         plan_json_str = brain.generate_structured_plan(
             duration_str=request.duration,
-            user_profile=client.client.get_user_profile(),
+            user_profile=profile,
             activities_summary=activities_summary_dict,
             health_stats=health_stats,
+            sleep_data=sleep_data,
             user_settings=user_settings_dict
         )
         

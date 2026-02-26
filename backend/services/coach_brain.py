@@ -80,6 +80,7 @@ class CoachBrain:
         # Extract specific data points safely
         name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
         vo2max = user_profile.get('vo2MaxRunning', 'N/A') if user_profile else 'N/A'
+        fitness_age = user_profile.get('fitnessAge', 'N/A') if user_profile else 'N/A'
         
         resting_hr = health_stats.get('restingHeartRate', 'N/A') if health_stats else 'N/A'
         
@@ -185,7 +186,7 @@ class CoachBrain:
         
         **Athlete Profile:**
         - Name: {name}
-        - VO2max: {vo2max} ml/kg/min
+        - VO2max: {vo2max} ml/kg/min (Fitness age: {fitness_age})
         - Sport: {sport_context}
         - Runs: {"Yes" if also_runs else "No"}
         {profile_context}
@@ -340,14 +341,15 @@ class CoachBrain:
             logger.error(f"Failed to generate chat response: {e}")
             return "Connection error. Please try again."
 
-    def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, user_settings):
+    def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, sleep_data=None, user_settings=None):
         """
         Generate a structured training plan (JSON) for the dashboard.
         """
         # Prepare context
         activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
         
-        # Extract settings
+        # Safe extract
+        user_settings = user_settings or {}
         sport = user_settings.get("primary_sport", "Endurance Sports")
         language = user_settings.get("language", "en")
         
@@ -357,15 +359,32 @@ class CoachBrain:
         }
         target_language = language_map.get(language, "English")
         
+        name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
+        vo2max = user_profile.get('vo2MaxRunning', 'N/A') if user_profile else 'N/A'
+        fitness_age = user_profile.get('fitnessAge', 'N/A') if user_profile else 'N/A'
+        
+        resting_hr = health_stats.get('restingHeartRate', 'N/A') if health_stats else 'N/A'
+        stress = health_stats.get('averageStressLevel', 'N/A') if health_stats else 'N/A'
+        body_battery = health_stats.get('bodyBatteryHighestValue', 'N/A') if health_stats else 'N/A'
+        
+        sleep_quality = 'N/A'
+        sleep_score = 'N/A'
+        if sleep_data and 'dailySleepDTO' in sleep_data:
+            sleep_quality = sleep_data['dailySleepDTO'].get('sleepQualityType', 'N/A')
+            sleep_score = sleep_data['dailySleepDTO'].get('sleepScore', 'N/A')
+        
         # Build prompt
         prompt = f"""
         Act as an elite {sport} coach.
         Create a **{duration_str}** professional training plan for this athlete.
         
         **Athlete Context:**
+        - Name: {name}
         - Sport: {sport}
+        - VO2max: {vo2max} ml/kg/min (Fitness age: {fitness_age})
+        - Recovery: Resting HR {resting_hr}, Body Battery {body_battery}/100, Stress {stress}/100
+        - Sleep: {sleep_score}/100 ({sleep_quality})
         - Recent Load: {activities_str}
-        - Recovery: Resting HR {health_stats.get('restingHeartRate', 'N/A')}, Sleep {health_stats.get('sleepScore', 'N/A')}
         
         **Task:**
         Generate a highly detailed, professional-grade training plan.
