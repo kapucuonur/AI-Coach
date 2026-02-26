@@ -403,7 +403,7 @@ class GarminClient:
             try:
                 dates_to_check = []
                 today = date.today()
-                for days_back in range(7):
+                for days_back in range(30):
                     check_date = today - timedelta(days=days_back)
                     dates_to_check.append(check_date.isoformat())
                 
@@ -514,7 +514,7 @@ class GarminClient:
                 logger.info(f"✅ VO2 Max data retrieved: {vo2_data}")
                 return vo2_data
             else:
-                logger.warning("⚠️ No VO2 Max data found in max_metrics for last 7 days")
+                logger.warning("⚠️ No VO2 Max data found in max_metrics for last 30 days")
                 logger.warning("This usually means:")
                 logger.warning("  - User hasn't done qualifying cardio activities (running/cycling with HR monitor)")
                 logger.warning("  - Garmin device doesn't support VO2 Max measurement")
