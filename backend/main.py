@@ -18,6 +18,8 @@ app.add_middleware(
         "https://ai-coach-bgatm3iql-kapucuonurs-projects.vercel.app",
         "https://ai-coach-kpb6cyg1q-kapucuonurs-projects.vercel.app",
         "https://ai-coach-86p5pwe1w-kapucuonurs-projects.vercel.app",
+        "https://coachonurai.com",
+        "https://www.coachonurai.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],

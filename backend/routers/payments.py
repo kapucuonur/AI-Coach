@@ -14,7 +14,7 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 # You'll need to create a product in Stripe and put its Price ID in the environment
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_test_fallback")
-FRONTEND_URL = os.getenv("VITE_API_URL", "http://localhost:5173").replace("/api", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", os.getenv("VITE_API_URL", "http://localhost:5173").replace("/api", ""))
 if FRONTEND_URL == "http://localhost:8000":
     FRONTEND_URL = "http://localhost:5173"
 
