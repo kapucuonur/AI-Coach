@@ -9,8 +9,7 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+# Secrets will be fetched dynamically per request to ensure Render updates apply immediately
 
 # You'll need to create a product in Stripe and put its Price ID in the environment
 FRONTEND_URL = os.getenv("FRONTEND_URL", os.getenv("VITE_API_URL", "http://localhost:5173").replace("/api", ""))
@@ -20,6 +19,7 @@ if FRONTEND_URL == "http://localhost:8000":
 @router.post("/create-checkout-session")
 def create_checkout_session(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
+        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
         # Check if they already have a customer ID
         customer_id = current_user.stripe_customer_id
         price_id = os.getenv("STRIPE_PRICE_ID")
@@ -82,6 +82,9 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
