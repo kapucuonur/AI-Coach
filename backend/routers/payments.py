@@ -31,21 +31,49 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
             current_user.stripe_customer_id = customer_id
             db.commit()
 
-        # Create the Checkout Session
-        checkout_session = stripe.checkout.Session.create(
-            customer=customer_id,
-            payment_method_types=['card'],
-            line_items=[
-                {
-                    'price': STRIPE_PRICE_ID,
-                    'quantity': 1,
-                },
-            ],
-            mode='subscription',
-            success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
-            cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
-            metadata={"user_email": current_user.email}
-        )
+        try:
+            # Create the Checkout Session
+            checkout_session = stripe.checkout.Session.create(
+                customer=customer_id,
+                payment_method_types=['card'],
+                line_items=[
+                    {
+                        'price': STRIPE_PRICE_ID,
+                        'quantity': 1,
+                    },
+                ],
+                mode='subscription',
+                success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
+                cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
+                metadata={"user_email": current_user.email}
+            )
+        except stripe.error.InvalidRequestError as e:
+            # If the customer ID is invalid (e.g. from test mode but trying to use live key)
+            if "No such customer" in str(e):
+                print(f"Customer {customer_id} not found in Stripe. Creating a new one...")
+                # Create a new Stripe customer
+                customer = stripe.Customer.create(email=current_user.email)
+                customer_id = customer.id
+                current_user.stripe_customer_id = customer_id
+                db.commit()
+                
+                # Retry checkout creation with new customer
+                checkout_session = stripe.checkout.Session.create(
+                    customer=customer_id,
+                    payment_method_types=['card'],
+                    line_items=[
+                        {
+                            'price': STRIPE_PRICE_ID,
+                            'quantity': 1,
+                        },
+                    ],
+                    mode='subscription',
+                    success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
+                    cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
+                    metadata={"user_email": current_user.email}
+                )
+            else:
+                raise e
         
         return {"sessionId": checkout_session.id, "url": checkout_session.url}
     except Exception as e:
