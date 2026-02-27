@@ -46,11 +46,25 @@ def save_settings(settings: UserSettings, db: Session = Depends(get_db), current
     setting_key = f"{current_user.email.lower()}_config"
     db_setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
     
+    # Get only the fields explicitly provided in the request
+    update_data = settings.model_dump(exclude_unset=True)
+    
+    # Start with defaults, then merge existing database values
+    current_settings = UserSettings().model_dump()
+    if db_setting and db_setting.value:
+        current_settings.update(db_setting.value)
+        
+    # Merge the explicitly provided fields
+    current_settings.update(update_data)
+    
+    # Validate and serialize the final object
+    final_settings = UserSettings(**current_settings)
+    
     if not db_setting:
-        db_setting = models.UserSetting(key=setting_key, value=settings.model_dump())
+        db_setting = models.UserSetting(key=setting_key, value=final_settings.model_dump())
         db.add(db_setting)
     else:
-        db_setting.value = settings.model_dump()
+        db_setting.value = final_settings.model_dump()
     
     db.commit()
     db.refresh(db_setting)
