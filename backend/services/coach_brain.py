@@ -1,8 +1,10 @@
 import os
 import logging
 import warnings
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,8 +19,8 @@ class CoachBrain:
             logger.error("GEMINI_API_KEY not found in environment variables.")
             raise ValueError("GEMINI_API_KEY is missing.")
         
-        self.client = genai.Client(api_key=self.api_key)
-        self.model_name = 'gemini-2.5-flash'
+        genai.configure(api_key=self.api_key)
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
 
     def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None):
         """
@@ -280,11 +282,7 @@ class CoachBrain:
         
         try:
             logger.info("Sending request to Gemini...")
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
-            )
+            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
             return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Failed to generate advice with Gemini: {e}")
@@ -333,10 +331,7 @@ class CoachBrain:
             conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
             full_prompt = f"{system_instruction}\n\nChat History:\n{conversation_history}\n\nCoach:"
             logger.info(f"Sending chat request to Gemini (Language: {target_language})...")
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=full_prompt
-            )
+            response = self.model.generate_content(full_prompt)
             return response.text
         except Exception as e:
             logger.error(f"Failed to generate chat response: {e}")
@@ -438,11 +433,7 @@ class CoachBrain:
         
         try:
             logger.info("Generating professional structured plan...")
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=types.GenerateContentConfig(response_mime_type="application/json")
-            )
+            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
             return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Failed to generate plan: {e}")
@@ -567,10 +558,7 @@ class CoachBrain:
             """
             
             logger.info(f"Analyzing activity {name} with Gemini...")
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=prompt
-            )
+            response = self.model.generate_content(prompt)
             return response.text
         except Exception as e:
             logger.error(f"Failed to analyze activity: {e}")
