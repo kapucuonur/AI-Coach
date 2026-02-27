@@ -13,7 +13,6 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 # You'll need to create a product in Stripe and put its Price ID in the environment
-STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "price_test_fallback")
 FRONTEND_URL = os.getenv("FRONTEND_URL", os.getenv("VITE_API_URL", "http://localhost:5173").replace("/api", ""))
 if FRONTEND_URL == "http://localhost:8000":
     FRONTEND_URL = "http://localhost:5173"
@@ -23,6 +22,7 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
     try:
         # Check if they already have a customer ID
         customer_id = current_user.stripe_customer_id
+        price_id = os.getenv("STRIPE_PRICE_ID")
         
         if not customer_id:
             # Create a new Stripe customer
@@ -38,7 +38,7 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
                 payment_method_types=['card'],
                 line_items=[
                     {
-                        'price': STRIPE_PRICE_ID,
+                        'price': price_id,
                         'quantity': 1,
                     },
                 ],
@@ -63,7 +63,7 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
                     payment_method_types=['card'],
                     line_items=[
                         {
-                            'price': STRIPE_PRICE_ID,
+                            'price': price_id,
                             'quantity': 1,
                         },
                     ],
