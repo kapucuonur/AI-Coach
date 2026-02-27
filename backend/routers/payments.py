@@ -39,7 +39,7 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
             # Create the Checkout Session
             checkout_session = stripe.checkout.Session.create(
                 customer=customer_id,
-                automatic_payment_methods={"enabled": True},
+                payment_method_types=['card'],
                 line_items=[
                     {
                         'price': price_id,
@@ -64,7 +64,7 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
                 # Retry checkout creation with new customer
                 checkout_session = stripe.checkout.Session.create(
                     customer=customer_id,
-                    automatic_payment_methods={"enabled": True},
+                    payment_method_types=['card'],
                     line_items=[
                         {
                             'price': price_id,
