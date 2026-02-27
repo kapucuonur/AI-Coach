@@ -24,6 +24,10 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
         customer_id = current_user.stripe_customer_id
         price_id = os.getenv("STRIPE_PRICE_ID")
         
+        # DEBUG: Print exact keys loaded in production
+        hk = stripe.api_key[:12] if stripe.api_key else "None"
+        print(f"[DEBUG] Loaded Stripe Key: {hk}..., PriceID: {price_id}")
+        
         if not customer_id:
             # Create a new Stripe customer
             customer = stripe.Customer.create(email=current_user.email)
