@@ -109,7 +109,9 @@ const resources = {
             "strength_training": "Strength Training",
             "hiking": "Hiking",
             "walking": "Walking",
-            "other": "Other"
+            "other": "Other",
+            "ready_to_train": "Ready to train?",
+            "hero_subtitle": "Your daily performance intelligence and AI coaching report is ready."
         }
     },
     tr: {
@@ -218,7 +220,9 @@ const resources = {
             "strength_training": "Kuvvet Antrenmanı",
             "hiking": "Doğa Yürüyüşü",
             "walking": "Yürüyüş",
-            "other": "Diğer"
+            "other": "Diğer",
+            "ready_to_train": "Sınırlarını zorlamaya hazır mısın?",
+            "hero_subtitle": "Günlük performans zekan ve yapay zeka koçluk raporun hazır."
         }
     },
     de: {

@@ -157,7 +157,7 @@ export function YearlyStats() {
             </div>
 
             <div className="w-full relative min-h-[300px]" style={{ height: 300 }}>
-                <ResponsiveContainer width="99%" height="100%">
+                <ResponsiveContainer width="99%" height="100%" minWidth={0} minHeight={0}>
                     <BarChart
                         data={data}
                         margin={{
