@@ -83,7 +83,10 @@ const resources = {
             "admin_mode_desc": "You bypass all paywalls for testing.",
             "premium_feature": "Premium Feature",
             "premium_feature_desc": "Upgrade to view and generate AI workouts.",
-            "unlock_now": "Unlock Now"
+            "unlock_now": "Unlock Now",
+            "trial_active_title": "1-Week Free Trial Active!",
+            "trial_active_desc": "Your free trial ends soon. Subscribe now to ensure uninterrupted access.",
+            "subscribe_now": "Subscribe Now"
         }
     },
     tr: {
@@ -166,7 +169,10 @@ const resources = {
             "admin_mode_desc": "Test için tüm ödeme duvarlarını atlarsınız.",
             "premium_feature": "Premium Özellik",
             "premium_feature_desc": "AI antrenmanlarını görmek ve oluşturmak için yükseltin.",
-            "unlock_now": "Şimdi Aç"
+            "unlock_now": "Şimdi Aç",
+            "trial_active_title": "1 Haftalık Ücretsiz Deneme Aktif!",
+            "trial_active_desc": "Ücretsiz deneme süreniz yakında bitiyor. Kesintisiz erişim için şimdi abone olun.",
+            "subscribe_now": "Şimdi Abone Ol"
         }
     },
     de: {
@@ -200,7 +206,10 @@ const resources = {
             "premium_feature": "Premium-Funktion",
             "premium_feature_desc": "Führen Sie ein Upgrade durch, um KI-Workouts anzuzeigen und zu generieren.",
             "unlock_now": "Jetzt freischalten",
-            "chat_greeting": "Hallo! Wie fühlst du dich heute? Hast du Muskelkater, Müdigkeit oder gibt es etwas anderes, das ich wissen sollte?"
+            "chat_greeting": "Hallo! Wie fühlst du dich heute? Hast du Muskelkater, Müdigkeit oder gibt es etwas anderes, das ich wissen sollte?",
+            "trial_active_title": "1 Woche kostenlose Testversion aktiv!",
+            "trial_active_desc": "Ihre kostenlose Testversion endet bald. Abonnieren Sie jetzt, um ununterbrochenen Zugang zu erhalten.",
+            "subscribe_now": "Jetzt abonnieren"
         }
     },
     fr: {
@@ -234,7 +243,10 @@ const resources = {
             "premium_feature": "Fonctionnalité Premium",
             "premium_feature_desc": "Passez à la version supérieure pour afficher et générer des entraînements IA.",
             "unlock_now": "Débloquer maintenant",
-            "chat_greeting": "Salut ! Comment te sens-tu aujourd'hui ? Des douleurs, de la fatigue ou autre chose que je devrais savoir ?"
+            "chat_greeting": "Salut ! Comment te sens-tu aujourd'hui ? Des douleurs, de la fatigue ou autre chose que je devrais savoir ?",
+            "trial_active_title": "Essai gratuit d'une semaine actif !",
+            "trial_active_desc": "Votre essai gratuit se termine bientôt. Abonnez-vous maintenant pour garantir un accès ininterrompu.",
+            "subscribe_now": "S'abonner maintenant"
         }
     },
     it: {
@@ -268,7 +280,10 @@ const resources = {
             "premium_feature": "Funzione Premium",
             "premium_feature_desc": "Esegui l'upgrade per visualizzare e generare allenamenti IA.",
             "unlock_now": "Sblocca ora",
-            "chat_greeting": "Ciao! Come ti senti oggi? Ci sono dolori, affaticamento o qualcos'altro che dovrei sapere?"
+            "chat_greeting": "Ciao! Come ti senti oggi? Ci sono dolori, affaticamento o qualcos'altro che dovrei sapere?",
+            "trial_active_title": "Prova gratuita di 1 settimana attiva!",
+            "trial_active_desc": "La tua prova gratuita termina presto. Iscriviti ora per garantire un accesso ininterrotto.",
+            "subscribe_now": "Iscriviti ora"
         }
     },
     es: {
@@ -302,7 +317,10 @@ const resources = {
             "premium_feature": "Función Premium",
             "premium_feature_desc": "Actualiza para ver y generar entrenamientos de IA.",
             "unlock_now": "Desbloquear ahora",
-            "chat_greeting": "¡Hola! ¿Cómo te sientes hoy? ¿Tienes dolores, fatiga o algo más que deba saber?"
+            "chat_greeting": "¡Hola! ¿Cómo te sientes hoy? ¿Tienes dolores, fatiga o algo más que deba saber?",
+            "trial_active_title": "¡Prueba gratuita de 1 semana activa!",
+            "trial_active_desc": "Tu prueba gratuita termina pronto. Suscríbete ahora para garantizar un acceso ininterrumpido.",
+            "subscribe_now": "Suscribirse ahora"
         }
     },
     ru: {
@@ -336,7 +354,10 @@ const resources = {
             "premium_feature": "Премиум-функция",
             "premium_feature_desc": "Обновитесь для просмотра и создания ИИ-тренировок.",
             "unlock_now": "Разблокировать сейчас",
-            "chat_greeting": "Привет! Как ты себя чувствуешь сегодня? Есть ли боль, усталость или что-то еще, что я должен знать?"
+            "chat_greeting": "Привет! Как ты себя чувствуешь сегодня? Есть ли боль, усталость или что-то еще, что я должен знать?",
+            "trial_active_title": "1 неделя бесплатной пробной версии активна!",
+            "trial_active_desc": "Ваша бесплатная пробная версия скоро закончится. Подпишитесь сейчас, чтобы обеспечить бесперебойный доступ.",
+            "subscribe_now": "Подписаться сейчас"
         }
     }
 };

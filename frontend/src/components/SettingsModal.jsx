@@ -97,6 +97,42 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                 </div>
 
                 <div className="p-6 space-y-6 overflow-y-auto flex-1">
+                    {/* Sport Selection (Moved to Top) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('primary_sport')}</label>
+                        <select
+                            value={sport}
+                            onChange={(e) => setSport(e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-garmin-blue focus:outline-none"
+                        >
+                            <option value="Running">Running</option>
+                            <option value="Cycling">Cycling</option>
+                            <option value="Triathlon">Triathlon</option>
+                            <option value="Swimming">Swimming</option>
+                            <option value="CrossFit">CrossFit</option>
+                            <option value="General Fitness">General Fitness</option>
+                        </select>
+
+                        {sport === "Cycling" && (
+                            <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={alsoRuns}
+                                        onChange={(e) => setAlsoRuns(e.target.checked)}
+                                        className="w-4 h-4 text-garmin-blue bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-2 focus:ring-garmin-blue"
+                                    />
+                                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100 flex-1">
+                                        {t('also_runs')}
+                                    </span>
+                                </label>
+                                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 ml-6">
+                                    {t('also_runs_desc')}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Profile & Strength */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -285,41 +321,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                         </div>
                     </div>
 
-                    {/* Sport Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('primary_sport')}</label>
-                        <select
-                            value={sport}
-                            onChange={(e) => setSport(e.target.value)}
-                            className="w-full bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-garmin-blue focus:outline-none"
-                        >
-                            <option value="Running">Running</option>
-                            <option value="Cycling">Cycling</option>
-                            <option value="Triathlon">Triathlon</option>
-                            <option value="Swimming">Swimming</option>
-                            <option value="CrossFit">CrossFit</option>
-                            <option value="General Fitness">General Fitness</option>
-                        </select>
 
-                        {sport === "Cycling" && (
-                            <div className="mt-3 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={alsoRuns}
-                                        onChange={(e) => setAlsoRuns(e.target.checked)}
-                                        className="w-4 h-4 text-garmin-blue bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded focus:ring-2 focus:ring-garmin-blue"
-                                    />
-                                    <span className="text-sm font-medium text-blue-900 dark:text-blue-100 flex-1">
-                                        {t('also_runs')}
-                                    </span>
-                                </label>
-                                <p className="text-xs text-blue-700 dark:text-blue-300 mt-1 ml-6">
-                                    {t('also_runs_desc')}
-                                </p>
-                            </div>
-                        )}
-                    </div>
 
                     {/* Races */}
                     <div>

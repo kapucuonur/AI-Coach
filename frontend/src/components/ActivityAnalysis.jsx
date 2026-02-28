@@ -1,15 +1,53 @@
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Activity, Heart, Clock, Zap, MapPin, Gauge, Mountain } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { X, Activity, Heart, Clock, Zap, MapPin, Gauge, Mountain, Volume2, Square } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 
 export function ActivityAnalysis({ activityId, onClose }) {
+    const { i18n } = useTranslation();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    useEffect(() => {
+        return () => {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    const toggleSpeech = () => {
+        if (!window.speechSynthesis) return;
+
+        if (isPlaying) {
+            window.speechSynthesis.cancel();
+            setIsPlaying(false);
+        } else {
+            if (!data?.analysis) return;
+
+            // Basic markdown stripping for cleaner speech
+            const textToSpeak = data.analysis
+                .replace(/(\*\*|__)(.*?)\1/g, '$2') // bold
+                .replace(/(\*|_)(.*?)\1/g, '$2')    // italics
+                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // links
+                .replace(/[#*>]/g, '')              // markdown symbols
+                .replace(/[\n\r]+/g, '. ');         // newlines to pauses
+
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = i18n.language || navigator.language || 'en-US';
+            utterance.onend = () => setIsPlaying(false);
+            utterance.onerror = () => setIsPlaying(false);
+
+            window.speechSynthesis.speak(utterance);
+            setIsPlaying(true);
+        }
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -166,9 +204,21 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             <Zap size={120} className="text-blue-500 transform rotate-12" />
                                         </div>
                                         <div className="relative z-10">
-                                            <h3 className="text-lg font-bold text-blue-100 flex items-center gap-2 mb-6">
-                                                <Zap size={18} className="text-blue-400" />
-                                                Coach's Analysis
+                                            <h3 className="text-lg font-bold text-blue-100 flex items-center justify-between mb-6">
+                                                <div className="flex items-center gap-2">
+                                                    <Zap size={18} className="text-blue-400" />
+                                                    Coach's Analysis
+                                                </div>
+                                                {data?.analysis && (
+                                                    <button
+                                                        onClick={toggleSpeech}
+                                                        className={`p-2 rounded-full transition-all duration-300 ${isPlaying ? 'bg-blue-500/20 text-blue-300 animate-pulse' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}
+                                                        title={isPlaying ? "Stop listening" : "Listen to analysis"}
+                                                        aria-label="Listen to analysis"
+                                                    >
+                                                        {isPlaying ? <Square size={16} fill="currentColor" /> : <Volume2 size={16} />}
+                                                    </button>
+                                                )}
                                             </h3>
                                             <div className="space-y-5">
                                                 {data?.analysis ? (

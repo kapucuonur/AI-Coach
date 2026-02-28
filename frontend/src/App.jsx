@@ -30,6 +30,8 @@ function App() {
   const [isPremium, setIsPremium] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [trialEndsAt, setTrialEndsAt] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
 
   const ADMIN_EMAILS = ['kapucuonur@hotmail.com', 'onurbenn@gmail.com'];
 
@@ -183,6 +185,8 @@ function App() {
       const res = await client.get('/auth/me');
       setIsPremium(res.data.is_premium || false);
       setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
+      setTrialEndsAt(res.data.trial_ends_at || null);
+      setSubscriptionStatus(res.data.subscription_status || "inactive");
     } catch (e) {
       console.error("Failed to fetch user state format during login", e);
     }
@@ -205,6 +209,8 @@ function App() {
         setIsAuthenticated(true);
         setIsPremium(res.data.is_premium || false);
         setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
+        setTrialEndsAt(res.data.trial_ends_at || null);
+        setSubscriptionStatus(res.data.subscription_status || "inactive");
         if (res.data.has_garmin_connected) {
           fetchDashboardData();
         } else {
@@ -337,6 +343,26 @@ function App() {
             <div className="bg-garmin-blue/20 border border-garmin-blue text-garmin-blue-dark dark:text-blue-200 px-4 py-3 rounded-xl flex items-center justify-between">
               <span className="font-semibold">🚀 {t('admin_mode')}</span>
               <span className="text-sm opacity-80">{t('admin_mode_desc')}</span>
+            </div>
+          )}
+
+          {/* Trial Banner */}
+          {isPremium && trialEndsAt && new Date() < new Date(trialEndsAt) && !isAdmin && subscriptionStatus !== 'active' && subscriptionStatus !== 'trialing' && (
+            <div className="bg-gradient-to-r from-blue-600/10 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-sm -mt-2">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Zap className="text-emerald-500" /> {t('trial_active_title')} 1-Week Free Trial Active!
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mt-1 max-w-xl">
+                  {t('trial_active_desc')} Your free trial ends on {new Date(trialEndsAt).toLocaleDateString()}. Subscribe now to ensure uninterrupted access.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPaywall(true)}
+                className="group w-full sm:w-auto flex-shrink-0 relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-8 py-4 font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-emerald-500/25 active:scale-[0.98]"
+              >
+                {t('subscribe_now') || "Subscribe Now"}
+              </button>
             </div>
           )}
 

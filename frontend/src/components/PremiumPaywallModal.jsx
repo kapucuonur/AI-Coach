@@ -72,7 +72,7 @@ export function PremiumPaywallModal({ isOpen, onClose }) {
                                     Unlock Premium <Sparkles className="text-yellow-400" size={20} />
                                 </h2>
                                 <p className="mb-8 text-sm text-gray-400">
-                                    You are currently viewing the dashboard for free. Upgrade to CoachOnur Pro to interact with AI models and get actionable performance guidance.
+                                    You are currently viewing the dashboard for free. Upgrade to CoachOnur Pro to interact with AI models and get actionable performance guidance. Start your 1-week free trial today!
                                 </p>
                             </div>
 

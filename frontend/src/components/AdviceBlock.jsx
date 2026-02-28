@@ -1,16 +1,52 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bot, Sparkles, Watch, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
+import { Bot, Sparkles, Watch, CheckCircle, AlertCircle, ChevronDown, Volume2, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import WorkoutVisualizer from './WorkoutVisualizer';
 
 export function AdviceBlock({ advice, workout, isGenerating }) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [syncStatus, setSyncStatus] = useState(null); // 'loading', 'success', 'error'
     const [devices, setDevices] = useState([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState('');
     const [fetchingDevices, setFetchingDevices] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+
+    useEffect(() => {
+        return () => {
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    const toggleSpeech = () => {
+        if (!window.speechSynthesis) return;
+
+        if (isPlaying) {
+            window.speechSynthesis.cancel();
+            setIsPlaying(false);
+        } else {
+            if (!advice) return;
+
+            // Basic markdown stripping for cleaner speech
+            const textToSpeak = advice
+                .replace(/(\*\*|__)(.*?)\1/g, '$2') // bold
+                .replace(/(\*|_)(.*?)\1/g, '$2')    // italics
+                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // links
+                .replace(/[#*>]/g, '')              // markdown symbols
+                .replace(/[\n\r]+/g, '. ');         // newlines to pauses
+
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.lang = i18n.language || navigator.language || 'en-US';
+            utterance.onend = () => setIsPlaying(false);
+            utterance.onerror = () => setIsPlaying(false);
+
+            window.speechSynthesis.speak(utterance);
+            setIsPlaying(true);
+        }
+    };
 
     useEffect(() => {
         if (workout) {
@@ -83,8 +119,20 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                         </div>
                     </div>
                 </div>
-                <div className="opacity-80">
-                    {getSportIcon()}
+                <div className="flex items-center gap-3">
+                    {advice && !isGenerating && (
+                        <button
+                            onClick={toggleSpeech}
+                            className={`p-2 rounded-full transition-all duration-300 ${isPlaying ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'}`}
+                            title={isPlaying ? "Stop listening" : "Listen to advice"}
+                            aria-label="Listen to advice"
+                        >
+                            {isPlaying ? <Square size={18} fill="currentColor" /> : <Volume2 size={18} />}
+                        </button>
+                    )}
+                    <div className="opacity-80">
+                        {getSportIcon()}
+                    </div>
                 </div>
             </div>
 

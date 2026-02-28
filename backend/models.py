@@ -24,6 +24,9 @@ class User(Base):
     stripe_customer_id = Column(String, unique=True, index=True, nullable=True)
     stripe_subscription_id = Column(String, unique=True, index=True, nullable=True)
     subscription_status = Column(String, default="inactive")
+    
+    # Trial Period Tracking
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
     nutrition_entries = relationship("NutritionEntry", back_populates="user")

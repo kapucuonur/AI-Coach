@@ -188,10 +188,21 @@ from backend.auth_utils import verify_password, get_password_hash, create_access
 
 @router.get("/me")
 def get_current_user_info(current_user: User = Depends(get_current_user)):
+    from datetime import datetime, timedelta
+    
+    is_premium = getattr(current_user, 'is_premium', False)
+    # 7-day free trial logic
+    if not is_premium and current_user.created_at:
+        trial_end = current_user.created_at + timedelta(days=7)
+        if datetime.utcnow() < trial_end:
+            is_premium = True
+            
     return {
         "email": current_user.email,
-        "is_premium": getattr(current_user, 'is_premium', False),
-        "has_garmin_connected": bool(current_user.garmin_email and current_user.garmin_password)
+        "is_premium": is_premium,
+        "has_garmin_connected": bool(current_user.garmin_email and current_user.garmin_password),
+        "trial_ends_at": (current_user.created_at + timedelta(days=7)).isoformat() if current_user.created_at else None,
+        "subscription_status": getattr(current_user, 'subscription_status', 'inactive')
     }
 
 @router.post("/connect-garmin")

@@ -47,6 +47,9 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
                     },
                 ],
                 mode='subscription',
+                subscription_data={
+                    "trial_period_days": 7,
+                },
                 success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
                 cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
                 metadata={"user_email": current_user.email}
@@ -72,6 +75,9 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
                         },
                     ],
                     mode='subscription',
+                    subscription_data={
+                        "trial_period_days": 7,
+                    },
                     success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
                     cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
                     metadata={"user_email": current_user.email}
