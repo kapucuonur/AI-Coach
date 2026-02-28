@@ -398,31 +398,70 @@ function App() {
           />
 
 
-          {/* Hero Video Banner */}
-          <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl group">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-            >
-              <source src="/videos/italycycling.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent z-10"></div>
+          {/* Hero Banner - Animated CSS (no video required) */}
+          <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl" style={{ background: 'linear-gradient(135deg, #0a0f2e 0%, #0d2137 30%, #061a2e 60%, #0a1628 100%)' }}>
+
+            {/* Animated gradient orbs */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute w-96 h-96 rounded-full opacity-20 animate-pulse"
+                style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', top: '-80px', left: '-60px', animationDuration: '3s' }} />
+              <div className="absolute w-72 h-72 rounded-full opacity-15 animate-pulse"
+                style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', bottom: '-60px', right: '10%', animationDuration: '4s', animationDelay: '1s' }} />
+              <div className="absolute w-48 h-48 rounded-full opacity-10 animate-pulse"
+                style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)', top: '10px', right: '30%', animationDuration: '5s', animationDelay: '2s' }} />
+            </div>
+
+            {/* Speed lines */}
+            <div className="absolute inset-0 opacity-10">
+              {[10, 25, 40, 55, 70, 85].map((top, i) => (
+                <div key={i} className="absolute h-px"
+                  style={{
+                    top: `${top}%`, left: '0', right: '0',
+                    background: `linear-gradient(90deg, transparent 0%, rgba(59,130,246,${0.3 + i * 0.05}) 40%, rgba(16,185,129,0.4) 70%, transparent 100%)`,
+                    transform: `scaleX(${0.4 + i * 0.1})`, transformOrigin: 'left',
+                    animation: `pulse ${2 + i * 0.3}s ease-in-out infinite`, animationDelay: `${i * 0.2}s`
+                  }} />
+              ))}
+            </div>
+
+            {/* Grid mesh overlay */}
+            <div className="absolute inset-0 opacity-5"
+              style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+            {/* Sport icons floating */}
+            <div className="absolute inset-0 flex items-center justify-end pr-8 md:pr-16 gap-6 opacity-20 select-none pointer-events-none">
+              {['🚴', '🏊', '🏃', '⛷️'].map((icon, i) => (
+                <span key={i} className="text-4xl md:text-6xl animate-pulse"
+                  style={{ animationDelay: `${i * 0.7}s`, animationDuration: `${3 + i}s`, filter: 'grayscale(1) brightness(3)' }}>
+                  {icon}
+                </span>
+              ))}
+            </div>
+
+            {/* Bottom gradient for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050a14] via-[#050a14]/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#050a14]/80 via-transparent to-transparent" />
+
+            {/* Content */}
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full z-20">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="h-1 w-8 bg-garmin-blue rounded-full"></div>
-                <span className="text-garmin-blue font-bold tracking-wider uppercase text-xs">CoachOnur Pro</span>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 backdrop-blur-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                  <span className="text-blue-400 font-bold tracking-wider uppercase text-xs">CoachOnur Pro</span>
+                </div>
+                <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/5">
+                  <span className="text-emerald-400 text-xs font-medium">AI Powered</span>
+                </div>
               </div>
-              <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
-                {t('ready_to_train') || "Let's push your limits today."}
+              <h2 className="text-2xl md:text-4xl font-bold text-white mb-2" style={{ textShadow: '0 0 40px rgba(59,130,246,0.3)' }}>
+                {t('ready_to_train') || "Sınırlarını zorlamaya hazır mısın?"}
               </h2>
-              <p className="text-gray-300 md:text-lg max-w-2xl font-medium drop-shadow-md">
-                {t('hero_subtitle') || "Your daily performance intelligence and AI coaching report is ready."}
+              <p className="text-gray-400 md:text-base max-w-xl font-medium">
+                {t('hero_subtitle') || "Günlük performans zekan ve yapay zeka koçluk raporun hazır."}
               </p>
             </div>
           </div>
+
 
 
           {/* Stats Grid */}
