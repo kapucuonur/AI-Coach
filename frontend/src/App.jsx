@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -28,6 +28,28 @@ function App() {
   const [trainingHours, setTrainingHours] = useState("");
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
+
+  // Hero video carousel
+  const SPORT_VIDEOS = [
+    { src: 'https://videos.pexels.com/video-files/12204020/12204020-hd_1920_1080_25fps.mp4', label: '🏊 Triathlon Swim' },
+    { src: 'https://videos.pexels.com/video-files/5790079/5790079-hd_1920_1080_25fps.mp4', label: '🚴 Cycling Race' },
+    { src: 'https://videos.pexels.com/video-files/12510402/12510402-hd_1920_1080_30fps.mp4', label: '🏃 Marathon Run' },
+    { src: 'https://videos.pexels.com/video-files/6580881/6580881-hd_1920_1080_30fps.mp4', label: '⛷️ Cross Country Ski' },
+  ];
+  const [activeVideo, setActiveVideo] = useState(0);
+  const [fadeClass, setFadeClass] = useState('opacity-100');
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFadeClass('opacity-0');
+      setTimeout(() => {
+        setActiveVideo(prev => (prev + 1) % SPORT_VIDEOS.length);
+        setFadeClass('opacity-100');
+      }, 700);
+    }, 9000);
+    return () => clearInterval(interval);
+  }, []);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
@@ -259,40 +281,44 @@ function App() {
         <div className="max-w-7xl mx-auto space-y-8">
 
           {/* Header */}
-          <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+          <header className="flex flex-row justify-between items-center gap-3 py-1">
+            {/* Left: Logo + Title */}
             <div
-              className="cursor-pointer group flex items-center gap-4"
+              className="cursor-pointer group flex items-center gap-3 shrink-0"
               onClick={() => window.location.href = '/'}
               title="Return to Main Page"
             >
-              <div className="p-3 bg-garmin-blue/10 rounded-2xl group-hover:bg-garmin-blue/20 transition-colors">
-                <Home className="text-garmin-blue" size={32} />
+              <div className="p-2 bg-garmin-blue/10 rounded-xl group-hover:bg-garmin-blue/20 transition-colors">
+                <Home className="text-garmin-blue" size={24} />
               </div>
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-garmin-blue transition-colors">
-                  {t('dashboard_title')}
+              <div className="hidden sm:block">
+                <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-garmin-blue transition-colors leading-tight whitespace-nowrap">
+                  CoachOnur AI
                 </h1>
-                <p className="text-gray-500 dark:text-gray-400 group-hover:text-garmin-blue/80 transition-colors">
+                <p className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                   {t('daily_intelligence')}
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap justify-end items-center gap-3 xl:gap-4 w-full xl:w-auto">
-              {/* Streamlined Premium / Admin Button */}
+
+            {/* Right: All Controls */}
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* Premium / Admin Button */}
               {subscriptionStatus !== 'active' && subscriptionStatus !== 'trialing' && (
                 <button
                   onClick={() => setShowPaywall(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-bold rounded-xl shadow-lg hover:scale-[1.03] transition-transform active:scale-95 border border-emerald-400/30"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-emerald-500 text-white text-xs font-bold rounded-lg shadow hover:scale-[1.03] transition-transform active:scale-95"
                 >
-                  <Zap size={18} />
+                  <Zap size={14} />
                   {isAdmin
-                    ? "Admin Access (Upgrade UI)"
+                    ? "Admin"
                     : (trialEndsAt && new Date() < new Date(trialEndsAt)
-                      ? `${t('upgrade_button')} (${Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24))} Days Left)`
-                      : t('upgrade_button'))
-                  }
+                      ? `Pro (${Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24))}d)`
+                      : t('upgrade_button'))}
                 </button>
               )}
+
+              {/* Language */}
               <select
                 value={settingsData?.language || i18n.language || 'en'}
                 onChange={async (e) => {
@@ -307,7 +333,7 @@ function App() {
                     console.error("Failed to update language", err);
                   }
                 }}
-                className="bg-white dark:bg-garmin-gray text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-garmin-blue shadow-sm"
+                className="bg-white dark:bg-garmin-gray text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-garmin-blue shadow-sm"
               >
                 <option value="en">EN</option>
                 <option value="tr">TR</option>
@@ -318,56 +344,54 @@ function App() {
                 <option value="ru">RU</option>
               </select>
 
+              {/* Sync */}
               <button
                 onClick={() => fetchDashboardData()}
                 disabled={loading}
-                className="flex items-center gap-2 p-2 px-3 lg:px-4 text-white bg-garmin-blue hover:bg-blue-600 rounded-full transition-colors shadow-sm disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-white bg-garmin-blue hover:bg-blue-600 rounded-lg transition-colors shadow-sm disabled:opacity-50 text-xs font-medium"
                 title={t('sync_garmin') || "Sync Garmin Data"}
               >
-                <Activity size={18} className={loading && isGeneratingAdvice === false ? "animate-spin" : ""} />
-                <span className="text-sm font-medium hidden sm:inline">{t('sync_garmin') || "Sync"}</span>
+                <Activity size={14} className={loading && isGeneratingAdvice === false ? "animate-spin" : ""} />
+                <span className="hidden md:inline">{t('sync_garmin') || "Sync"}</span>
               </button>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setDarkMode(!darkMode)}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
-                  title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
-                >
-                  {darkMode ? (
-                    <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div>
-                  ) : (
-                    <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>
-                  )}
-                </button>
+              {/* Dark mode */}
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-garmin-gray transition-colors shadow-sm"
+                title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
+              >
+                {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
 
-                <div className="flex items-center">
-                  <button
-                    onClick={() => requirePremium(() => setIsSettingsOpen(true))}
-                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors mr-2"
-                  >
-                    <Settings size={24} />
-                  </button>
-                  <div className="flex items-center gap-3 border-l border-gray-200 dark:border-white/10 pl-3">
-                    <div className="flex items-center gap-1.5" title="Agent Online">
-                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:inline">{t('online')}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setIsAuthenticated(false);
-                        localStorage.removeItem('access_token');
-                        delete client.defaults.headers.common['Authorization'];
-                      }}
-                      className="text-xs font-bold px-2 py-1 rounded bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 uppercase tracking-wider transition-colors"
-                    >
-                      {t('logout')}
-                    </button>
-                  </div>
+              {/* Settings */}
+              <button
+                onClick={() => requirePremium(() => setIsSettingsOpen(true))}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-garmin-gray transition-colors shadow-sm"
+              >
+                <Settings size={16} />
+              </button>
+
+              {/* Online + Logout group */}
+              <div className="flex items-center gap-2 pl-2 border-l border-gray-200 dark:border-white/10">
+                <div className="flex items-center gap-1.5" title="Agent Online">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider hidden lg:inline">{t('online')}</span>
                 </div>
+                <button
+                  onClick={() => {
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('access_token');
+                    delete client.defaults.headers.common['Authorization'];
+                  }}
+                  className="text-xs font-bold px-2 py-1 rounded-lg bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 uppercase tracking-wider transition-colors"
+                >
+                  {t('logout')}
+                </button>
               </div>
             </div>
           </header>
+
 
 
 
@@ -393,23 +417,31 @@ function App() {
             }}
           />
 
-          {/* Sports Video Hero Banner */}
+          {/* Sports Video Hero Banner - Multi-Sport Carousel */}
           <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl group">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              poster="https://images.pexels.com/videos/32141712/competitive-cycling-32141712.jpeg?auto=compress&cs=tinysrgb&w=1260"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-            >
-              <source src="https://videos.pexels.com/video-files/5790079/5790079-hd_1920_1080_30fps.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent"></div>
-            <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
+            {/* Videos */}
+            {SPORT_VIDEOS.map((vid, idx) => (
+              <video
+                key={idx}
+                autoPlay={idx === activeVideo}
+                loop
+                muted
+                playsInline
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${idx === activeVideo ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-105'
+                  } group-hover:scale-105`}
+                style={{ transitionProperty: 'opacity, transform', transitionDuration: '700ms' }}
+              >
+                <source src={vid.src} type="video/mp4" />
+              </video>
+            ))}
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent z-10"></div>
+            {/* Content */}
+            <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full z-20">
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-1 w-8 bg-garmin-blue rounded-full"></div>
                 <span className="text-garmin-blue font-bold tracking-wider uppercase text-xs">CoachOnur Pro</span>
+                <span className="text-white/60 text-xs font-medium">{SPORT_VIDEOS[activeVideo].label}</span>
               </div>
               <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 shadow-black drop-shadow-lg">
                 {t('ready_to_train') || "Let's push your limits today."}
@@ -418,8 +450,20 @@ function App() {
                 {t('hero_subtitle') || "Your daily performance intelligence and AI coaching report is ready."}
               </p>
             </div>
+            {/* Dot Indicators */}
+            <div className="absolute bottom-4 right-6 z-20 flex gap-2">
+              {SPORT_VIDEOS.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveVideo(idx)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === activeVideo
+                      ? 'bg-garmin-blue scale-125'
+                      : 'bg-white/40 hover:bg-white/70'
+                    }`}
+                />
+              ))}
+            </div>
           </div>
-
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
             <StatsCard
