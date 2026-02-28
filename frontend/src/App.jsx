@@ -348,21 +348,22 @@ function App() {
               >
                 <Settings size={24} />
               </button>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('online')}</span>
+              <div className="flex flex-col items-center gap-1 ml-2">
+                <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('online')}</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsAuthenticated(false);
+                    localStorage.removeItem('access_token');
+                    delete client.defaults.headers.common['Authorization'];
+                  }}
+                  className="text-[10px] font-bold text-red-500 hover:text-red-700 dark:hover:text-red-400 uppercase tracking-wider transition-colors"
+                >
+                  {t('logout')}
+                </button>
               </div>
-
-              <button
-                onClick={() => {
-                  setIsAuthenticated(false);
-                  localStorage.removeItem('access_token');
-                  delete client.defaults.headers.common['Authorization'];
-                }}
-                className="text-sm text-red-500 hover:text-red-400 ml-2"
-              >
-                {t('logout')}
-              </button>
             </div>
           </header>
 
@@ -390,8 +391,35 @@ function App() {
             }}
           />
 
+          {/* Sports Video Hero Banner */}
+          <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl group">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+            >
+              {/* Royalty free sports video (running/training) */}
+              <source src="https://cdn.pixabay.com/video/2021/08/17/85382-589574100_large.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent"></div>
+            <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-1 w-8 bg-garmin-blue rounded-full"></div>
+                <span className="text-garmin-blue font-bold tracking-wider uppercase text-xs">CoachOnur Pro</span>
+              </div>
+              <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 shadow-black drop-shadow-lg">
+                {t('ready_to_train') || "Let's push your limits today."}
+              </h2>
+              <p className="text-gray-300 md:text-lg max-w-2xl font-medium drop-shadow-md">
+                {t('hero_subtitle') || "Your daily performance intelligence and AI coaching report is ready."}
+              </p>
+            </div>
+          </div>
+
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
             <StatsCard
               title={t('resting_hr')}
               value={health.restingHeartRate || '--'}

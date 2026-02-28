@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -14,20 +14,21 @@ export function ActivityAnalysis({ activityId, onClose }) {
     const [error, setError] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-    const [audioElement, setAudioElement] = useState(null);
+    const audioRef = useRef(null);
 
     useEffect(() => {
         return () => {
-            if (audioElement) {
-                audioElement.pause();
-                audioElement.src = '';
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = '';
             }
         };
-    }, [audioElement]);
+    }, []);
 
     const toggleSpeech = async () => {
-        if (isPlaying && audioElement) {
-            audioElement.pause();
+        if (isPlaying && audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
             setIsPlaying(false);
         } else {
             if (!data?.analysis) return;
@@ -56,7 +57,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
                     URL.revokeObjectURL(url);
                 };
 
-                setAudioElement(audio);
+                audioRef.current = audio;
                 audio.play();
                 setIsPlaying(true);
             } catch (error) {

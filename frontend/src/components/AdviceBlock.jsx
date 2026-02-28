@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, Sparkles, Watch, CheckCircle, AlertCircle, ChevronDown, Volume2, Square } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -13,20 +13,21 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
     const [fetchingDevices, setFetchingDevices] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-    const [audioElement, setAudioElement] = useState(null);
+    const audioRef = useRef(null);
 
     useEffect(() => {
         return () => {
-            if (audioElement) {
-                audioElement.pause();
-                audioElement.src = '';
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = '';
             }
         };
-    }, [audioElement]);
+    }, []);
 
     const toggleSpeech = async () => {
-        if (isPlaying && audioElement) {
-            audioElement.pause();
+        if (isPlaying && audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
             setIsPlaying(false);
         } else {
             if (!advice) return;
@@ -55,7 +56,7 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                     URL.revokeObjectURL(url);
                 };
 
-                setAudioElement(audio);
+                audioRef.current = audio;
                 audio.play();
                 setIsPlaying(true);
             } catch (error) {
