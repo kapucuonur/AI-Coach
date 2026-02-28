@@ -428,15 +428,39 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Sport icons floating */}
-            <div className="absolute inset-0 flex items-center justify-end pr-8 md:pr-16 gap-6 opacity-20 select-none pointer-events-none">
-              {['🚴', '🏊', '🏃', '⛷️'].map((icon, i) => (
-                <span key={i} className="text-4xl md:text-6xl animate-pulse"
-                  style={{ animationDelay: `${i * 0.7}s`, animationDuration: `${3 + i}s`, filter: 'grayscale(1) brightness(3)' }}>
-                  {icon}
+            {/* Floating sport keywords */}
+            {[
+              { word: 'VO2 Max', left: '62%', top: '12%', delay: '0s', dur: '4s', color: '#60a5fa' },
+              { word: 'Training', left: '72%', top: '55%', delay: '1.2s', dur: '4.5s', color: '#34d399' },
+              { word: 'HR', left: '55%', top: '30%', delay: '2.4s', dur: '3.5s', color: '#f87171' },
+              { word: 'Pace', left: '82%', top: '20%', delay: '0.6s', dur: '5s', color: '#a78bfa' },
+              { word: 'FTP', left: '68%', top: '70%', delay: '3s', dur: '4s', color: '#fbbf24' },
+              { word: 'Cadence', left: '78%', top: '42%', delay: '1.8s', dur: '4.8s', color: '#60a5fa' },
+              { word: 'Recovery', left: '58%', top: '62%', delay: '3.6s', dur: '5.2s', color: '#34d399' },
+              { word: 'Power', left: '88%', top: '55%', delay: '2s', dur: '3.8s', color: '#f472b6' },
+              { word: 'Heart', left: '52%', top: '45%', delay: '0.4s', dur: '4.2s', color: '#f87171' },
+              { word: 'Zone 2', left: '75%', top: '78%', delay: '2.8s', dur: '4.6s', color: '#a78bfa' },
+              { word: 'Threshold', left: '64%', top: '85%', delay: '1.5s', dur: '5.4s', color: '#fbbf24' },
+              { word: 'TSS', left: '85%', top: '10%', delay: '4s', dur: '3.6s', color: '#60a5fa' },
+            ].map(({ word, left, top, delay, dur, color }, i) => (
+              <div key={i} className="absolute select-none pointer-events-none"
+                style={{
+                  left, top,
+                  animation: `floatWord ${dur} ease-in-out infinite`,
+                  animationDelay: delay,
+                }}>
+                <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase px-2 py-0.5 rounded-full border backdrop-blur-sm"
+                  style={{
+                    color,
+                    borderColor: `${color}40`,
+                    backgroundColor: `${color}15`,
+                    textShadow: `0 0 8px ${color}`,
+                  }}>
+                  {word}
                 </span>
-              ))}
-            </div>
+              </div>
+            ))}
+
 
             {/* Bottom gradient for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#050a14] via-[#050a14]/50 to-transparent" />
