@@ -29,27 +29,38 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
-  // Hero video carousel - verified cdn.pixabay.com URLs
+  // Hero video carousel - single video element for reliable autoplay
   const SPORT_VIDEOS = [
     { src: 'https://cdn.pixabay.com/video/2019/11/30/29661-377392919_large.mp4', label: '🏊 Triathlon Swim' },
     { src: 'https://cdn.pixabay.com/video/2017/01/12/7251-199191069_large.mp4', label: '🚴 Cycling Race' },
     { src: 'https://cdn.pixabay.com/video/2018/04/22/15748-266043652_large.mp4', label: '🏃 Marathon Run' },
-    { src: 'https://cdn.pixabay.com/video/2019/04/20/22924-331768755_large.mp4', label: '⛷️ Cross Country Ski' },
+    { src: 'https://cdn.pixabay.com/video/2019/04/20/22924-331768755_large.mp4', label: '⛷️ Winter Sport' },
   ];
   const [activeVideo, setActiveVideo] = useState(0);
-  const [fadeClass, setFadeClass] = useState('opacity-100');
+  const [videoFade, setVideoFade] = useState(true); // true = visible
   const videoRef = useRef(null);
 
+  // Switch src + force play on activeVideo change
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.src = SPORT_VIDEOS[activeVideo].src;
+    vid.load();
+    vid.play().catch(() => { }); // catch autoplay policy errors silently
+  }, [activeVideo]);
+
+  // Auto-cycle every 9s with fade
   useEffect(() => {
     const interval = setInterval(() => {
-      setFadeClass('opacity-0');
+      setVideoFade(false);
       setTimeout(() => {
         setActiveVideo(prev => (prev + 1) % SPORT_VIDEOS.length);
-        setFadeClass('opacity-100');
-      }, 700);
+        setVideoFade(true);
+      }, 600);
     }, 9000);
     return () => clearInterval(interval);
   }, []);
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [trialEndsAt, setTrialEndsAt] = useState(null);
@@ -417,23 +428,20 @@ function App() {
             }}
           />
 
-          {/* Sports Video Hero Banner - Multi-Sport Carousel */}
+
+          {/* Sports Video Hero Banner - Single video for reliable autoplay */}
           <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl group">
-            {/* Videos */}
-            {SPORT_VIDEOS.map((vid, idx) => (
-              <video
-                key={idx}
-                autoPlay={idx === activeVideo}
-                loop
-                muted
-                playsInline
-                className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${idx === activeVideo ? 'opacity-100 scale-100' : 'opacity-0 pointer-events-none scale-105'
-                  } group-hover:scale-105`}
-                style={{ transitionProperty: 'opacity, transform', transitionDuration: '700ms' }}
-              >
-                <source src={vid.src} type="video/mp4" />
-              </video>
-            ))}
+            {/* Single video element - src swapped via JS */}
+            <video
+              ref={videoRef}
+              autoPlay
+              loop
+              muted
+              playsInline
+              src={SPORT_VIDEOS[0].src}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-600 group-hover:scale-105 ${videoFade ? 'opacity-100' : 'opacity-0'}`}
+              style={{ transform: 'scale(1.02)', transition: 'opacity 0.6s ease, transform 0.6s ease' }}
+            />
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent z-10"></div>
             {/* Content */}
@@ -464,6 +472,7 @@ function App() {
               ))}
             </div>
           </div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
             <StatsCard
