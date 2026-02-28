@@ -29,12 +29,12 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
-  // Hero video carousel
+  // Hero video carousel - using cdn.pixabay.com which allows hotlinking
   const SPORT_VIDEOS = [
-    { src: 'https://videos.pexels.com/video-files/12204020/12204020-hd_1920_1080_25fps.mp4', label: '🏊 Triathlon Swim' },
-    { src: 'https://videos.pexels.com/video-files/5790079/5790079-hd_1920_1080_25fps.mp4', label: '🚴 Cycling Race' },
-    { src: 'https://videos.pexels.com/video-files/12510402/12510402-hd_1920_1080_30fps.mp4', label: '🏃 Marathon Run' },
-    { src: 'https://videos.pexels.com/video-files/6580881/6580881-hd_1920_1080_30fps.mp4', label: '⛷️ Cross Country Ski' },
+    { src: 'https://cdn.pixabay.com/video/2019/06/03/23989-340252908_large.mp4', label: '🏊 Triathlon Swim' },
+    { src: 'https://cdn.pixabay.com/video/2024/04/08/207009_large.mp4', label: '🚴 Cycling Race' },
+    { src: 'https://cdn.pixabay.com/video/2021/02/04/63911_large.mp4', label: '🏃 Marathon Run' },
+    { src: 'https://cdn.pixabay.com/video/2022/02/13/108103_large.mp4', label: '⛷️ Cross Country Ski' },
   ];
   const [activeVideo, setActiveVideo] = useState(0);
   const [fadeClass, setFadeClass] = useState('opacity-100');
@@ -457,8 +457,8 @@ function App() {
                   key={idx}
                   onClick={() => setActiveVideo(idx)}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === activeVideo
-                      ? 'bg-garmin-blue scale-125'
-                      : 'bg-white/40 hover:bg-white/70'
+                    ? 'bg-garmin-blue scale-125'
+                    : 'bg-white/40 hover:bg-white/70'
                     }`}
                 />
               ))}
