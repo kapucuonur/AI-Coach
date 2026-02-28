@@ -232,11 +232,12 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                                     <button
                                                         onClick={toggleSpeech}
                                                         disabled={isLoadingAudio}
-                                                        className={`p-2 rounded-full transition-all duration-300 ${isLoadingAudio ? 'opacity-50 cursor-not-allowed bg-white/5 text-gray-500' : isPlaying ? 'bg-blue-500/20 text-blue-300 animate-pulse' : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'}`}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-300 shadow-sm ${isLoadingAudio ? 'opacity-50 cursor-not-allowed bg-white/10 text-gray-400' : isPlaying ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-pulse' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30 hover:bg-blue-500/40 hover:text-white'}`}
                                                         title={isPlaying ? "Stop listening" : "Listen to analysis"}
                                                         aria-label="Listen to analysis"
                                                     >
-                                                        {isLoadingAudio ? <div className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-white animate-spin" /> : isPlaying ? <Square size={16} fill="currentColor" /> : <Volume2 size={16} />}
+                                                        {isLoadingAudio ? <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" /> : isPlaying ? <Square size={14} fill="currentColor" /> : <Volume2 size={14} />}
+                                                        <span>{isPlaying ? 'PLAYING' : 'LISTEN'}</span>
                                                     </button>
                                                 )}
                                             </h3>

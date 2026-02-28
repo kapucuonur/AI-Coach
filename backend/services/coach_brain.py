@@ -545,7 +545,8 @@ class CoachBrain:
             {splits_context}
             
             **Task:**
-            Provide a professional, structured analysis in {target_language} with these sections:
+            Provide a professional, structured analysis in {target_language} with these sections. 
+            CRITICAL: You MUST translate the section headers into {target_language} as well, but KEEP the emojis exactly as shown below:
             
             📊 PERFORMANCE SUMMARY
             One sentence summarizing the workout type and execution quality.
@@ -556,7 +557,7 @@ class CoachBrain:
             🎯 COACHING INSIGHTS
             2-3 sentences with specific recommendations for improvement or what to maintain in future sessions.
             
-            Use the section headers EXACTLY as shown above (with emojis). Keep each section concise and professional.
+            Keep each section concise and professional.
             """
             
             logger.info(f"Analyzing activity {name} with Gemini...")

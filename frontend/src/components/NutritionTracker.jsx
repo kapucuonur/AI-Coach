@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Camera, Upload, X, Loader2 } from 'lucide-react';
 import client from '../api/client';
 
 export function NutritionTracker() {
+    const { t } = useTranslation();
     const [uploading, setUploading] = useState(false);
     const [todayData, setTodayData] = useState(null);
     const [showUpload, setShowUpload] = useState(false);
@@ -50,13 +52,13 @@ export function NutritionTracker() {
         <div className="space-y-4">
             {/* Header with Upload Button */}
             <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Today's Nutrition</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('todays_nutrition')}</h3>
                 <button
                     onClick={() => setShowUpload(!showUpload)}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors shadow"
                 >
                     <Camera size={20} />
-                    Log Food
+                    {t('check_your_plate')}
                 </button>
             </div>
 
@@ -64,7 +66,7 @@ export function NutritionTracker() {
             {showUpload && (
                 <div className="bg-white dark:bg-garmin-gray p-6 rounded-xl border border-gray-200 dark:border-gray-800">
                     <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Upload Food Photo</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">{t('upload_food_photo')}</h4>
                         <button onClick={() => setShowUpload(false)} className="text-gray-400 hover:text-gray-600">
                             <X size={20} />
                         </button>
@@ -75,13 +77,13 @@ export function NutritionTracker() {
                             {uploading ? (
                                 <>
                                     <Loader2 className="w-10 h-10 mb-3 text-green-500 animate-spin" />
-                                    <p className="text-sm text-gray-500">Analyzing food...</p>
+                                    <p className="text-sm text-gray-500">{t('analyzing_food')}</p>
                                 </>
                             ) : (
                                 <>
                                     <Upload className="w-10 h-10 mb-3 text-gray-400" />
                                     <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                        <span className="font-semibold">Click to upload</span> or drag and drop
+                                        <span className="font-semibold">{t('click_to_upload')}</span> {t('or_drag_drop')}
                                     </p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG or WEBP</p>
                                 </>
@@ -102,19 +104,19 @@ export function NutritionTracker() {
             {todayData && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-garmin-gray p-4 rounded-xl border border-orange-500/20">
-                        <p className="text-xs text-gray-500 uppercase">Calories</p>
+                        <p className="text-xs text-gray-500 uppercase">{t('calories')}</p>
                         <p className="text-2xl font-bold text-orange-500">{Math.round(todayData.totals.calories)}</p>
                     </div>
                     <div className="bg-white dark:bg-garmin-gray p-4 rounded-xl border border-red-500/20">
-                        <p className="text-xs text-gray-500 uppercase">Protein</p>
+                        <p className="text-xs text-gray-500 uppercase">{t('protein')}</p>
                         <p className="text-2xl font-bold text-red-500">{Math.round(todayData.totals.protein)}g</p>
                     </div>
                     <div className="bg-white dark:bg-garmin-gray p-4 rounded-xl border border-blue-500/20">
-                        <p className="text-xs text-gray-500 uppercase">Carbs</p>
+                        <p className="text-xs text-gray-500 uppercase">{t('carbs')}</p>
                         <p className="text-2xl font-bold text-blue-500">{Math.round(todayData.totals.carbs)}g</p>
                     </div>
                     <div className="bg-white dark:bg-garmin-gray p-4 rounded-xl border border-yellow-500/20">
-                        <p className="text-xs text-gray-500 uppercase">Fats</p>
+                        <p className="text-xs text-gray-500 uppercase">{t('fats')}</p>
                         <p className="text-2xl font-bold text-yellow-500">{Math.round(todayData.totals.fats)}g</p>
                     </div>
                 </div>
@@ -124,7 +126,7 @@ export function NutritionTracker() {
             {todayData?.entries && todayData.entries.length > 0 && (
                 <div className="bg-white dark:bg-garmin-gray rounded-xl border border-gray-200 dark:border-gray-800">
                     <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Today's Meals</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">{t('todays_meals')}</h4>
                     </div>
                     <div className="divide-y divide-gray-200 dark:divide-gray-800">
                         {todayData.entries.map((entry) => (

@@ -1,10 +1,11 @@
-
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { TrendingUp, Calendar, Zap, Activity } from 'lucide-react';
 import client from '../api/client';
 
 export function YearlyStats() {
+    const { t } = useTranslation();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -96,7 +97,7 @@ export function YearlyStats() {
 
             return (
                 <div className="bg-zinc-800 border border-zinc-700 p-3 rounded-lg shadow-xl text-sm min-w-[150px]">
-                    <p className="text-white font-bold mb-2 border-b border-zinc-700 pb-1">{label} Total</p>
+                    <p className="text-white font-bold mb-2 border-b border-zinc-700 pb-1">{label} {t('total')}</p>
                     <div className="space-y-1.5">
                         {payload.map((entry, index) => {
                             if (entry.value === 0 || !entry.value) return null;
@@ -112,17 +113,17 @@ export function YearlyStats() {
                                                 className="w-2.5 h-2.5 rounded-full"
                                                 style={{ backgroundColor: entry.color }}
                                             />
-                                            <span className="capitalize">{entry.name}</span>
+                                            <span className="capitalize">{t(entry.name.toLowerCase().replace(' ', '_')) || entry.name}</span>
                                         </span>
                                         <span className="font-semibold text-white">
-                                            {entry.value.toLocaleString()} km
+                                            {entry.value.toLocaleString()} {t('km')}
                                         </span>
                                     </div>
                                     {hasElevation && (
                                         <div className="flex justify-between items-center gap-4 pl-4 text-xs">
-                                            <span className="text-gray-400">Elevation</span>
+                                            <span className="text-gray-400">{t('elevation')}</span>
                                             <span className="text-gray-300">
-                                                {yearData[elevationKey].toLocaleString()} m
+                                                {yearData[elevationKey].toLocaleString()} {t('m_elev')}
                                             </span>
                                         </div>
                                     )}
@@ -144,14 +145,14 @@ export function YearlyStats() {
                         <TrendingUp size={20} className="text-blue-500" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-900 dark:text-white">Yearly Progression</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Total distance (km) & Elevation (m) by sport</p>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">{t('yearly_progression')}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('total_distance_elev')}</p>
                     </div>
                 </div>
 
                 <div className="text-right hidden sm:block">
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(totalKmThisYear).toLocaleString()} <span className="text-base font-normal text-gray-500">km</span></div>
-                    <div className="text-xs text-gray-400 uppercase tracking-wider">{currentYear} Total</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{Math.round(totalKmThisYear).toLocaleString()} <span className="text-base font-normal text-gray-500">{t('km')}</span></div>
+                    <div className="text-xs text-gray-400 uppercase tracking-wider">{currentYear} {t('total')}</div>
                 </div>
             </div>
 
@@ -194,7 +195,7 @@ export function YearlyStats() {
                                 stackId="a"
                                 fill={getColor(sport)}
                                 maxBarSize={50}
-                                name={sport.charAt(0).toUpperCase() + sport.slice(1).replace('_', ' ')}
+                                name={t(sport) || sport.charAt(0).toUpperCase() + sport.slice(1).replace('_', ' ')}
                                 animationDuration={1500}
                             />
                         ))}
@@ -207,13 +208,13 @@ export function YearlyStats() {
                 {sportKeys.slice(0, 4).map(sport => (
                     currentYearData[sport] > 0 && (
                         <div key={sport} className="flex flex-col">
-                            <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{sport.replace('_', ' ')}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">{t(sport) || sport.replace('_', ' ')}</span>
                             <span className="text-lg font-semibold text-gray-900 dark:text-white" style={{ color: getColor(sport) }}>
-                                {currentYearData[sport].toLocaleString()} <span className="text-xs text-gray-400">km</span>
+                                {currentYearData[sport].toLocaleString()} <span className="text-xs text-gray-400">{t('km')}</span>
                             </span>
                             {currentYearData[`${sport}_elevation`] != null && (
                                 <span className="text-xs text-gray-500 mt-0.5">
-                                    {currentYearData[`${sport}_elevation`].toLocaleString()} m elev
+                                    {currentYearData[`${sport}_elevation`].toLocaleString()} {t('m_elev')}
                                 </span>
                             )}
                         </div>

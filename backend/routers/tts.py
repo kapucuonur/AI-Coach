@@ -24,7 +24,11 @@ class TTSRequest(BaseModel):
 @router.post("/generate")
 async def generate_speech(request: TTSRequest):
     try:
+        import re
+        # Remove markdown stars/hashes
         text = request.text.replace("**", "").replace("*", "").replace("#", "")
+        # Remove emojis (common unicode blocks)
+        text = re.sub(r'[^\w\s.,!?:;\-\'\"\(\)]', '', text)
         if not text.strip():
             raise HTTPException(status_code=400, detail="Text is empty")
 

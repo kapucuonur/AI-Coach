@@ -143,11 +143,12 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                         <button
                             onClick={toggleSpeech}
                             disabled={isLoadingAudio}
-                            className={`p-2 rounded-full transition-all duration-300 ${isLoadingAudio ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' : isPlaying ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'}`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all duration-300 shadow-sm ${isLoadingAudio ? 'opacity-50 cursor-not-allowed bg-blue-50 text-blue-400' : isPlaying ? 'bg-blue-600 text-white shadow-md animate-pulse shadow-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-800/40'}`}
                             title={isPlaying ? "Stop listening" : "Listen to advice"}
                             aria-label="Listen to advice"
                         >
-                            {isLoadingAudio ? <div className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-garmin-blue animate-spin" /> : isPlaying ? <Square size={18} fill="currentColor" /> : <Volume2 size={18} />}
+                            {isLoadingAudio ? <div className="w-5 h-5 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin" /> : isPlaying ? <Square size={20} fill="currentColor" /> : <Volume2 size={20} />}
+                            <span className="text-sm">{isPlaying ? 'Playing...' : 'Listen'}</span>
                         </button>
                     )}
                     <div className="opacity-80">
