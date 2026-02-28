@@ -29,12 +29,12 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
-  // Hero video carousel - using cdn.pixabay.com which allows hotlinking
+  // Hero video carousel - verified cdn.pixabay.com URLs
   const SPORT_VIDEOS = [
-    { src: 'https://cdn.pixabay.com/video/2019/06/03/23989-340252908_large.mp4', label: '🏊 Triathlon Swim' },
-    { src: 'https://cdn.pixabay.com/video/2024/04/08/207009_large.mp4', label: '🚴 Cycling Race' },
-    { src: 'https://cdn.pixabay.com/video/2021/02/04/63911_large.mp4', label: '🏃 Marathon Run' },
-    { src: 'https://cdn.pixabay.com/video/2022/02/13/108103_large.mp4', label: '⛷️ Cross Country Ski' },
+    { src: 'https://cdn.pixabay.com/video/2019/11/30/29661-377392919_large.mp4', label: '🏊 Triathlon Swim' },
+    { src: 'https://cdn.pixabay.com/video/2017/01/12/7251-199191069_large.mp4', label: '🚴 Cycling Race' },
+    { src: 'https://cdn.pixabay.com/video/2018/04/22/15748-266043652_large.mp4', label: '🏃 Marathon Run' },
+    { src: 'https://cdn.pixabay.com/video/2019/04/20/22924-331768755_large.mp4', label: '⛷️ Cross Country Ski' },
   ];
   const [activeVideo, setActiveVideo] = useState(0);
   const [fadeClass, setFadeClass] = useState('opacity-100');
