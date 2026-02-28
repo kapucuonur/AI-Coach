@@ -53,15 +53,18 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                 let preferredVoices = voices.filter(v =>
                     v.lang.startsWith(langPrefix) &&
                     (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Enhanced') ||
-                        v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Tessa') || v.name.includes('Karen'))
+                        v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Tessa') || v.name.includes('Karen') || v.name.includes('Yelda'))
                 );
 
                 if (preferredVoices.length === 0) {
                     preferredVoices = voices.filter(v => v.lang.startsWith(langPrefix));
                 }
 
+                // For Turkish, "Yelda" (macOS) or "Google Türkçe" are typical better choices. Avoid Yelda's default robotic speed.
                 let bestVoice = preferredVoices.find(v => v.name.includes('Female')) ||
-                    preferredVoices.find(v => v.name.includes('Samantha') || v.name.includes('Tessa') || v.name.includes('Google')) ||
+                    preferredVoices.find(v => v.name.includes('Google')) ||
+                    preferredVoices.find(v => v.name.includes('Yelda')) ||
+                    preferredVoices.find(v => v.name.includes('Samantha') || v.name.includes('Tessa')) ||
                     preferredVoices[0];
 
                 if (bestVoice) {
@@ -69,8 +72,14 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                 }
             }
 
-            utterance.pitch = 1.1;
-            utterance.rate = 1.05;
+            // Turkish default voices sound notoriously bad when sped up. Keep Turkish closer to normal rate.
+            if (targetLang.startsWith('tr')) {
+                utterance.pitch = 1.0;
+                utterance.rate = 0.95; // Slightly slower makes Turkish robot voices more comprehensible
+            } else {
+                utterance.pitch = 1.1;
+                utterance.rate = 1.05;
+            }
 
             utterance.onend = () => setIsPlaying(false);
             utterance.onerror = () => setIsPlaying(false);
