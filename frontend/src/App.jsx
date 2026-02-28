@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -29,37 +29,6 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
-  // Hero video carousel - Mixkit CDN confirmed format: assets.mixkit.co/videos/ID/ID-1080.mp4
-  const SPORT_VIDEOS = [
-    { src: 'https://assets.mixkit.co/videos/4535/4535-1080.mp4', label: '🏊 Open Water Swim' },
-    { src: 'https://assets.mixkit.co/videos/40868/40868-1080.mp4', label: '🚴 Cycling Race' },
-    { src: 'https://assets.mixkit.co/videos/48208/48208-1080.mp4', label: '🏃 Marathon Run' },
-    { src: 'https://assets.mixkit.co/videos/31949/31949-1080.mp4', label: '⛷️ Skiing Race' },
-  ];
-  const [activeVideo, setActiveVideo] = useState(0);
-  const [videoFade, setVideoFade] = useState(true); // true = visible
-  const videoRef = useRef(null);
-
-  // Switch src + force play on activeVideo change
-  useEffect(() => {
-    const vid = videoRef.current;
-    if (!vid) return;
-    vid.src = SPORT_VIDEOS[activeVideo].src;
-    vid.load();
-    vid.play().catch(() => { }); // catch autoplay policy errors silently
-  }, [activeVideo]);
-
-  // Auto-cycle every 9s with fade
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVideoFade(false);
-      setTimeout(() => {
-        setActiveVideo(prev => (prev + 1) % SPORT_VIDEOS.length);
-        setVideoFade(true);
-      }, 600);
-    }, 9000);
-    return () => clearInterval(interval);
-  }, []);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -429,49 +398,32 @@ function App() {
           />
 
 
-          {/* Sports Video Hero Banner - Single video for reliable autoplay */}
+          {/* Hero Video Banner */}
           <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl group">
-            {/* Single video element - src swapped via JS */}
             <video
-              ref={videoRef}
               autoPlay
               loop
               muted
               playsInline
-              src={SPORT_VIDEOS[0].src}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-600 group-hover:scale-105 ${videoFade ? 'opacity-100' : 'opacity-0'}`}
-              style={{ transform: 'scale(1.02)', transition: 'opacity 0.6s ease, transform 0.6s ease' }}
-            />
-            {/* Gradient overlay */}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+            >
+              <source src="/videos/hero.mp4" type="video/mp4" />
+            </video>
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent z-10"></div>
-            {/* Content */}
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full z-20">
               <div className="flex items-center gap-3 mb-2">
                 <div className="h-1 w-8 bg-garmin-blue rounded-full"></div>
                 <span className="text-garmin-blue font-bold tracking-wider uppercase text-xs">CoachOnur Pro</span>
-                <span className="text-white/60 text-xs font-medium">{SPORT_VIDEOS[activeVideo].label}</span>
               </div>
-              <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 shadow-black drop-shadow-lg">
+              <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg">
                 {t('ready_to_train') || "Let's push your limits today."}
               </h2>
               <p className="text-gray-300 md:text-lg max-w-2xl font-medium drop-shadow-md">
                 {t('hero_subtitle') || "Your daily performance intelligence and AI coaching report is ready."}
               </p>
             </div>
-            {/* Dot Indicators */}
-            <div className="absolute bottom-4 right-6 z-20 flex gap-2">
-              {SPORT_VIDEOS.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveVideo(idx)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${idx === activeVideo
-                    ? 'bg-garmin-blue scale-125'
-                    : 'bg-white/40 hover:bg-white/70'
-                    }`}
-                />
-              ))}
-            </div>
           </div>
+
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
