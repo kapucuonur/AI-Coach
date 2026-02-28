@@ -15,7 +15,7 @@ import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
 import { GarminConnectModal } from './components/GarminConnectModal';
 import { PremiumPaywallModal } from './components/PremiumPaywallModal';
-import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock } from 'lucide-react';
+import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock, Home } from 'lucide-react';
 
 function App() {
   const { t, i18n } = useTranslation();
@@ -259,12 +259,40 @@ function App() {
         <div className="max-w-7xl mx-auto space-y-8">
 
           {/* Header */}
-          <header className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">{t('dashboard_title')}</h1>
-              <p className="text-gray-500 dark:text-gray-400">{t('daily_intelligence')}</p>
+          <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
+            <div
+              className="cursor-pointer group flex items-center gap-4"
+              onClick={() => window.location.href = '/'}
+              title="Return to Main Page"
+            >
+              <div className="p-3 bg-garmin-blue/10 rounded-2xl group-hover:bg-garmin-blue/20 transition-colors">
+                <Home className="text-garmin-blue" size={32} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-garmin-blue transition-colors">
+                  {t('dashboard_title')}
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 group-hover:text-garmin-blue/80 transition-colors">
+                  {t('daily_intelligence')}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 xl:gap-4 w-full xl:w-auto">
+              {/* Streamlined Premium / Admin Button */}
+              {subscriptionStatus !== 'active' && subscriptionStatus !== 'trialing' && (
+                <button
+                  onClick={() => setShowPaywall(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-emerald-500 text-white font-bold rounded-xl shadow-lg hover:scale-[1.03] transition-transform active:scale-95 border border-emerald-400/30"
+                >
+                  <Zap size={18} />
+                  {isAdmin
+                    ? "Admin Access (Upgrade UI)"
+                    : (trialEndsAt && new Date() < new Date(trialEndsAt)
+                      ? `${t('upgrade_button')} (${Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24))} Days Left)`
+                      : t('upgrade_button'))
+                  }
+                </button>
+              )}
               <select
                 value={settingsData?.language || i18n.language || 'en'}
                 onChange={async (e) => {
@@ -338,53 +366,7 @@ function App() {
             </div>
           </header>
 
-          {/* Admin Banner */}
-          {isAdmin && (
-            <div className="bg-garmin-blue/20 border border-garmin-blue text-garmin-blue-dark dark:text-blue-200 px-4 py-3 rounded-xl flex items-center justify-between">
-              <span className="font-semibold">🚀 {t('admin_mode')}</span>
-              <span className="text-sm opacity-80">{t('admin_mode_desc')}</span>
-            </div>
-          )}
 
-          {/* Trial Banner */}
-          {isPremium && trialEndsAt && new Date() < new Date(trialEndsAt) && !isAdmin && subscriptionStatus !== 'active' && subscriptionStatus !== 'trialing' && (
-            <div className="bg-gradient-to-r from-blue-600/10 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-sm -mt-2">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Zap className="text-emerald-500" /> {t('trial_active_title')} 1-Week Free Trial Active!
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300 mt-1 max-w-xl">
-                  {t('trial_active_desc')} Your free trial ends on {new Date(trialEndsAt).toLocaleDateString()}. Subscribe now to ensure uninterrupted access.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowPaywall(true)}
-                className="group w-full sm:w-auto flex-shrink-0 relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-8 py-4 font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-emerald-500/25 active:scale-[0.98]"
-              >
-                {t('subscribe_now') || "Subscribe Now"}
-              </button>
-            </div>
-          )}
-
-          {/* Premium Upgrade Banner (Top of page) */}
-          {!isPremium && (
-            <div className="bg-gradient-to-r from-blue-600/10 to-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-sm -mt-2">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Zap className="text-emerald-500" /> {t('upgrade_title')}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300 mt-1 max-w-xl">
-                  {t('upgrade_desc')}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowPaywall(true)}
-                className="group w-full sm:w-auto flex-shrink-0 relative flex items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-8 py-4 font-bold text-lg text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-emerald-500/25 active:scale-[0.98]"
-              >
-                {t('upgrade_button')}
-              </button>
-            </div>
-          )}
 
           {/* Sync Reminder Note */}
           <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm">

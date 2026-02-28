@@ -14,6 +14,12 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
     const [isPlaying, setIsPlaying] = useState(false);
 
     useEffect(() => {
+        if (window.speechSynthesis) {
+            window.speechSynthesis.getVoices();
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
+        }
         return () => {
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
@@ -30,16 +36,42 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
         } else {
             if (!advice) return;
 
-            // Basic markdown stripping for cleaner speech
             const textToSpeak = advice
-                .replace(/(\*\*|__)(.*?)\1/g, '$2') // bold
-                .replace(/(\*|_)(.*?)\1/g, '$2')    // italics
-                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // links
-                .replace(/[#*>]/g, '')              // markdown symbols
-                .replace(/[\n\r]+/g, '. ');         // newlines to pauses
+                .replace(/(\*\*|__)(.*?)\1/g, '$2')
+                .replace(/(\*|_)(.*?)\1/g, '$2')
+                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+                .replace(/[#*>]/g, '')
+                .replace(/[\n\r]+/g, '. ');
 
             const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            utterance.lang = i18n.language || navigator.language || 'en-US';
+            const targetLang = i18n.language || navigator.language || 'en-US';
+            utterance.lang = targetLang;
+
+            const voices = window.speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                const langPrefix = targetLang.split('-')[0];
+                let preferredVoices = voices.filter(v =>
+                    v.lang.startsWith(langPrefix) &&
+                    (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Enhanced') ||
+                        v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Tessa') || v.name.includes('Karen'))
+                );
+
+                if (preferredVoices.length === 0) {
+                    preferredVoices = voices.filter(v => v.lang.startsWith(langPrefix));
+                }
+
+                let bestVoice = preferredVoices.find(v => v.name.includes('Female')) ||
+                    preferredVoices.find(v => v.name.includes('Samantha') || v.name.includes('Tessa') || v.name.includes('Google')) ||
+                    preferredVoices[0];
+
+                if (bestVoice) {
+                    utterance.voice = bestVoice;
+                }
+            }
+
+            utterance.pitch = 1.1;
+            utterance.rate = 1.05;
+
             utterance.onend = () => setIsPlaying(false);
             utterance.onerror = () => setIsPlaying(false);
 
