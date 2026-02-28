@@ -348,10 +348,10 @@ function App() {
               >
                 <Settings size={24} />
               </button>
-              <div className="flex flex-col items-center gap-1 ml-2">
-                <div className="flex items-center gap-2 px-2 py-1 bg-gray-50 dark:bg-gray-800 rounded-full border border-gray-100 dark:border-gray-700 shadow-sm">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">{t('online')}</span>
+              <div className="flex items-center gap-3 border-l border-gray-200 dark:border-white/10 pl-3 md:ml-2">
+                <div className="flex items-center gap-1.5" title="Agent Online">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:inline">{t('online')}</span>
                 </div>
                 <button
                   onClick={() => {
@@ -359,7 +359,7 @@ function App() {
                     localStorage.removeItem('access_token');
                     delete client.defaults.headers.common['Authorization'];
                   }}
-                  className="text-[10px] font-bold text-red-500 hover:text-red-700 dark:hover:text-red-400 uppercase tracking-wider transition-colors"
+                  className="text-xs font-bold px-2 py-1 rounded bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 uppercase tracking-wider transition-colors"
                 >
                   {t('logout')}
                 </button>
@@ -400,8 +400,8 @@ function App() {
               playsInline
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             >
-              {/* Royalty free sports video (running/training) */}
-              <source src="https://cdn.pixabay.com/video/2021/08/17/85382-589574100_large.mp4" type="video/mp4" />
+              {/* Royalty free sports video from Mixkit */}
+              <source src="https://assets.mixkit.co/videos/preview/mixkit-athlete-running-on-a-track-in-slow-motion-23644-large.mp4" type="video/mp4" />
             </video>
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent"></div>
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">

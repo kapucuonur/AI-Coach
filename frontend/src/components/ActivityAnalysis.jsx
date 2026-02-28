@@ -303,8 +303,8 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             <Heart size={18} className="text-red-500" />
                                             Heart Rate Profile (Per Lap)
                                         </h3>
-                                        <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                                        <div className="w-full relative min-h-[300px]" style={{ height: 300 }}>
+                                            <ResponsiveContainer width="99%" height="100%">
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorHr" x1="0" y1="0" x2="0" y2="1">
@@ -331,8 +331,8 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             <Activity size={18} className="text-blue-500" />
                                             Pace Profile (Per Lap - min/km)
                                         </h3>
-                                        <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                                        <div className="w-full relative min-h-[300px]" style={{ height: 300 }}>
+                                            <ResponsiveContainer width="99%" height="100%">
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorPace" x1="0" y1="0" x2="0" y2="1">
@@ -360,8 +360,8 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                             <Mountain size={18} className="text-emerald-500" />
                                             Elevation Profile (Per Lap)
                                         </h3>
-                                        <div className="h-[300px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                                        <div className="w-full relative min-h-[300px]" style={{ height: 300 }}>
+                                            <ResponsiveContainer width="99%" height="100%">
                                                 <AreaChart data={chartData}>
                                                     <defs>
                                                         <linearGradient id="colorElev" x1="0" y1="0" x2="0" y2="1">
@@ -390,8 +390,8 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                                 <Zap size={18} className="text-orange-500" />
                                                 Power Profile (Per Lap)
                                             </h3>
-                                            <div className="h-[300px] w-full">
-                                                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                                            <div className="w-full relative min-h-[300px]" style={{ height: 300 }}>
+                                                <ResponsiveContainer width="99%" height="100%">
                                                     <AreaChart data={chartData}>
                                                         <defs>
                                                             <linearGradient id="colorPower" x1="0" y1="0" x2="0" y2="1">
