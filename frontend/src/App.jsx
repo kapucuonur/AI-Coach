@@ -400,10 +400,10 @@ function App() {
               loop
               muted
               playsInline
-              poster="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?q=80&w=2070&auto=format&fit=crop"
+              poster="https://images.pexels.com/videos/32141712/competitive-cycling-32141712.jpeg?auto=compress&cs=tinysrgb&w=1260"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             >
-              <source src="https://videos.pexels.com/video-files/3130284/3130284-hd_1920_1080_30fps.mp4" type="video/mp4" />
+              <source src="https://videos.pexels.com/video-files/5790079/5790079-hd_1920_1080_30fps.mp4" type="video/mp4" />
             </video>
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent"></div>
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
