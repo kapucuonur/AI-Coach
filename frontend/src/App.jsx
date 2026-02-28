@@ -526,7 +526,7 @@ function App() {
                 </div>
               </div>
 
-              <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} />
+              <AdviceBlock advice={advice} workout={workout} isGenerating={isGeneratingAdvice} language={settingsData?.language || 'en'} />
               <YearlyStats />
               <div className="relative">
                 {/* Blur Overlay for Free Users */}

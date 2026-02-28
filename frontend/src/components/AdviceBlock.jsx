@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import client from '../api/client';
 import WorkoutVisualizer from './WorkoutVisualizer';
 
-export function AdviceBlock({ advice, workout, isGenerating }) {
+export function AdviceBlock({ advice, workout, isGenerating, language }) {
     const { t, i18n } = useTranslation();
     const [syncStatus, setSyncStatus] = useState(null); // 'loading', 'success', 'error'
     const [devices, setDevices] = useState([]);
@@ -132,10 +132,10 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                         <span className="text-xl">🤖</span>
                     </div>
                     <div>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{t('ai_performance_coach')}</h2>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{t('ai_performance_coach', { lng: language })}</h2>
                         <div className="flex items-center gap-1 text-xs font-medium text-garmin-blue dark:text-blue-400 uppercase tracking-wider">
                             <Sparkles size={12} />
-                            <span>{t('coach_daily_briefing')}</span>
+                            <span>{t('coach_daily_briefing', { lng: language })}</span>
                         </div>
                     </div>
                 </div>
