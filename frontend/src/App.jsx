@@ -428,6 +428,16 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
+            {/* Sport symbols row */}
+            <div className="absolute top-4 right-5 flex gap-3 opacity-25 select-none pointer-events-none">
+              {['🚴', '🏊', '🏃', '⛷️', '💪'].map((icon, i) => (
+                <span key={i} className="text-2xl md:text-3xl animate-pulse"
+                  style={{ animationDelay: `${i * 0.6}s`, animationDuration: `${3 + i}s`, filter: 'grayscale(0.3) brightness(1.5)' }}>
+                  {icon}
+                </span>
+              ))}
+            </div>
+
             {/* Floating sport keywords */}
             {[
               { word: 'VO2 Max', left: '62%', top: '12%', delay: '0s', dur: '4s', color: '#60a5fa' },
@@ -442,6 +452,7 @@ function App() {
               { word: 'Zone 2', left: '75%', top: '78%', delay: '2.8s', dur: '4.6s', color: '#a78bfa' },
               { word: 'Threshold', left: '64%', top: '85%', delay: '1.5s', dur: '5.4s', color: '#fbbf24' },
               { word: 'TSS', left: '85%', top: '10%', delay: '4s', dur: '3.6s', color: '#60a5fa' },
+              { word: 'Elevation', left: '70%', top: '30%', delay: '0.9s', dur: '4.3s', color: '#fb923c' },
             ].map(({ word, left, top, delay, dur, color }, i) => (
               <div key={i} className="absolute select-none pointer-events-none"
                 style={{
