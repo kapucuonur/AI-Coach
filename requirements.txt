@@ -59,3 +59,4 @@ pg8000==1.31.5
 psycopg2-binary==2.9.9
 stripe==8.6.0
 edge-tts==7.0.6
+gTTS==2.5.4
