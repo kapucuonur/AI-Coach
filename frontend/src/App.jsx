@@ -407,7 +407,7 @@ function App() {
               playsInline
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
             >
-              <source src="/videos/hero.mp4" type="video/mp4" />
+              <source src="/videos/italycycling.mp4" type="video/mp4" />
             </video>
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent z-10"></div>
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full z-20">
