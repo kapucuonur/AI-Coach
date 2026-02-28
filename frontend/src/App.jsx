@@ -330,40 +330,42 @@ function App() {
                 <span className="text-sm font-medium hidden sm:inline">{t('sync_garmin') || "Sync"}</span>
               </button>
 
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
-                title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
-              >
-                {darkMode ? (
-                  <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div>
-                ) : (
-                  <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>
-                )}
-              </button>
-
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => requirePremium(() => setIsSettingsOpen(true))}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors mr-2"
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors bg-white dark:bg-transparent border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
+                  title={darkMode ? t('switch_to_light_mode') : t('switch_to_dark_mode')}
                 >
-                  <Settings size={24} />
+                  {darkMode ? (
+                    <div className="flex items-center gap-2"><span>{t('light')}</span> <Sun size={24} /></div>
+                  ) : (
+                    <div className="flex items-center gap-2"><span>{t('dark')}</span> <Moon size={24} /></div>
+                  )}
                 </button>
-                <div className="flex items-center gap-3 border-l border-gray-200 dark:border-white/10 pl-3">
-                  <div className="flex items-center gap-1.5" title="Agent Online">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:inline">{t('online')}</span>
-                  </div>
+
+                <div className="flex items-center">
                   <button
-                    onClick={() => {
-                      setIsAuthenticated(false);
-                      localStorage.removeItem('access_token');
-                      delete client.defaults.headers.common['Authorization'];
-                    }}
-                    className="text-xs font-bold px-2 py-1 rounded bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 uppercase tracking-wider transition-colors"
+                    onClick={() => requirePremium(() => setIsSettingsOpen(true))}
+                    className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full transition-colors mr-2"
                   >
-                    {t('logout')}
+                    <Settings size={24} />
                   </button>
+                  <div className="flex items-center gap-3 border-l border-gray-200 dark:border-white/10 pl-3">
+                    <div className="flex items-center gap-1.5" title="Agent Online">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider hidden sm:inline">{t('online')}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsAuthenticated(false);
+                        localStorage.removeItem('access_token');
+                        delete client.defaults.headers.common['Authorization'];
+                      }}
+                      className="text-xs font-bold px-2 py-1 rounded bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 uppercase tracking-wider transition-colors"
+                    >
+                      {t('logout')}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -403,7 +405,7 @@ function App() {
               poster="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?q=80&w=2070&auto=format&fit=crop"
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
             >
-              <source src="https://videos.pexels.com/video-files/3195394/3195394-uhd_2560_1440_25fps.mp4" type="video/mp4" />
+              <source src="https://videos.pexels.com/video-files/3130284/3130284-hd_1920_1080_30fps.mp4" type="video/mp4" />
             </video>
             <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/40 to-transparent"></div>
             <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
