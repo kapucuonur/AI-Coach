@@ -12,80 +12,58 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
     const [selectedDeviceId, setSelectedDeviceId] = useState('');
     const [fetchingDevices, setFetchingDevices] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+    const [audioElement, setAudioElement] = useState(null);
 
     useEffect(() => {
-        if (window.speechSynthesis) {
-            window.speechSynthesis.getVoices();
-            window.speechSynthesis.onvoiceschanged = () => {
-                window.speechSynthesis.getVoices();
-            };
-        }
         return () => {
-            if (window.speechSynthesis) {
-                window.speechSynthesis.cancel();
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.src = '';
             }
         };
-    }, []);
+    }, [audioElement]);
 
-    const toggleSpeech = () => {
-        if (!window.speechSynthesis) return;
-
-        if (isPlaying) {
-            window.speechSynthesis.cancel();
+    const toggleSpeech = async () => {
+        if (isPlaying && audioElement) {
+            audioElement.pause();
             setIsPlaying(false);
         } else {
             if (!advice) return;
+            setIsLoadingAudio(true);
+            try {
+                // Request generated speech from backend
+                const response = await client.post('/tts/generate', {
+                    text: advice,
+                    language: i18n.language || 'en'
+                }, {
+                    responseType: 'blob'
+                });
 
-            const textToSpeak = advice
-                .replace(/(\*\*|__)(.*?)\1/g, '$2')
-                .replace(/(\*|_)(.*?)\1/g, '$2')
-                .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
-                .replace(/[#*>]/g, '')
-                .replace(/[\n\r]+/g, '. ');
+                const blob = new Blob([response.data], { type: 'audio/mpeg' });
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
 
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            const targetLang = i18n.language || navigator.language || 'en-US';
-            utterance.lang = targetLang;
+                audio.onended = () => {
+                    setIsPlaying(false);
+                    URL.revokeObjectURL(url);
+                };
 
-            const voices = window.speechSynthesis.getVoices();
-            if (voices.length > 0) {
-                const langPrefix = targetLang.split('-')[0];
-                let preferredVoices = voices.filter(v =>
-                    v.lang.startsWith(langPrefix) &&
-                    (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Enhanced') ||
-                        v.name.includes('Samantha') || v.name.includes('Daniel') || v.name.includes('Tessa') || v.name.includes('Karen') || v.name.includes('Yelda'))
-                );
+                audio.onerror = () => {
+                    setIsPlaying(false);
+                    setIsLoadingAudio(false);
+                    URL.revokeObjectURL(url);
+                };
 
-                if (preferredVoices.length === 0) {
-                    preferredVoices = voices.filter(v => v.lang.startsWith(langPrefix));
-                }
-
-                // For Turkish, "Yelda" (macOS) or "Google Türkçe" are typical better choices. Avoid Yelda's default robotic speed.
-                let bestVoice = preferredVoices.find(v => v.name.includes('Female')) ||
-                    preferredVoices.find(v => v.name.includes('Google')) ||
-                    preferredVoices.find(v => v.name.includes('Yelda')) ||
-                    preferredVoices.find(v => v.name.includes('Samantha') || v.name.includes('Tessa')) ||
-                    preferredVoices[0];
-
-                if (bestVoice) {
-                    utterance.voice = bestVoice;
-                }
+                setAudioElement(audio);
+                audio.play();
+                setIsPlaying(true);
+            } catch (error) {
+                console.error("Error generating speech:", error);
+                setIsPlaying(false);
+            } finally {
+                setIsLoadingAudio(false);
             }
-
-            // Turkish default voices sound notoriously bad when sped up. Keep Turkish closer to normal rate.
-            if (targetLang.startsWith('tr')) {
-                utterance.pitch = 1.0;
-                utterance.rate = 0.95; // Slightly slower makes Turkish robot voices more comprehensible
-            } else {
-                utterance.pitch = 1.1;
-                utterance.rate = 1.05;
-            }
-
-            utterance.onend = () => setIsPlaying(false);
-            utterance.onerror = () => setIsPlaying(false);
-
-            window.speechSynthesis.speak(utterance);
-            setIsPlaying(true);
         }
     };
 
@@ -164,11 +142,12 @@ export function AdviceBlock({ advice, workout, isGenerating }) {
                     {advice && !isGenerating && (
                         <button
                             onClick={toggleSpeech}
-                            className={`p-2 rounded-full transition-all duration-300 ${isPlaying ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'}`}
+                            disabled={isLoadingAudio}
+                            className={`p-2 rounded-full transition-all duration-300 ${isLoadingAudio ? 'opacity-50 cursor-not-allowed bg-gray-100 text-gray-500' : isPlaying ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 animate-pulse' : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'}`}
                             title={isPlaying ? "Stop listening" : "Listen to advice"}
                             aria-label="Listen to advice"
                         >
-                            {isPlaying ? <Square size={18} fill="currentColor" /> : <Volume2 size={18} />}
+                            {isLoadingAudio ? <div className="w-4 h-4 rounded-full border-2 border-gray-400 border-t-garmin-blue animate-spin" /> : isPlaying ? <Square size={18} fill="currentColor" /> : <Volume2 size={18} />}
                         </button>
                     )}
                     <div className="opacity-80">
