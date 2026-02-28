@@ -29,12 +29,12 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
-  // Hero video carousel - single video element for reliable autoplay
+  // Hero video carousel - Mixkit CDN confirmed format: assets.mixkit.co/videos/ID/ID-1080.mp4
   const SPORT_VIDEOS = [
-    { src: 'https://cdn.pixabay.com/video/2019/11/30/29661-377392919_large.mp4', label: '🏊 Triathlon Swim' },
-    { src: 'https://cdn.pixabay.com/video/2017/01/12/7251-199191069_large.mp4', label: '🚴 Cycling Race' },
-    { src: 'https://cdn.pixabay.com/video/2018/04/22/15748-266043652_large.mp4', label: '🏃 Marathon Run' },
-    { src: 'https://cdn.pixabay.com/video/2019/04/20/22924-331768755_large.mp4', label: '⛷️ Winter Sport' },
+    { src: 'https://assets.mixkit.co/videos/4535/4535-1080.mp4', label: '🏊 Open Water Swim' },
+    { src: 'https://assets.mixkit.co/videos/40868/40868-1080.mp4', label: '🚴 Cycling Race' },
+    { src: 'https://assets.mixkit.co/videos/48208/48208-1080.mp4', label: '🏃 Marathon Run' },
+    { src: 'https://assets.mixkit.co/videos/31949/31949-1080.mp4', label: '⛷️ Skiing Race' },
   ];
   const [activeVideo, setActiveVideo] = useState(0);
   const [videoFade, setVideoFade] = useState(true); // true = visible
