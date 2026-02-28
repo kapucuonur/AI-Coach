@@ -428,15 +428,27 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Sport symbols row */}
-            <div className="absolute top-4 right-5 flex gap-3 opacity-25 select-none pointer-events-none">
-              {['🚴', '🏊', '🏃', '⛷️', '💪'].map((icon, i) => (
-                <span key={i} className="text-2xl md:text-3xl animate-pulse"
-                  style={{ animationDelay: `${i * 0.6}s`, animationDuration: `${3 + i}s`, filter: 'grayscale(0.3) brightness(1.5)' }}>
+            {/* Passing sport icons — slide from right to left, each at own speed & height */}
+            {[
+              { icon: '⛷️', label: 'XC SKI', top: '10%', dur: '5s', delay: '0s', size: '2.2rem' },
+              { icon: '🚴', label: 'CYCLING', top: '32%', dur: '7s', delay: '1.5s', size: '2.4rem' },
+              { icon: '🏃', label: 'RUNNING', top: '55%', dur: '9s', delay: '3s', size: '2.2rem' },
+              { icon: '🏊', label: 'SWIMMING', top: '75%', dur: '12s', delay: '5s', size: '2rem' },
+            ].map(({ icon, label, top, dur, delay, size }, i) => (
+              <div key={i}
+                className="absolute select-none pointer-events-none flex flex-col items-center gap-0.5"
+                style={{
+                  top,
+                  right: '-80px',
+                  animation: `passByIcon ${dur} linear infinite`,
+                  animationDelay: delay,
+                }}>
+                <span style={{ fontSize: size, filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' }}>
                   {icon}
                 </span>
-              ))}
-            </div>
+                <span className="text-[7px] font-bold tracking-widest text-white/40 uppercase">{label}</span>
+              </div>
+            ))}
 
             {/* Floating sport keywords */}
             {[
