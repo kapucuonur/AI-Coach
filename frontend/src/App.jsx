@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -29,6 +29,49 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
+  // Ref for the hero banner container — used by RAF animation below
+  const heroRef = useRef(null);
+
+  // JS-driven passing sport icons (requestAnimationFrame, no CSS keyframes)
+  useEffect(() => {
+    const container = heroRef.current;
+    if (!container) return;
+    const sports = [
+      { emoji: '⛷️', label: 'XC SKI', speed: 3.0, topPct: 9 },
+      { emoji: '🚴', label: 'CYCLING', speed: 2.1, topPct: 32 },
+      { emoji: '🏃', label: 'RUNNING', speed: 1.5, topPct: 56 },
+      { emoji: '🏊', label: 'SWIMMING', speed: 0.9, topPct: 76 },
+    ];
+    const getW = () => container.offsetWidth;
+    // Stagger start positions so they don't all appear at once
+    const pos = sports.map((_, i) => getW() + 80 + i * (getW() / sports.length));
+    // Create DOM elements and append to hero container
+    const els = sports.map((s) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:absolute;left:0;pointer-events:none;will-change:transform;display:flex;flex-direction:column;align-items:center;gap:2px;';
+      div.style.top = `${s.topPct}%`;
+      div.innerHTML = `<span style="font-size:2.1rem;filter:drop-shadow(0 0 8px rgba(255,255,255,0.35))">${s.emoji}</span>` +
+        `<span style="font-size:7px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,0.35);text-transform:uppercase;font-family:inherit">${s.label}</span>`;
+      container.appendChild(div);
+      return div;
+    });
+    let raf;
+    const tick = () => {
+      const cw = getW();
+      sports.forEach((s, i) => {
+        pos[i] -= s.speed;
+        if (pos[i] < -100) pos[i] = cw + 80 + Math.random() * 60;
+        const x = pos[i];
+        const fadeIn = Math.min(1, x / 80);
+        const fadeOut = Math.min(1, (cw + 40 - x) / 80);
+        els[i].style.transform = `translateX(${x}px)`;
+        els[i].style.opacity = String(Math.max(0, Math.min(fadeIn, fadeOut)));
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); els.forEach(el => el.remove()); };
+  }, []);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -399,7 +442,7 @@ function App() {
 
 
           {/* Hero Banner - Animated CSS (no video required) */}
-          <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl" style={{ background: 'linear-gradient(135deg, #0a0f2e 0%, #0d2137 30%, #061a2e 60%, #0a1628 100%)' }}>
+          <div ref={heroRef} className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl" style={{ background: 'linear-gradient(135deg, #0a0f2e 0%, #0d2137 30%, #061a2e 60%, #0a1628 100%)' }}>
 
             {/* Animated gradient orbs */}
             <div className="absolute inset-0 overflow-hidden">
@@ -428,27 +471,7 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Passing sport icons — slide from right to left, each at own speed & height */}
-            {[
-              { icon: '⛷️', label: 'XC SKI', top: '10%', dur: '5s', delay: '0s', size: '2.2rem' },
-              { icon: '🚴', label: 'CYCLING', top: '32%', dur: '7s', delay: '1.5s', size: '2.4rem' },
-              { icon: '🏃', label: 'RUNNING', top: '55%', dur: '9s', delay: '3s', size: '2.2rem' },
-              { icon: '🏊', label: 'SWIMMING', top: '75%', dur: '12s', delay: '5s', size: '2rem' },
-            ].map(({ icon, label, top, dur, delay, size }, i) => (
-              <div key={i}
-                className="absolute select-none pointer-events-none flex flex-col items-center gap-0.5"
-                style={{
-                  top,
-                  right: '-80px',
-                  animation: `passByIcon ${dur} linear infinite`,
-                  animationDelay: delay,
-                }}>
-                <span style={{ fontSize: size, filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.4))' }}>
-                  {icon}
-                </span>
-                <span className="text-[7px] font-bold tracking-widest text-white/40 uppercase">{label}</span>
-              </div>
-            ))}
+            {/* Sport icons injected via JS/RAF — see useEffect above */}
 
             {/* Floating sport keywords */}
             {[
