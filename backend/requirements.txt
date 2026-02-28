@@ -57,5 +57,5 @@ urllib3==2.6.3
 uvicorn==0.40.0
 pg8000==1.31.5
 psycopg2-binary==2.9.9
-edge-tts==7.0.6
+edge-tts==7.2.7
 gTTS==2.5.4
