@@ -71,7 +71,7 @@ function App() {
     };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); els.forEach(el => el.remove()); };
-  }, []);
+  }, [isAuthenticated]);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
