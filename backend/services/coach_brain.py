@@ -7,9 +7,8 @@ import hashlib
 from functools import lru_cache, wraps
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-warnings.filterwarnings('ignore', message='.*google.generativeai.*')
-warnings.filterwarnings('ignore', category=DeprecationWarning, module='google')
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -47,8 +46,8 @@ class CoachBrain:
             logger.error("GEMINI_API_KEY not found in environment variables.")
             raise ValueError("GEMINI_API_KEY is missing.")
         
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.client = genai.Client(api_key=self.api_key)
+        self.model_name = 'gemini-2.5-flash'
 
     def _get_target_language(self, language_code):
         """Centralized language validation"""
@@ -60,9 +59,14 @@ class CoachBrain:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
     def _call_gemini_with_retry(self, prompt, generation_config=None):
         """Robust API call with retries"""
+        config = None
         if generation_config:
-            return self.model.generate_content(prompt, generation_config=generation_config)
-        return self.model.generate_content(prompt)
+            config = types.GenerateContentConfig(**generation_config)
+        return self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=config
+        )
 
     @rate_limit(max_calls=20, period=60)
     def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None):

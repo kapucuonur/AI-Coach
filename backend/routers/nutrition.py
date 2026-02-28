@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-import google.generativeai as genai
+from google import genai
 
 from backend.database import get_db
 from backend.auth_utils import get_current_user
@@ -53,8 +53,8 @@ async def analyze_food_photo(
         if not gemini_key:
             raise HTTPException(status_code=500, detail="AI service not configured")
         
-        genai.configure(api_key=gemini_key)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        client = genai.Client(api_key=gemini_key)
+        model_name = 'gemini-2.5-flash'
         
         # Create prompt for nutrition analysis
         prompt = """Analyze this food image and provide nutritional information in the following JSON format:
@@ -71,10 +71,13 @@ Be as accurate as possible based on standard portion sizes. If multiple items, s
 Return ONLY the JSON, no other text."""
         
         # Generate response
-        response = model.generate_content([
-            prompt,
-            {"mime_type": file.content_type or "image/jpeg", "data": base64_image}
-        ])
+        response = client.models.generate_content(
+            model=model_name,
+            contents=[
+                prompt,
+                {"inline_data": {"mime_type": file.content_type or "image/jpeg", "data": base64_image}}
+            ]
+        )
         
         # Parse JSON response
         response_text = response.text.strip()
