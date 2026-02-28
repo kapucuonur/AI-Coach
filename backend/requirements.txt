@@ -59,3 +59,4 @@ pg8000==1.31.5
 psycopg2-binary==2.9.9
 edge-tts==7.2.7
 gTTS==2.5.4
+tenacity==8.2.3

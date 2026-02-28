@@ -1,6 +1,12 @@
 import os
 import logging
 import warnings
+import json
+import time
+import hashlib
+from functools import lru_cache, wraps
+from tenacity import retry, stop_after_attempt, wait_exponential
+
 warnings.filterwarnings('ignore', message='.*google.generativeai.*')
 warnings.filterwarnings('ignore', category=DeprecationWarning, module='google')
 import google.generativeai as genai
@@ -14,9 +20,29 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+def rate_limit(max_calls=10, period=60):
+    """Simple rate limiter decorator"""
+    calls = []
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            now = time.time()
+            calls[:] = [c for c in calls if c > now - period]
+            if len(calls) >= max_calls:
+                time.sleep(period - (now - calls[0]))
+            calls.append(time.time())
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
 class CoachBrain:
-    def __init__(self, api_key=None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+    SUPPORTED_LANGUAGES = {
+        "en": "English", "tr": "Turkish", "de": "German", 
+        "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
+    }
+
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
         if not self.api_key:
             logger.error("GEMINI_API_KEY not found in environment variables.")
             raise ValueError("GEMINI_API_KEY is missing.")
@@ -24,13 +50,29 @@ class CoachBrain:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel('gemini-2.5-flash')
 
+    def _get_target_language(self, language_code):
+        """Centralized language validation"""
+        return self.SUPPORTED_LANGUAGES.get(
+            language_code.lower(), 
+            "English"  # Safe default
+        )
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def _call_gemini_with_retry(self, prompt, generation_config=None):
+        """Robust API call with retries"""
+        if generation_config:
+            return self.model.generate_content(prompt, generation_config=generation_config)
+        return self.model.generate_content(prompt)
+
+    @rate_limit(max_calls=20, period=60)
     def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
         
         # Calculate time context
-        current_hour = 9 # Default to morning if unknown
+        from datetime import datetime
+        current_hour = datetime.now().hour if not client_local_time else 9
         time_context_str = "Unknown time of day"
         if client_local_time:
             try:
@@ -99,11 +141,6 @@ class CoachBrain:
         race_context = "No specific upcoming races."
         goals_context = ""
         language_code = "en"
-        language_map = {
-            "en": "English", "tr": "Turkish", "de": "German", 
-            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
-        }
-        
         # Advanced Metrics defaults
         profile_context = ""
         metrics_context = ""
@@ -172,7 +209,7 @@ class CoachBrain:
                 if g_list:
                     goals_context = "**Current Training Targets:**\n        " + "\n        ".join(g_list)
 
-        target_language = language_map.get(language_code, "English")
+        target_language = self._get_target_language(language_code)
 
         time_limit_str = f"- **Time Constraint**: The athlete has specified they only have {available_time_mins} minutes to train today. YOU MUST fit the overall recommended workout duration strictly within this time limit." if available_time_mins is not None else ""
         
@@ -284,12 +321,13 @@ class CoachBrain:
         
         try:
             logger.info("Sending request to Gemini...")
-            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+            response = self._call_gemini_with_retry(prompt, generation_config={"response_mime_type": "application/json"})
             return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Failed to generate advice with Gemini: {e}")
             return '{"advice_text": "Sorry, I could not generate advice today.", "workout": null}'
 
+    @rate_limit(max_calls=20, period=60)
     def generate_chat_response(self, messages, user_context=None, language="en"):
         """
         Generate a conversational response based on chat history and user context.
@@ -299,11 +337,7 @@ class CoachBrain:
         if user_context:
             context_str = f"User Context: {user_context}"
             
-        language_map = {
-            "en": "English", "tr": "Turkish", "de": "German", 
-            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
-        }
-        target_language = language_map.get(language, "English")
+        target_language = self._get_target_language(language)
 
         system_instruction = f"""
         You are an elite, empathetic, and data-driven sports coach.
@@ -333,12 +367,13 @@ class CoachBrain:
             conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
             full_prompt = f"{system_instruction}\n\nChat History:\n{conversation_history}\n\nCoach:"
             logger.info(f"Sending chat request to Gemini (Language: {target_language})...")
-            response = self.model.generate_content(full_prompt)
+            response = self._call_gemini_with_retry(full_prompt)
             return response.text
         except Exception as e:
             logger.error(f"Failed to generate chat response: {e}")
             return "Connection error. Please try again."
 
+    @rate_limit(max_calls=20, period=60)
     def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, sleep_data=None, user_settings=None):
         """
         Generate a structured training plan (JSON) for the dashboard.
@@ -351,11 +386,7 @@ class CoachBrain:
         sport = user_settings.get("primary_sport", "Endurance Sports")
         language = user_settings.get("language", "en")
         
-        language_map = {
-            "en": "English", "tr": "Turkish", "de": "German", 
-            "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
-        }
-        target_language = language_map.get(language, "English")
+        target_language = self._get_target_language(language)
         
         name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
         vo2max = user_profile.get('vo2MaxRunning', 'N/A') if user_profile else 'N/A'
@@ -435,12 +466,13 @@ class CoachBrain:
         
         try:
             logger.info("Generating professional structured plan...")
-            response = self.model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
+            response = self._call_gemini_with_retry(prompt, generation_config={"response_mime_type": "application/json"})
             return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Failed to generate plan: {e}")
             return '{"error": "Failed to generate plan"}'
 
+    @rate_limit(max_calls=20, period=60)
     def analyze_activity(self, activity_data, user_settings=None):
         """
         Analyze a specific activity in detail.
@@ -527,11 +559,7 @@ class CoachBrain:
                 sport_context = user_settings.get("primary_sport", "Endurance Sports")
                 language_code = user_settings.get("language", "en")
                 
-            language_map = {
-                "en": "English", "tr": "Turkish", "de": "German", 
-                "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
-            }
-            target_language = language_map.get(language_code, "English")
+            target_language = self._get_target_language(language_code)
 
             prompt = f"""
             Act as an elite {sport_context} coach analyzing this workout: "{name}" ({type_key}).
@@ -561,24 +589,34 @@ class CoachBrain:
             """
             
             logger.info(f"Analyzing activity {name} with Gemini...")
-            response = self.model.generate_content(prompt)
+            response = self._call_gemini_with_retry(prompt)
             return response.text
         except Exception as e:
-            logger.error(f"Failed to analyze activity: {e}")
+            logger.error(f"Failed to analyze activity: {e}", exc_info=True)
             return "Could not analyze activity due to an internal error."
 
     def _clean_json_response(self, response_text):
-        """
-        Helper to strip markdown code blocks from JSON response.
-        """
+        """Enhanced JSON cleaning with validation"""
         cleaned = response_text.strip()
+        
+        # Remove markdown
         if cleaned.startswith("```json"):
             cleaned = cleaned[7:]
-        if cleaned.startswith("```"):
+        elif cleaned.startswith("```"):
             cleaned = cleaned[3:]
         if cleaned.endswith("```"):
             cleaned = cleaned[:-3]
-        return cleaned.strip()
+        
+        cleaned = cleaned.strip()
+        
+        # Validate JSON
+        try:
+            json.loads(cleaned)  # Test parse
+            return cleaned
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON from Gemini: {e}")
+            # Return safe fallback
+            return '{"advice_text": "AI response formatting error", "workout": null}'
 
 if __name__ == "__main__":
     # simple test
