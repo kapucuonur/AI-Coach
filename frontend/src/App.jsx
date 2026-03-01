@@ -15,6 +15,7 @@ import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
 import { GarminConnectModal } from './components/GarminConnectModal';
 import { PremiumPaywallModal } from './components/PremiumPaywallModal';
+import { HeroCanvas } from './components/HeroCanvas';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock, Home } from 'lucide-react';
 
 function App() {
@@ -28,15 +29,6 @@ function App() {
   const [trainingHours, setTrainingHours] = useState("");
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
-
-  // Sport icons for hero banner — rendered as JSX, animated via CSS sportSlide keyframe
-  const heroSports = [
-    { emoji: '⛷️', label: 'XC SKI', top: '6%', dur: '12s', delay: '0s' },
-    { emoji: '🚴', label: 'CYCLING', top: '25%', dur: '10s', delay: '-4s' },
-    { emoji: '🏋️', label: 'STRENGTH', top: '44%', dur: '13s', delay: '-8s' },
-    { emoji: '🏃', label: 'RUNNING', top: '62%', dur: '11s', delay: '-2s' },
-    { emoji: '🏊', label: 'SWIMMING', top: '78%', dur: '15s', delay: '-6s' },
-  ];
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -441,24 +433,8 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Sport icons — CSS sportSlide animation, right→left, looping */}
-            {heroSports.map(({ emoji, label, top, dur, delay }) => (
-              <div
-                key={label}
-                className="absolute pointer-events-none flex flex-col items-center"
-                style={{
-                  top,
-                  left: 0,
-                  gap: '2px',
-                  zIndex: 12,
-                  animation: `sportSlide ${dur} linear infinite`,
-                  animationDelay: delay,
-                }}
-              >
-                <span style={{ fontSize: '2.2rem', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.45))' }}>{emoji}</span>
-                <span style={{ fontSize: '7px', fontWeight: 800, letterSpacing: '2px', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>{label}</span>
-              </div>
-            ))}
+            {/* Sport icons — Animated via Canvas for robust performance */}
+            <HeroCanvas />
 
             {/* Floating sport keywords */}
             {[
