@@ -365,6 +365,7 @@ function App() {
                 <option value="es">ES</option>
                 <option value="it">IT</option>
                 <option value="ru">RU</option>
+                <option value="fi">FI</option>
               </select>
 
               {/* Sync */}

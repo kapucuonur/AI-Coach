@@ -47,6 +47,8 @@ async def generate_speech(request: TTSRequest):
                 voice = "it-IT-ElsaNeural"
             elif request.language.startswith("ru"):
                 voice = "ru-RU-SvetlanaNeural"
+            elif request.language.startswith("fi"):
+                voice = "fi-FI-NooraNeural"
 
             communicate = edge_tts.Communicate(text, voice)
             
