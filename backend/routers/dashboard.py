@@ -166,22 +166,17 @@ def get_activity_details(
         # 2. AI Analysis - wrapped in try-catch to return partial data if it fails
         try:
             logger.info("Starting AI Analysis...")
-            gemini_key = os.getenv("GEMINI_API_KEY")
-            if not gemini_key:
-                logger.warning("GEMINI_API_KEY missing - skipping AI analysis")
-                analysis = "AI analysis unavailable: API key not configured."
-            else:
-                brain = CoachBrain(gemini_key)
-                
-                user_settings_dict = {}
-                try:
-                    settings = load_settings(current_user.email)
-                    user_settings_dict = settings.model_dump()
-                except Exception as se:
-                    logger.warning(f"Failed to load settings: {se}")
-                
-                analysis = brain.analyze_activity(details, user_settings_dict)
-                logger.info("AI analysis completed successfully")
+            brain = CoachBrain()
+            
+            user_settings_dict = {}
+            try:
+                settings = load_settings(current_user.email)
+                user_settings_dict = settings.model_dump()
+            except Exception as se:
+                logger.warning(f"Failed to load settings: {se}")
+            
+            analysis = brain.analyze_activity(details, user_settings_dict)
+            logger.info("AI analysis completed successfully")
         except Exception as ai_error:
             logger.error(f"AI analysis failed but continuing with activity data: {ai_error}")
             analysis = f"Activity analysis temporarily unavailable. Please try again later."

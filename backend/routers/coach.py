@@ -134,8 +134,7 @@ async def generate_advice(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        brain = CoachBrain(gemini_key)
+        brain = CoachBrain()
         
         # Load user personalization
         settings = load_settings(current_user.email)
