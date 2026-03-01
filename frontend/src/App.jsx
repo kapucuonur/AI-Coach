@@ -15,7 +15,6 @@ import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
 import { GarminConnectModal } from './components/GarminConnectModal';
 import { PremiumPaywallModal } from './components/PremiumPaywallModal';
-import { HeroCanvas } from './components/HeroCanvas';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock, Home } from 'lucide-react';
 
 function App() {
@@ -433,9 +432,17 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Sport icons — Animated via Canvas for robust performance */}
-            <HeroCanvas />
-
+            {/* Professional Cinematic Background Video */}
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity"
+              poster="https://images.pexels.com/photos/3760259/pexels-photo-3760259.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2"
+            >
+              <source src="https://player.vimeo.com/external/403295268.sd.mp4?s=d7e7e6f6a73c52e4b553c457d1bc94541cb83bf9&profile_id=164&oauth2_token_id=57447761" type="video/mp4" />
+            </video>
             {/* Floating sport keywords */}
             {[
               { word: 'VO2 Max', left: '62%', top: '12%', delay: '0s', dur: '4s', color: '#60a5fa' },
