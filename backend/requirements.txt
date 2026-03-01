@@ -10,7 +10,7 @@ distro==1.9.0
 fastapi==0.128.5
 fitparse==1.2.0
 garminconnect==0.2.38
-garth==0.6.3
+garth==0.5.17
 google-genai==1.5.0
 
 h11==0.16.0
