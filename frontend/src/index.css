@@ -48,3 +48,10 @@ body {
     transform: translateY(-20px) scale(0.95);
   }
 }
+
+@keyframes sportSlide {
+  0%   { transform: translateX(120vw); opacity: 0; }
+  5%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { transform: translateX(-20vw); opacity: 0; }
+}

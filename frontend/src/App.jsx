@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -29,78 +29,14 @@ function App() {
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [isPremium, setIsPremium] = useState(false);
 
-  // Ref for the hero banner container — used by RAF animation below
-  const heroRef = useRef(null);
-
-  // JS-driven passing sport icons (requestAnimationFrame, no CSS keyframes)
-  useEffect(() => {
-    const container = heroRef.current;
-    if (!container) return;
-
-    const sports = [
-      { emoji: '⛷️', label: 'XC SKI', speed: 2.8, topPct: 8 },
-      { emoji: '🚴', label: 'CYCLING', speed: 2.2, topPct: 28 },
-      { emoji: '🏋️', label: 'STRENGTH', speed: 1.8, topPct: 44 },
-      { emoji: '🏃', label: 'RUNNING', speed: 1.6, topPct: 60 },
-      { emoji: '🏊', label: 'SWIMMING', speed: 1.1, topPct: 76 },
-    ];
-
-    let raf;
-    let pos = [];
-    let els = [];
-    let started = false;
-
-    const startAnimation = (cw) => {
-      if (started) return;
-      started = true;
-
-      // Stagger start positions across the full width so they appear one by one
-      pos = sports.map((_, i) => cw + 80 + i * (cw / sports.length));
-
-      els = sports.map((s) => {
-        const div = document.createElement('div');
-        div.style.cssText = 'position:absolute;left:0;pointer-events:none;will-change:transform;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:10;';
-        div.style.top = `${s.topPct}%`;
-        div.innerHTML =
-          `<span style="font-size:2.2rem;filter:drop-shadow(0 0 10px rgba(255,255,255,0.4))">${s.emoji}</span>` +
-          `<span style="font-size:7px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;font-family:inherit">${s.label}</span>`;
-        container.appendChild(div);
-        return div;
-      });
-
-      const tick = () => {
-        const w = container.offsetWidth;
-        sports.forEach((s, i) => {
-          pos[i] -= s.speed;
-          if (pos[i] < -120) pos[i] = w + 80 + Math.random() * 80;
-          const x = pos[i];
-          const fadeIn = Math.min(1, x / 100);
-          const fadeOut = Math.min(1, (w + 50 - x) / 100);
-          els[i].style.transform = `translateX(${x}px)`;
-          els[i].style.opacity = String(Math.max(0, Math.min(fadeIn, fadeOut)));
-        });
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    };
-
-    // Use ResizeObserver to wait until the container has a real width
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect?.width || container.offsetWidth;
-      if (w > 0) startAnimation(w);
-    });
-    ro.observe(container);
-
-    // Also try immediately in case it already has size
-    const w = container.offsetWidth;
-    if (w > 0) startAnimation(w);
-
-    return () => {
-      ro.disconnect();
-      cancelAnimationFrame(raf);
-      els.forEach(el => el.remove());
-    };
-  }, [isAuthenticated]);
+  // Sport icons for hero banner — rendered as JSX, animated via CSS sportSlide keyframe
+  const heroSports = [
+    { emoji: '⛷️', label: 'XC SKI', top: '6%', dur: '12s', delay: '0s' },
+    { emoji: '🚴', label: 'CYCLING', top: '25%', dur: '10s', delay: '-4s' },
+    { emoji: '🏋️', label: 'STRENGTH', top: '44%', dur: '13s', delay: '-8s' },
+    { emoji: '🏃', label: 'RUNNING', top: '62%', dur: '11s', delay: '-2s' },
+    { emoji: '🏊', label: 'SWIMMING', top: '78%', dur: '15s', delay: '-6s' },
+  ];
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
@@ -476,7 +412,7 @@ function App() {
 
 
           {/* Hero Banner - Animated CSS (no video required) */}
-          <div ref={heroRef} className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl" style={{ background: 'linear-gradient(135deg, #0a0f2e 0%, #0d2137 30%, #061a2e 60%, #0a1628 100%)' }}>
+          <div className="relative w-full h-48 md:h-64 lg:h-72 rounded-2xl overflow-hidden mb-6 shadow-2xl" style={{ background: 'linear-gradient(135deg, #0a0f2e 0%, #0d2137 30%, #061a2e 60%, #0a1628 100%)' }}>
 
             {/* Animated gradient orbs */}
             <div className="absolute inset-0 overflow-hidden">
@@ -505,7 +441,24 @@ function App() {
             <div className="absolute inset-0 opacity-5"
               style={{ backgroundImage: 'linear-gradient(rgba(59,130,246,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.5) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-            {/* Sport icons injected via JS/RAF — see useEffect above */}
+            {/* Sport icons — CSS sportSlide animation, right→left, looping */}
+            {heroSports.map(({ emoji, label, top, dur, delay }) => (
+              <div
+                key={label}
+                className="absolute pointer-events-none flex flex-col items-center"
+                style={{
+                  top,
+                  left: 0,
+                  gap: '2px',
+                  zIndex: 12,
+                  animation: `sportSlide ${dur} linear infinite`,
+                  animationDelay: delay,
+                }}
+              >
+                <span style={{ fontSize: '2.2rem', filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.45))' }}>{emoji}</span>
+                <span style={{ fontSize: '7px', fontWeight: 800, letterSpacing: '2px', color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>{label}</span>
+              </div>
+            ))}
 
             {/* Floating sport keywords */}
             {[
