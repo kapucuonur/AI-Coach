@@ -37,10 +37,11 @@ function App() {
     const container = heroRef.current;
     if (!container) return;
     const sports = [
-      { emoji: '⛷️', label: 'XC SKI', speed: 3.0, topPct: 9 },
-      { emoji: '🚴', label: 'CYCLING', speed: 2.1, topPct: 32 },
-      { emoji: '🏃', label: 'RUNNING', speed: 1.5, topPct: 56 },
-      { emoji: '🏊', label: 'SWIMMING', speed: 0.9, topPct: 76 },
+      { emoji: '⛷️', label: 'XC SKI', speed: 2.8, topPct: 8 },
+      { emoji: '🚴', label: 'CYCLING', speed: 2.2, topPct: 28 },
+      { emoji: '🏃', label: 'RUNNING', speed: 1.6, topPct: 50 },
+      { emoji: '🏊', label: 'SWIMMING', speed: 1.1, topPct: 70 },
+      { emoji: '🏋️', label: 'STRENGTH', speed: 1.8, topPct: 38 },
     ];
     const getW = () => container.offsetWidth;
     // Stagger start positions so they don't all appear at once
