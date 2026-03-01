@@ -350,11 +350,15 @@ function App() {
                   if (settingsData) {
                     setSettingsData(prev => ({ ...prev, language: newLang }));
                   }
+                  // Clear cached advice so it re-generates in the new language
+                  setData(prev => prev ? { ...prev, advice: null, workout: null } : prev);
                   try {
                     await client.post('/settings', { language: newLang });
                   } catch (err) {
                     console.error("Failed to update language", err);
                   }
+                  // Trigger fresh advice generation in the new language
+                  fetchAIAdvice(null, newLang);
                 }}
                 className="bg-white dark:bg-garmin-gray text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-garmin-blue shadow-sm"
               >

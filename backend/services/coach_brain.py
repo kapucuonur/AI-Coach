@@ -37,7 +37,8 @@ def rate_limit(max_calls=10, period=60):
 class CoachBrain:
     SUPPORTED_LANGUAGES = {
         "en": "English", "tr": "Turkish", "de": "German", 
-        "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish"
+        "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish",
+        "fi": "Finnish"
     }
 
     def __init__(self):
