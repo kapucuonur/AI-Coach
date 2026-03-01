@@ -36,42 +36,70 @@ function App() {
   useEffect(() => {
     const container = heroRef.current;
     if (!container) return;
+
     const sports = [
       { emoji: '⛷️', label: 'XC SKI', speed: 2.8, topPct: 8 },
       { emoji: '🚴', label: 'CYCLING', speed: 2.2, topPct: 28 },
-      { emoji: '🏃', label: 'RUNNING', speed: 1.6, topPct: 50 },
-      { emoji: '🏊', label: 'SWIMMING', speed: 1.1, topPct: 70 },
-      { emoji: '🏋️', label: 'STRENGTH', speed: 1.8, topPct: 38 },
+      { emoji: '🏋️', label: 'STRENGTH', speed: 1.8, topPct: 44 },
+      { emoji: '🏃', label: 'RUNNING', speed: 1.6, topPct: 60 },
+      { emoji: '🏊', label: 'SWIMMING', speed: 1.1, topPct: 76 },
     ];
-    const getW = () => container.offsetWidth;
-    // Stagger start positions so they don't all appear at once
-    const pos = sports.map((_, i) => getW() + 80 + i * (getW() / sports.length));
-    // Create DOM elements and append to hero container
-    const els = sports.map((s) => {
-      const div = document.createElement('div');
-      div.style.cssText = 'position:absolute;left:0;pointer-events:none;will-change:transform;display:flex;flex-direction:column;align-items:center;gap:2px;';
-      div.style.top = `${s.topPct}%`;
-      div.innerHTML = `<span style="font-size:2.1rem;filter:drop-shadow(0 0 8px rgba(255,255,255,0.35))">${s.emoji}</span>` +
-        `<span style="font-size:7px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,0.35);text-transform:uppercase;font-family:inherit">${s.label}</span>`;
-      container.appendChild(div);
-      return div;
-    });
+
     let raf;
-    const tick = () => {
-      const cw = getW();
-      sports.forEach((s, i) => {
-        pos[i] -= s.speed;
-        if (pos[i] < -100) pos[i] = cw + 80 + Math.random() * 60;
-        const x = pos[i];
-        const fadeIn = Math.min(1, x / 80);
-        const fadeOut = Math.min(1, (cw + 40 - x) / 80);
-        els[i].style.transform = `translateX(${x}px)`;
-        els[i].style.opacity = String(Math.max(0, Math.min(fadeIn, fadeOut)));
+    let pos = [];
+    let els = [];
+    let started = false;
+
+    const startAnimation = (cw) => {
+      if (started) return;
+      started = true;
+
+      // Stagger start positions across the full width so they appear one by one
+      pos = sports.map((_, i) => cw + 80 + i * (cw / sports.length));
+
+      els = sports.map((s) => {
+        const div = document.createElement('div');
+        div.style.cssText = 'position:absolute;left:0;pointer-events:none;will-change:transform;display:flex;flex-direction:column;align-items:center;gap:2px;z-index:10;';
+        div.style.top = `${s.topPct}%`;
+        div.innerHTML =
+          `<span style="font-size:2.2rem;filter:drop-shadow(0 0 10px rgba(255,255,255,0.4))">${s.emoji}</span>` +
+          `<span style="font-size:7px;font-weight:800;letter-spacing:2px;color:rgba(255,255,255,0.4);text-transform:uppercase;font-family:inherit">${s.label}</span>`;
+        container.appendChild(div);
+        return div;
       });
+
+      const tick = () => {
+        const w = container.offsetWidth;
+        sports.forEach((s, i) => {
+          pos[i] -= s.speed;
+          if (pos[i] < -120) pos[i] = w + 80 + Math.random() * 80;
+          const x = pos[i];
+          const fadeIn = Math.min(1, x / 100);
+          const fadeOut = Math.min(1, (w + 50 - x) / 100);
+          els[i].style.transform = `translateX(${x}px)`;
+          els[i].style.opacity = String(Math.max(0, Math.min(fadeIn, fadeOut)));
+        });
+        raf = requestAnimationFrame(tick);
+      };
       raf = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); els.forEach(el => el.remove()); };
+
+    // Use ResizeObserver to wait until the container has a real width
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect?.width || container.offsetWidth;
+      if (w > 0) startAnimation(w);
+    });
+    ro.observe(container);
+
+    // Also try immediately in case it already has size
+    const w = container.offsetWidth;
+    if (w > 0) startAnimation(w);
+
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(raf);
+      els.forEach(el => el.remove());
+    };
   }, [isAuthenticated]);
 
   const [isAdmin, setIsAdmin] = useState(false);
