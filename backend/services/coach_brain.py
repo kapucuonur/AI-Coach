@@ -1,17 +1,15 @@
 import os
 import logging
-import warnings
 import json
 import time
-import hashlib
+import threading
 from functools import lru_cache, wraps
 from tenacity import retry, stop_after_attempt, wait_exponential
+from datetime import datetime
 
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
-
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,16 +18,19 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 def rate_limit(max_calls=10, period=60):
-    """Simple rate limiter decorator"""
+    """Thread-safe rate limiter decorator"""
     calls = []
+    lock = threading.Lock()
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             now = time.time()
-            calls[:] = [c for c in calls if c > now - period]
-            if len(calls) >= max_calls:
-                time.sleep(period - (now - calls[0]))
-            calls.append(time.time())
+            with lock:
+                calls[:] = [c for c in calls if c > now - period]
+                if len(calls) >= max_calls:
+                    wait_time = period - (now - calls[0])
+                    time.sleep(wait_time)
+                calls.append(time.time())
             return func(*args, **kwargs)
         return wrapper
     return decorator
@@ -50,6 +51,7 @@ class CoachBrain:
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = 'gemini-2.5-flash'
 
+    @lru_cache(maxsize=32)
     def _get_target_language(self, language_code):
         """Centralized language validation"""
         return self.SUPPORTED_LANGUAGES.get(
@@ -76,13 +78,11 @@ class CoachBrain:
         """
         
         # Calculate time context
-        from datetime import datetime
-        current_hour = datetime.now().hour if not client_local_time else 9
+        current_hour = datetime.now().hour
         time_context_str = "Unknown time of day"
         if client_local_time:
             try:
                 # Basic ISO parsing (e.g., 2026-02-12T19:47:28.000Z)
-                from datetime import datetime
                 # Handle potential trailing Z or offsets rudimentarily if needed
                 cleaned_time = client_local_time.replace('Z', '+00:00')
                 dt = datetime.fromisoformat(cleaned_time)
@@ -92,13 +92,14 @@ class CoachBrain:
                 logger.warning(f"Could not parse client time {client_local_time}: {e}")
                 pass
 
-        is_evening = current_hour >= 18
+        EVENING_HOUR_THRESHOLD = 18
+        is_evening = current_hour >= EVENING_HOUR_THRESHOLD
+        MAX_DAILY_TRAINING_MINUTES = 90
         
         is_rest_day = False
         today_name = "Unknown"
         if client_local_time:
             try:
-                from datetime import datetime
                 cleaned_time = client_local_time.replace('Z', '+00:00')
                 dt = datetime.fromisoformat(cleaned_time)
                 today_name = dt.strftime('%A')
@@ -267,12 +268,12 @@ class CoachBrain:
         ALL text, sentences, guidance, and markdown headers MUST be translated into {target_language}. DO NOT output English text if {target_language} is not English!
 
         **Structure Details (Format this structure into {target_language}, applying rich markdown like bolding and lists):**
-        1. ** फिजियोलॉजिकल Analytics & Readiness (Physiological Analytics & Readiness)**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
+        1. **Physiological Analytics & Readiness (Physiological Analytics & Readiness)**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
         2. **Training Directive (Training Directive)**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session.
         3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context.
            - IF OFF DAY (Rest Day): As specified in Current Context, you must prescribe `null` for the workout JSON and just recommend rest/recovery.
-           - OVERTRAINING PROTECTION (CRITICAL): If the athlete has already completed >= 2 sessions today, OR if the total duration of today's training exceeds 90 minutes, YOU MUST PRESCRIBE TOTAL REST. Professional athletes need recovery. Provide `null` for the workout JSON.
-           - IF trained today already (but < 90 mins): Prescribe active recovery, mobility, or total rest.
+           - OVERTRAINING PROTECTION (CRITICAL): If the athlete has already completed >= 2 sessions today, OR if the total duration of today's training exceeds {MAX_DAILY_TRAINING_MINUTES} minutes, YOU MUST PRESCRIBE TOTAL REST. Professional athletes need recovery. Provide `null` for the workout JSON.
+           - IF trained today already (but < {MAX_DAILY_TRAINING_MINUTES} mins): Prescribe active recovery, mobility, or total rest.
            - CYCLING RESTRICTION: No running if "Runs: No", only cycle, stretch, strength, or rest.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport. Warmup/Main Set/Cooldown required in the JSON workout section if providing an active workout.
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout (if applicable), and Post-workout macronutrient focus.
@@ -647,7 +648,19 @@ class CoachBrain:
             json.loads(cleaned)  # Test parse
             return cleaned
         except json.JSONDecodeError as e:
-            logger.error(f"Invalid JSON from Gemini: {e}")
+            logger.error(f"Invalid JSON from Gemini: {e}\nRaw response header: {response_text[:500]}")
+            # Try to recover using regex
+            import re
+            match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if match:
+                try:
+                    json.loads(match.group())
+                    logger.info("Successfully recovered JSON using regex.")
+                    return match.group()
+                except Exception as regex_err:
+                    logger.error(f"Regex recovery failed: {regex_err}")
+                    pass
+            
             # Return safe fallback
             return '{"advice_text": "AI response formatting error", "workout": null}'
 
