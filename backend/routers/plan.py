@@ -28,11 +28,9 @@ def generate_plan(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        
         # 1. Fetch Data (Client is already authenticated via Depends)
 
-        brain = CoachBrain(gemini_key)
+        brain = CoachBrain()
         processor = DataProcessor()
         settings = load_settings(current_user.email)
         user_settings_dict = settings.model_dump()
