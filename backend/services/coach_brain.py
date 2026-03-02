@@ -193,7 +193,6 @@ class CoachBrain:
             if races:
                 # Format races
                 race_list = []
-                from datetime import datetime
                 today = datetime.now()
                 
                 for r in races:
