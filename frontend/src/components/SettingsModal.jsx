@@ -159,7 +159,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            {t('strength_training', { days: strengthDays })}
+                            {t('strength_training_days', { days: strengthDays })}
                         </label>
                         <input
                             type="range"

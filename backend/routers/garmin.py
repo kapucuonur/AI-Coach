@@ -11,23 +11,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+import asyncio
+
 @router.get("/devices")
-def get_devices(client: GarminClient = Depends(get_garmin_client)):
+async def get_devices(client: GarminClient = Depends(get_garmin_client)):
     """Fetch available Garmin devices."""
     try:
-        devices = client.get_devices()
+        devices = await asyncio.to_thread(client.get_devices)
         return devices
     except Exception as e:
         logger.error(f"Error fetching devices: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats/yearly")
-def get_yearly_stats(client: GarminClient = Depends(get_garmin_client)):
+async def get_yearly_stats(
+    years: int = 5,
+    client: GarminClient = Depends(get_garmin_client)
+):
     """Get yearly activity statistics."""
     try:
-        # Default to last 5 years
-        start_year = date.today().year - 5
-        stats = client.get_yearly_stats(start_year)
+        start_year = date.today().year - years
+        stats = await asyncio.to_thread(client.get_yearly_stats, start_year)
         return stats
     except Exception as e:
         logger.error(f"Error fetching yearly stats: {e}")

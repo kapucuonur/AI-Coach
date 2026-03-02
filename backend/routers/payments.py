@@ -7,26 +7,36 @@ from backend.models import User
 from backend.auth_utils import get_current_user
 from pydantic import BaseModel
 
+import logging
+
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
-# Secrets will be fetched dynamically per request to ensure Render updates apply immediately
+# Configure Stripe API Key at module level
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# You'll need to create a product in Stripe and put its Price ID in the environment
-FRONTEND_URL = os.getenv("FRONTEND_URL", os.getenv("VITE_API_URL", "http://localhost:5173").replace("/api", ""))
-if FRONTEND_URL == "http://localhost:8000":
-    FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+def _create_stripe_session(customer_id: str, price_id: str, user_email: str) -> stripe.checkout.Session:
+    return stripe.checkout.Session.create(
+        customer=customer_id,
+        payment_method_types=['card'],
+        line_items=[{'price': price_id, 'quantity': 1}],
+        mode='subscription',
+        subscription_data={"trial_period_days": 7},
+        success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
+        cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
+        metadata={"user_email": user_email}
+    )
 
 @router.post("/create-checkout-session")
 def create_checkout_session(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
         # Check if they already have a customer ID
         customer_id = current_user.stripe_customer_id
         price_id = os.getenv("STRIPE_PRICE_ID")
         
-        # DEBUG: Print exact keys loaded in production
-        hk = stripe.api_key[:12] if stripe.api_key else "None"
-        print(f"[DEBUG] Loaded Stripe Key: {hk}..., PriceID: {price_id}")
+        logger.debug(f"Stripe initializing checkout, PriceID configured: {bool(price_id)}")
         
         if not customer_id:
             # Create a new Stripe customer
@@ -37,27 +47,11 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
 
         try:
             # Create the Checkout Session
-            checkout_session = stripe.checkout.Session.create(
-                customer=customer_id,
-                payment_method_types=['card'],
-                line_items=[
-                    {
-                        'price': price_id,
-                        'quantity': 1,
-                    },
-                ],
-                mode='subscription',
-                subscription_data={
-                    "trial_period_days": 7,
-                },
-                success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
-                cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
-                metadata={"user_email": current_user.email}
-            )
+            checkout_session = _create_stripe_session(customer_id, price_id, current_user.email)
         except stripe.error.InvalidRequestError as e:
             # If the customer ID is invalid (e.g. from test mode but trying to use live key)
             if "No such customer" in str(e):
-                print(f"Customer {customer_id} not found in Stripe. Creating a new one...")
+                logger.info(f"Customer {customer_id} not found in Stripe. Creating a new one...")
                 # Create a new Stripe customer
                 customer = stripe.Customer.create(email=current_user.email)
                 customer_id = customer.id
@@ -65,23 +59,7 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
                 db.commit()
                 
                 # Retry checkout creation with new customer
-                checkout_session = stripe.checkout.Session.create(
-                    customer=customer_id,
-                    payment_method_types=['card'],
-                    line_items=[
-                        {
-                            'price': price_id,
-                            'quantity': 1,
-                        },
-                    ],
-                    mode='subscription',
-                    subscription_data={
-                        "trial_period_days": 7,
-                    },
-                    success_url=f"{FRONTEND_URL}/dashboard?checkout=success",
-                    cancel_url=f"{FRONTEND_URL}/dashboard?checkout=canceled",
-                    metadata={"user_email": current_user.email}
-                )
+                checkout_session = _create_stripe_session(customer_id, price_id, current_user.email)
             else:
                 raise e
         
@@ -92,7 +70,6 @@ def create_checkout_session(db: Session = Depends(get_db), current_user: User = 
 
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
-    stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
     payload = await request.body()
@@ -133,6 +110,21 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         if user:
             user.is_premium = False
             user.subscription_status = "canceled"
+            db.commit()
+            
+    elif event['type'] == 'customer.subscription.updated':
+        # Handle subscription plan changes, status changes (past_due, unpaid, active)
+        subscription = event['data']['object']
+        customer_id = subscription.get("customer")
+        status = subscription.get("status")
+        
+        user = db.query(User).filter(User.stripe_customer_id == customer_id).first()
+        if user:
+            user.subscription_status = status
+            if status in ['active', 'trialing']:
+                user.is_premium = True
+            else:
+                user.is_premium = False
             db.commit()
 
     return {"status": "success"}

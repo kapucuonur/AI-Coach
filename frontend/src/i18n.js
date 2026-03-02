@@ -21,7 +21,7 @@ const resources = {
             "gender": "Gender",
             "male": "Male",
             "female": "Female",
-            "strength_training": "Strength Training (Days/Week): {{days}}",
+            "strength_training_days": "Strength Training (Days/Week): {{days}}",
             "off_days": "Off Day(s) - Rest Days",
             "training_plan_title": "Training Plan",
             "training_plan_desc": "Generate a structured plan tailored to your goals.",
@@ -132,7 +132,7 @@ const resources = {
             "gender": "Cinsiyet",
             "male": "Erkek",
             "female": "Kadın",
-            "strength_training": "Kuvvet Antrenmanı (Gün/Hafta): {{days}}",
+            "strength_training_days": "Kuvvet Antrenmanı (Gün/Hafta): {{days}}",
             "off_days": "Dinlenme Günleri",
             "training_plan_title": "Antrenman Programı",
             "training_plan_desc": "Hedeflerinize özel bir program oluşturun.",
@@ -428,7 +428,7 @@ const resources = {
             "gender": "Sukupuoli",
             "male": "Mies",
             "female": "Nainen",
-            "strength_training": "Voimaharjoittelu (Päiviä/viikko): {{days}}",
+            "strength_training_days": "Voimaharjoittelu (Päiviä/viikko): {{days}}",
             "off_days": "Lepo-/vapaapäivät",
             "training_plan_title": "Harjoitussuunnitelma",
             "training_plan_desc": "Luo tavoitteidesi mukainen suunnitelma.",
@@ -529,6 +529,11 @@ i18n
     .init({
         resources,
         fallbackLng: 'en',
+        detection: {
+            order: ['localStorage', 'navigator'],
+            caches: ['localStorage'],
+            lookupLocalStorage: 'i18nextLng',
+        },
         interpolation: {
             escapeValue: false
         }
