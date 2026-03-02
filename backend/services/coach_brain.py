@@ -134,9 +134,13 @@ class CoachBrain:
         
         sleep_quality = 'N/A'
         sleep_score = 'N/A'
+        sleep_duration = 'N/A'
         if sleep_data and 'dailySleepDTO' in sleep_data:
             sleep_quality = sleep_data['dailySleepDTO'].get('sleepQualityType', 'N/A')
             sleep_score = sleep_data['dailySleepDTO'].get('sleepScore', 'N/A')
+            sleep_secs = sleep_data['dailySleepDTO'].get('sleepTimeSeconds')
+            if sleep_secs:
+                sleep_duration = f"{sleep_secs / 3600:.1f} hrs"
             
         stress = health_stats.get('averageStressLevel', 'N/A') if health_stats else 'N/A'
         body_battery = health_stats.get('bodyBatteryHighestValue', 'N/A') if health_stats else 'N/A'
@@ -248,7 +252,7 @@ class CoachBrain:
         
         **3. Physical & Mental Condition (Readiness):**
         - Resting HR: {resting_hr} bpm
-        - Sleep: {sleep_score}/100 ({sleep_quality})
+        - Sleep: {sleep_duration} (Score: {sleep_score}/100, Quality: {sleep_quality})
         - Stress Level: {stress}/100 (Lower is better)
         - Body Battery: {body_battery}/100 (Higher means more energy)
         
@@ -410,9 +414,13 @@ class CoachBrain:
         
         sleep_quality = 'N/A'
         sleep_score = 'N/A'
+        sleep_duration = 'N/A'
         if sleep_data and 'dailySleepDTO' in sleep_data:
             sleep_quality = sleep_data['dailySleepDTO'].get('sleepQualityType', 'N/A')
             sleep_score = sleep_data['dailySleepDTO'].get('sleepScore', 'N/A')
+            sleep_secs = sleep_data['dailySleepDTO'].get('sleepTimeSeconds')
+            if sleep_secs:
+                sleep_duration = f"{sleep_secs / 3600:.1f} hrs"
         
         # Build prompt
         prompt = f"""
@@ -434,7 +442,7 @@ class CoachBrain:
         - Resting HR: {resting_hr}
         - Body Battery: {body_battery}/100 (Higher means more energy available)
         - Stress Level: {stress}/100 (Lower is better)
-        - Sleep Quality: {sleep_score}/100 ({sleep_quality})
+        - Sleep: {sleep_duration} (Score: {sleep_score}/100, Quality: {sleep_quality})
         
         **3. Recent Load (Activities):**
         {activities_str}
