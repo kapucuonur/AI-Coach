@@ -15,7 +15,7 @@
 
 > *"Where decades of triathlon coaching experience meet modern full-stack engineering."*
 > 
-> CoachOnur AI isn't just another generic fitness app. It was born from the exact intersection of grinding through exhausting Ironman blocks and writing scalable Python infrastructure. As a long-time endurance athlete and coach, I built this platform because I wanted an intelligence layer that actually *understands* training load (TSS), recovery bounds, and the complex reality of balancing multi-sport disciplines. 
+> CoachOnur AI isn't just another generic fitness app. It was born from the exact intersection of grinding through exhausting training blocks and writing scalable Python infrastructure. Having personally completed numerous Triathlons and Ironman races, and as a long-time endurance coach, I built this platform because I wanted an intelligence layer that actually *understands* training load (TSS), recovery bounds, and the complex reality of balancing multi-sport disciplines. 
 
 An AI-powered endurance sports coach that analyzes your Garmin ecosystem data to provide personalized training plans, daily insights, and nutritional breakdowns. Built with a premium UI, it features a fully functional "View-Only" free tier and a Stripe-powered Pro subscription.
 
