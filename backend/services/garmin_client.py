@@ -22,6 +22,13 @@ load_dotenv()
 # Global in-memory store for authenticated clients (Singleton Pattern)
 # Key: email, Value: Garmin client instance
 GLOBAL_CLIENTS = {}
+GLOBAL_CLIENTS_LOCK = threading.RLock()
+
+# Garmin API Endpoints Constants
+class GarminAPIEndpoints:
+    SCHEDULE_WORKOUT = "/calendar-service/workout/{workout_id}/schedule/{date_str}"
+    DEVICE_WORKOUTS = "/device-service/devices/{device_id}/workouts"
+    SOCIAL_PROFILE = "/userprofile-service/socialProfile"
 
 # Locks to prevent concurrent logins for the same email
 CLIENT_LOCKS = {}
@@ -133,7 +140,8 @@ class GarminClient:
             
             if self.client.display_name:
                 logger.info(f"Session successfully resumed from DB data for {self.client.display_name}")
-                GLOBAL_CLIENTS[self.email] = self.client
+                with GLOBAL_CLIENTS_LOCK:
+                    GLOBAL_CLIENTS[self.email] = self.client
                 return True
         except Exception as e:
             logger.warning(f"Failed to restore session from data: {e}")
@@ -158,17 +166,19 @@ class GarminClient:
             logger.error(msg)
             return False, "FAILED", msg
 
-        # 0. Check In-Memory Cache (Fastest) - No lock needed for simple read
-        if not mfa_code and self.email in GLOBAL_CLIENTS:
-            try:
-                cached_client = GLOBAL_CLIENTS[self.email]
-                if cached_client.display_name:
-                    logger.info(f"✅ Using cached session for {cached_client.display_name}")
-                    self.client = cached_client
-                    return True, "SUCCESS", "Session resumed from memory"
-            except Exception as e:
-                logger.warning(f"⚠️ Cached session invalid, clearing: {e}")
-                del GLOBAL_CLIENTS[self.email]
+        # 0. Check In-Memory Cache (Fastest) - Thread Safe
+        if not mfa_code:
+            with GLOBAL_CLIENTS_LOCK:
+                if self.email in GLOBAL_CLIENTS:
+                    try:
+                        cached_client = GLOBAL_CLIENTS[self.email]
+                        if cached_client.display_name:
+                            logger.info(f"✅ Using cached session for {cached_client.display_name}")
+                            self.client = cached_client
+                            return True, "SUCCESS", "Session resumed from memory"
+                    except Exception as e:
+                        logger.warning(f"⚠️ Cached session invalid, clearing: {e}")
+                        del GLOBAL_CLIENTS[self.email]
 
         # 1. Check DB Persistence (If DB session provided)
         if not mfa_code and db:
@@ -176,15 +186,16 @@ class GarminClient:
             lock = get_client_lock(self.email)
             with lock:
                 # Double check memory cache in case another thread just loaded it while we waited
-                if self.email in GLOBAL_CLIENTS:
-                    try:
-                        cached_client = GLOBAL_CLIENTS[self.email]
-                        if cached_client.display_name:
-                            logger.info(f"✅ Using cached session for {cached_client.display_name} (from lock)")
-                            self.client = cached_client
-                            return True, "SUCCESS", "Session resumed from memory (lock)"
-                    except Exception:
-                        pass
+                with GLOBAL_CLIENTS_LOCK:
+                    if self.email in GLOBAL_CLIENTS:
+                        try:
+                            cached_client = GLOBAL_CLIENTS[self.email]
+                            if cached_client.display_name:
+                                logger.info(f"✅ Using cached session for {cached_client.display_name} (from lock)")
+                                self.client = cached_client
+                                return True, "SUCCESS", "Session resumed from memory (lock)"
+                        except Exception:
+                            pass
                 
                 logger.info(f"Checking DB for session {self.email}...")
                 session_data = self.load_session_from_db(db)
@@ -215,7 +226,8 @@ class GarminClient:
 
                     if self.client.display_name:
                          logger.info(f"Session resumed from disk")
-                         GLOBAL_CLIENTS[self.email] = self.client
+                         with GLOBAL_CLIENTS_LOCK:
+                             GLOBAL_CLIENTS[self.email] = self.client
                          # Opportunistically save to DB if we have it
                          if db: self.save_session_to_db(db)
                          return True, "SUCCESS", "Session resumed from disk"
@@ -250,7 +262,8 @@ class GarminClient:
                         self.client.garth.dump(garth_dir)
                     except: pass
                 
-                GLOBAL_CLIENTS[self.email] = self.client
+                with GLOBAL_CLIENTS_LOCK:
+                    GLOBAL_CLIENTS[self.email] = self.client
                 # Cleanup
                 del PENDING_SESSIONS[self.email]
                 return True, "SUCCESS", "Authenticated successfully"
@@ -326,6 +339,9 @@ class GarminClient:
                     return False, "FAILED", f"Login failed: {err}"
                 time.sleep(0.5)
             
+            # Timeout occurred
+            if self.email in PENDING_SESSIONS:
+                del PENDING_SESSIONS[self.email]
             return False, "FAILED", "Login timed out connecting to Garmin."
 
     def get_profile(self):
@@ -421,12 +437,13 @@ class GarminClient:
         try:
             vo2_data = {}
             
-            # Try get_max_metrics() for today and recent dates
-            # VO2 Max doesn't update daily, so check last 7 days
+            # VO2 Max doesn't update daily, so check dynamically sized intervals
             try:
                 dates_to_check = []
                 today = date.today()
-                for days_back in range(30):
+                check_intervals = [0, 1, 3, 7, 14, 30]
+                
+                for days_back in check_intervals:
                     check_date = today - timedelta(days=days_back)
                     dates_to_check.append(check_date.isoformat())
                 
@@ -633,8 +650,9 @@ class GarminClient:
                             stats_obj = data_item['stats']
                             for sport_key, sport_data in stats_obj.items():
                                 if 'distance' in sport_data and 'sum' in sport_data['distance']:
-                                    distance_cm = sport_data['distance']['sum']
-                                    distance_km = round(distance_cm / 100000, 2)
+                                    # The API returns meters so cm logic is incorrect, convert meters to kilometers
+                                    distance_m = sport_data['distance']['sum']
+                                    distance_km = round(distance_m / 1000, 2)
                                     if sport_key not in stats_for_year:
                                         stats_for_year[sport_key] = {}
                                     stats_for_year[sport_key]['distance'] = distance_km
@@ -705,14 +723,13 @@ class GarminClient:
         
         try:
             logger.info(f"Scheduling workout {workout_id} for {date_str}...")
-            url = f"/calendar-service/workout/{workout_id}/schedule/{date_str}"
+            url = GarminAPIEndpoints.SCHEDULE_WORKOUT.format(workout_id=workout_id, date_str=date_str)
             response = self.client.garth.post("connectapi", url, api=True)
             logger.info("Workout scheduled successfully.")
             return True
         except Exception as e:
             logger.error(f"Failed to schedule workout: {e}")
-            logger.warning("Continuing anyway, as this might just mean it was already scheduled.")
-            return False
+            raise Exception(f"Failed to schedule workout: {e}")
 
     def send_workout_to_device(self, workout_id: int, device_id: str) -> bool:
         """
@@ -724,7 +741,7 @@ class GarminClient:
             
         try:
             logger.info(f"Sending workout {workout_id} to device {device_id}...")
-            url = f"/device-service/devices/{device_id}/workouts"
+            url = GarminAPIEndpoints.DEVICE_WORKOUTS.format(device_id=device_id)
             # Payload is usually a list of workout IDs or objects
             payload = [{"workoutId": workout_id}]
             
