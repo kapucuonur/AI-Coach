@@ -8,21 +8,51 @@ from sqlalchemy.orm import Session
 import os
 from datetime import date
 import pandas as pd
+import numpy as np
 import traceback
 import logging
 import asyncio
+import json
+import time
+from fastapi import Request
+from jose import jwt, JWTError
+from backend.auth_utils import ALGORITHM, SECRET_KEY
+
+def sanitize_for_json(obj):
+    """Reusable JSON sanitizer for numpy/pandas data types."""
+    if isinstance(obj, pd.DataFrame):
+        return obj.to_dict(orient="records")
+    if isinstance(obj, (pd.Timestamp, date)):
+        return obj.isoformat()
+    if isinstance(obj, (np.integer, int)):
+        return int(obj)
+    if isinstance(obj, (np.floating, float)):
+        return None if pd.isna(obj) or np.isnan(obj) else float(obj)
+    if isinstance(obj, (np.ndarray, list)):
+        return [sanitize_for_json(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: sanitize_for_json(v) for k, v in obj.items()}
+    if pd.isna(obj): # Handles pd.NA, np.nan, None
+        return None
+    return obj
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel
 from backend.routers.settings import load_settings
-
 from backend.auth_utils import get_current_user, decrypt_garmin_password
 from backend.models import User
+from datetime import datetime
+from typing import Optional
+
+class DailyMetricsRequest(BaseModel):
+    client_local_time: Optional[str] = None
 
 @router.post("/daily-metrics")
 async def get_daily_metrics(
+    payload: DailyMetricsRequest,
+    request: Request,
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
@@ -65,10 +95,19 @@ async def get_daily_metrics(
         df = processor.process_activities(activities)
         weekly_summary = processor.calculate_weekly_summary(df)
         
-        # Filter for TODAY'S activities
+        # Filter for TODAY'S activities (Timezone-Aware)
         todays_activities = []
         if not df.empty and 'date' in df.columns:
-            today = date.today()
+            if payload.client_local_time:
+                try:
+                    cleaned_time = payload.client_local_time.replace('Z', '+00:00')
+                    client_dt = datetime.fromisoformat(cleaned_time)
+                    today = client_dt.date()
+                except (ValueError, AttributeError):
+                    today = date.today()
+            else:
+                today = date.today()
+                
             todays_df = df[df['date'].dt.date == today]
             if not todays_df.empty:
                 todays_activities = todays_df.to_dict(orient='records')
@@ -79,23 +118,19 @@ async def get_daily_metrics(
             activities_summary_dict = weekly_summary.to_dict()
 
         # Sanitize helpers
-        import numpy as np
-        def sanitize_for_json(obj):
-            if isinstance(obj, pd.DataFrame):
-                return obj.to_dict(orient="records")
-            if isinstance(obj, (pd.Timestamp, date)):
-                return obj.isoformat()
-            if isinstance(obj, (np.integer, int)):
-                return int(obj)
-            if isinstance(obj, (np.floating, float)):
-                return None if pd.isna(obj) or np.isnan(obj) else float(obj)
-            if isinstance(obj, (np.ndarray, list)):
-                return [sanitize_for_json(x) for x in obj]
-            if isinstance(obj, dict):
-                return {k: sanitize_for_json(v) for k, v in obj.items()}
-            if pd.isna(obj): # Handles pd.NA, np.nan, None
-                return None
-            return obj
+
+        # Only refresh token if less than 24 hours remain
+        needs_refresh = False
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                exp = payload.get("exp")
+                if exp and exp - time.time() < 86400:
+                    needs_refresh = True
+            except JWTError:
+                needs_refresh = True
 
         response_data = {
             "metrics": {
@@ -105,10 +140,12 @@ async def get_daily_metrics(
                 "recent_activities": activities,
                 "profile": profile
             },
-            "todays_activities": todays_activities, # Pass down for the AI to use later
-            "access_token": create_access_token(data={"sub": current_user.email}),
-            "token_type": "bearer"
+            "todays_activities": todays_activities # Pass down for the AI to use later
         }
+        
+        if needs_refresh:
+            response_data["access_token"] = create_access_token(data={"sub": current_user.email})
+            response_data["token_type"] = "bearer"
         
         return sanitize_for_json(response_data)
 
@@ -131,11 +168,12 @@ class AIAdviceRequest(BaseModel):
 
 @router.post("/generate-advice")
 async def generate_advice(
+    request: Request,
     payload: AIAdviceRequest,
     current_user: User = Depends(get_current_user)
 ):
     try:
-        brain = CoachBrain()
+        brain = request.app.state.brain
         
         # Load user personalization
         settings = load_settings(current_user.email)
@@ -159,13 +197,12 @@ async def generate_advice(
         )
         
         # Parse the JSON string from Gemini
-        import json
         try:
             parsed_advice = json.loads(raw_advice)
             advice_text = parsed_advice.get("advice_text", raw_advice)
             workout = parsed_advice.get("workout", None)
-        except json.JSONDecodeError:
-            logger.warning("Failed to parse advice JSON, returning raw text")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse advice JSON, returning raw text: {e}")
             advice_text = raw_advice
             workout = None
 
@@ -180,27 +217,32 @@ async def generate_advice(
         raise HTTPException(status_code=500, detail=str(e))
 
 from backend.routers.dashboard import get_garmin_client
+from typing import Optional
+
+class WorkoutSyncRequest(BaseModel):
+    workout: dict
+    deviceId: Optional[str] = None
 
 @router.post("/sync")
-def sync_workout_to_watch(
-    request: dict,
+async def sync_workout_to_watch(
+    request: WorkoutSyncRequest,
     client: GarminClient = Depends(get_garmin_client)
 ):
     """
     Send AI-generated workout to Garmin Connect and schedule it for today.
     """
     try:
-        workout = request.get("workout")
-        device_id = request.get("deviceId")
+        workout = request.workout
+        device_id = request.deviceId
         
         if not workout:
             raise HTTPException(status_code=400, detail="No workout data provided")
         
         logger.info(f"Received workout sync request: {workout.get('workoutName', 'Unnamed')} for device: {device_id}")
         
-        # 1. Create Workout in Garmin Connect
+        # 1. Create Workout in Garmin Connect (Async wrapper around blocking call)
         try:
-            created_workout = client.create_workout(workout)
+            created_workout = await asyncio.to_thread(client.create_workout, workout)
             workout_id = created_workout.get("workoutId")
         except Exception as e:
             logger.error(f"Failed to create workout: {e}")
@@ -211,11 +253,11 @@ def sync_workout_to_watch(
             
         # 2. Schedule Workout for Today
         today_str = date.today().isoformat()
-        client.schedule_workout(workout_id, today_str)
+        await asyncio.to_thread(client.schedule_workout, workout_id, today_str)
         
         # 3. Queue for specific device (if provided)
         if device_id:
-            client.send_workout_to_device(workout_id, device_id)
+            await asyncio.to_thread(client.send_workout_to_device, workout_id, device_id)
             
         return {
             "status": "success", 

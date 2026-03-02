@@ -128,8 +128,10 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      // Fetch daily metrics
-      const response = await client.post('/coach/daily-metrics');
+      // Fetch daily metrics with localized timezone support
+      const response = await client.post('/coach/daily-metrics', {
+        client_local_time: new Date().toISOString()
+      });
       let enrichedData = response.data;
 
       // Fetch settings

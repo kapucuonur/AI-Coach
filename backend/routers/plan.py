@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -23,19 +23,20 @@ class PlanRequest(BaseModel):
 
 @router.post("/generate")
 def generate_plan(
-    request: PlanRequest, 
+    request: Request,
+    payload: PlanRequest, 
     client: GarminClient = Depends(get_garmin_client),
     current_user: User = Depends(get_current_user)
 ):
     try:
         # 1. Fetch Data (Client is already authenticated via Depends)
 
-        brain = CoachBrain()
+        brain = request.app.state.brain
         processor = DataProcessor()
         settings = load_settings(current_user.email)
         user_settings_dict = settings.model_dump()
-        if request.language:
-            user_settings_dict["language"] = request.language
+        if payload.language:
+            user_settings_dict["language"] = payload.language
         
         # Fetch necessary context
         activities = client.get_activities(30)
@@ -74,7 +75,7 @@ def generate_plan(
                  activities_summary_dict = weekly_summary.to_dict()
 
         plan_json_str = brain.generate_structured_plan(
-            duration_str=request.duration,
+            duration_str=payload.duration,
             user_profile=profile,
             activities_summary=activities_summary_dict,
             health_stats=health_stats,

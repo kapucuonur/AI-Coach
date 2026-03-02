@@ -7,12 +7,15 @@ load_dotenv()
 
 import os
 from contextlib import asynccontextmanager
+from backend.services.coach_brain import CoachBrain
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     import logging
     logger = logging.getLogger("uvicorn")
     logger.info(">>> STARTING AI COACH API - VERSION: SECURE_AUTH <<<")
+    # Initialize global CoachBrain singleton
+    app.state.brain = CoachBrain()
     yield
     logger.info(">>> SHUTTING DOWN AI COACH API <<<")
 
