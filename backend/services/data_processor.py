@@ -28,6 +28,12 @@ class DataProcessor:
         metrics = [col for col in columns_to_keep if col in df.columns]
         df = df[metrics].copy()
         
+        # Flatten activityType dictionaries into raw strings
+        if 'activityType' in df.columns:
+            df['activityType'] = df['activityType'].apply(
+                lambda x: x.get('typeKey', 'unknown') if isinstance(x, dict) else str(x)
+            )
+        
         # Convert types
         if 'startTimeLocal' in df.columns:
             df['startTimeLocal'] = pd.to_datetime(df['startTimeLocal'])
@@ -57,6 +63,9 @@ class DataProcessor:
             if col not in valid_df.columns:
                 valid_df[col] = 0.0
                 
+        # Fix NaN summation bypasses for TSS
+        valid_df['tss'] = pd.to_numeric(valid_df['tss'], errors='coerce').fillna(0)
+                
         return valid_df.groupby('week').agg({
             'distance': 'sum',
             'duration': 'sum',
@@ -64,25 +73,4 @@ class DataProcessor:
             'activityId': 'count'
         }).rename(columns={'activityId': 'count'}).sort_index(ascending=False)
 
-if __name__ == "__main__":
-    # Example usage with dummy data
-    dummy_data = [
-        {
-            'activityId': 1, 'activityName': 'Run', 'startTimeLocal': '2023-10-01 08:00:00',
-            'activityType': {'typeKey': 'running'}, 'distance': 5000, 'duration': 1800,
-            'averageHeartRate': 140, 'trainingStressScore': 50
-        },
-        {
-            'activityId': 2, 'activityName': 'Cycle', 'startTimeLocal': '2023-10-02 18:00:00',
-            'activityType': {'typeKey': 'cycling'}, 'distance': 20000, 'duration': 3600,
-            'averageHeartRate': 130, 'trainingStressScore': 60
-        }
-    ]
-    
-    processor = DataProcessor()
-    df = processor.process_activities(dummy_data)
-    print("Processed Data:")
-    print(df.head())
-    
-    print("\nWeekly Summary:")
-    print(processor.calculate_weekly_summary(df))
+
