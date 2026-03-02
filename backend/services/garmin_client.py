@@ -23,6 +23,14 @@ load_dotenv()
 # Key: email, Value: Garmin client instance
 GLOBAL_CLIENTS = {}
 
+# Locks to prevent concurrent logins for the same email
+CLIENT_LOCKS = {}
+
+def get_client_lock(email: str) -> threading.Lock:
+    if email not in CLIENT_LOCKS:
+        CLIENT_LOCKS[email] = threading.Lock()
+    return CLIENT_LOCKS[email]
+
 # Global in-memory store for pending login sessions
 # Key: email, Value: LoginSession instance
 PENDING_SESSIONS = {}
@@ -150,7 +158,7 @@ class GarminClient:
             logger.error(msg)
             return False, "FAILED", msg
 
-        # 0. Check In-Memory Cache (Fastest)
+        # 0. Check In-Memory Cache (Fastest) - No lock needed for simple read
         if not mfa_code and self.email in GLOBAL_CLIENTS:
             try:
                 cached_client = GLOBAL_CLIENTS[self.email]
@@ -164,10 +172,25 @@ class GarminClient:
 
         # 1. Check DB Persistence (If DB session provided)
         if not mfa_code and db:
-            session_data = self.load_session_from_db(db)
-            if session_data:
-                if self.restore_session_from_data(session_data):
-                    return True, "SUCCESS", "Session resumed from database"
+            # Prevent multiple simultaneous requests from trying to load from DB and triggering new logins
+            lock = get_client_lock(self.email)
+            with lock:
+                # Double check memory cache in case another thread just loaded it while we waited
+                if self.email in GLOBAL_CLIENTS:
+                    try:
+                        cached_client = GLOBAL_CLIENTS[self.email]
+                        if cached_client.display_name:
+                            logger.info(f"✅ Using cached session for {cached_client.display_name} (from lock)")
+                            self.client = cached_client
+                            return True, "SUCCESS", "Session resumed from memory (lock)"
+                    except Exception:
+                        pass
+                
+                logger.info(f"Checking DB for session {self.email}...")
+                session_data = self.load_session_from_db(db)
+                if session_data:
+                    if self.restore_session_from_data(session_data):
+                        return True, "SUCCESS", "Session resumed from database"
 
         # 2. Filesystem Fallback (Legacy/Local dev) - Keep attempting just in case
         home_dir = os.path.expanduser("~")

@@ -410,18 +410,31 @@ class CoachBrain:
         # Build prompt
         prompt = f"""
         Act as an elite {sport} coach.
-        Create a **{duration_str}** professional training plan for this athlete.
+        Create a **{duration_str}** professional structured training plan for this athlete.
         
-        **Athlete Context:**
+        **CRITICAL INSTRUCTION: Analyze Context FIRST**
+        Before generating any activities, you MUST formulate your plan based heavily on these three pillars:
+        1. **User Settings & Profile**: The athlete's primary sport, performance limits, and explicitly stated goals.
+        2. **Recent Activities**: What training load they have accumulated recently (prevent overtraining if load is high).
+        3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
+
+        **1. Athlete Profile & Settings:**
         - Name: {name}
         - Sport: {sport}
         - VO2max: {vo2max} ml/kg/min (Fitness age: {fitness_age})
-        - Recovery: Resting HR {resting_hr}, Body Battery {body_battery}/100, Stress {stress}/100
-        - Sleep: {sleep_score}/100 ({sleep_quality})
-        - Recent Load: {activities_str}
+        
+        **2. Physical & Mental Condition (Readiness):**
+        - Resting HR: {resting_hr}
+        - Body Battery: {body_battery}/100 (Higher means more energy available)
+        - Stress Level: {stress}/100 (Lower is better)
+        - Sleep Quality: {sleep_score}/100 ({sleep_quality})
+        
+        **3. Recent Load (Activities):**
+        {activities_str}
         
         **Task:**
-        Generate a highly detailed, professional-grade training plan.
+        Based on the readiness metrics above, determine if the first few days of the plan need to be recovery-focused or if the athlete is primed for high intensity.
+        Generate a highly detailed, professional-grade training plan balancing progressive overload and recovery.
         For every workout, you MUST provide structured steps (Warmup, Main Set, Cooldown) and specific intensity targets.
         
         **Targets:**
