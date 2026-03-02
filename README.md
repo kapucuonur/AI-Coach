@@ -11,7 +11,13 @@
 
 ---
 
-**CoachOnur AI** is an intelligent endurance sports platform that seamlessly integrates with your Garmin ecosystem. By analyzing your daily health metrics, sleep patterns, and training load, it provides hyper-personalized training plans and actionable insights using Google Gemini 2.5 Flash.
+**Live Platform:** [https://www.coachonurai.com/](https://www.coachonurai.com/)
+
+> *"Where decades of triathlon coaching experience meet modern full-stack engineering."*
+> 
+> CoachOnur AI isn't just another generic fitness app. It was born from the exact intersection of grinding through exhausting Ironman blocks and writing scalable Python infrastructure. As a long-time endurance athlete and coach, I built this platform because I wanted an intelligence layer that actually *understands* training load (TSS), recovery bounds, and the complex reality of balancing multi-sport disciplines. 
+
+An AI-powered endurance sports coach that analyzes your Garmin ecosystem data to provide personalized training plans, daily insights, and nutritional breakdowns. Built with a premium UI, it features a fully functional "View-Only" free tier and a Stripe-powered Pro subscription.
 
 ## ✨ Key Features
 
