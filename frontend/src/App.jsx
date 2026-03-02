@@ -69,7 +69,8 @@ function App() {
         health_stats: data.metrics?.health || {},
         sleep_data: data.metrics?.sleep || {},
         profile: data.metrics?.profile || {},
-        language: languageOverride || settingsData?.language || i18n.language || 'en'
+        language: languageOverride || settingsData?.language || i18n.language || 'en',
+        client_local_time: new Date().toISOString()
       };
 
       if (forceMins !== null && forceMins > 0) {
