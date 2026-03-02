@@ -437,68 +437,68 @@ class GarminClient:
         try:
             vo2_data = {}
             
-            # VO2 Max doesn't update daily, so check dynamically sized intervals
+            # VO2 Max doesn't update daily
             try:
-                dates_to_check = []
                 today = date.today()
-                check_intervals = [0, 1, 3, 7, 14, 30]
                 
-                for days_back in check_intervals:
-                    check_date = today - timedelta(days=days_back)
-                    dates_to_check.append(check_date.isoformat())
-                
-                logger.info(f"Checking VO2 Max for dates: {dates_to_check}")
-                
-                for date_str in dates_to_check:
-                    try:
-                        max_metrics = self.client.get_max_metrics(date_str)
-                        
-                        # Log what we actually get
-                        logger.info(f"Max metrics for {date_str}: {max_metrics}")
-                        
-                        # The API returns a LIST, not a dict!
-                        if max_metrics and isinstance(max_metrics, list) and len(max_metrics) > 0:
-                            # Get the first item from the list
-                            metrics = max_metrics[0]
-                            
-                            # VO2 Max is inside the 'generic' key
-                            if 'generic' in metrics and isinstance(metrics['generic'], dict):
-                                generic = metrics['generic']
-                                
-                                # Extract VO2 Max values
-                                if 'vo2MaxValue' in generic and generic['vo2MaxValue']:
-                                    vo2_data['vo2MaxValue'] = generic['vo2MaxValue']
-                                    vo2_data['vo2Max'] = generic['vo2MaxValue']
-                                    logger.info(f"✅ Found vo2MaxValue: {generic['vo2MaxValue']} on {date_str}")
-                                
-                                if 'vo2MaxPreciseValue' in generic and generic['vo2MaxPreciseValue']:
-                                    vo2_data['vo2MaxPrecise'] = generic['vo2MaxPreciseValue']
-                                    logger.info(f"✅ Found vo2MaxPreciseValue: {generic['vo2MaxPreciseValue']} on {date_str}")
-                                
-                                # Log the FULL generic object to debug fitness age
-                                logger.info(f"📊 Full generic object: {generic}")
-                                
-                                if 'fitnessAge' in generic and generic['fitnessAge']:
-                                    vo2_data['fitnessAge'] = generic['fitnessAge']
-                                    logger.info(f"✅ Found fitnessAge: {generic['fitnessAge']} on {date_str}")
-                                else:
-                                    logger.warning(f"⚠️ fitnessAge is None or missing in generic object on {date_str}")
-                                
-                                # If we found any VO2 Max data, we're done
-                                if 'vo2Max' in vo2_data or 'vo2MaxValue' in vo2_data:
-                                    break
-                            
-                            # Also check for cycling-specific VO2 Max
-                            if 'cycling' in metrics and isinstance(metrics['cycling'], dict):
-                                cycling = metrics['cycling']
-                                if 'vo2MaxValue' in cycling and cycling['vo2MaxValue']:
-                                    vo2_data['vo2MaxCycling'] = cycling['vo2MaxValue']
-                                    logger.info(f"✅ Found vo2MaxCycling: {cycling['vo2MaxValue']} on {date_str}")
+                # 1. Try get_training_status() first - it has a "mostRecentVO2Max" field
+                try:
+                    logger.info("Fetching VO2 Max from get_training_status()...")
+                    training_status = self.client.get_training_status(today.isoformat())
                     
-                    except Exception as date_error:
-                        logger.debug(f"No max metrics for {date_str}: {date_error}")
-                        continue
-                        
+                    if training_status and 'mostRecentVO2Max' in training_status:
+                        recent_vo2 = training_status['mostRecentVO2Max']
+                        # Check generic and cycling buckets
+                        for v_type in ['generic', 'cycling']:
+                            if v_type in recent_vo2 and recent_vo2[v_type]:
+                                v_data = recent_vo2[v_type]
+                                if v_data.get('vo2MaxValue'):
+                                    vo2_data['vo2MaxValue'] = v_data['vo2MaxValue']
+                                    vo2_data['vo2Max'] = v_data['vo2MaxValue']
+                                    logger.info(f"✅ Found {v_type} vo2MaxValue in training status: {v_data['vo2MaxValue']}")
+                                
+                                if v_data.get('vo2MaxPreciseValue'):
+                                    vo2_data['vo2MaxPrecise'] = v_data['vo2MaxPreciseValue']
+                                    logger.info(f"✅ Found {v_type} vo2MaxPreciseValue in training status: {v_data['vo2MaxPreciseValue']}")
+                                    
+                                if v_data.get('fitnessAge'):
+                                    vo2_data['fitnessAge'] = v_data['fitnessAge']
+                                    logger.info(f"✅ Found fitnessAge in training status: {v_data['fitnessAge']}")
+                except Exception as ts_error:
+                    logger.warning(f"Could not get VO2 Max from training status: {ts_error}")
+
+                # 2. Fallback: check historical intervals if still missing
+                if 'vo2Max' not in vo2_data:
+                    check_intervals = [0, 1, 3, 7, 14, 30]
+                    dates_to_check = [(today - timedelta(days=d)).isoformat() for d in check_intervals]
+                    
+                    logger.info(f"VO2 Max missing in status, checking historical dates: {dates_to_check}")
+                    
+                    for date_str in dates_to_check:
+                        try:
+                            max_metrics = self.client.get_max_metrics(date_str)
+                            if max_metrics and isinstance(max_metrics, list) and len(max_metrics) > 0:
+                                metrics = max_metrics[0]
+                                
+                                for v_type in ['generic', 'cycling']:
+                                    if v_type in metrics and isinstance(metrics[v_type], dict):
+                                        m_data = metrics[v_type]
+                                        if m_data.get('vo2MaxValue'):
+                                            vo2_data['vo2MaxValue'] = m_data['vo2MaxValue']
+                                            vo2_data['vo2Max'] = m_data['vo2MaxValue']
+                                            logger.info(f"✅ Found historical {v_type} vo2MaxValue: {m_data['vo2MaxValue']} on {date_str}")
+                                        
+                                        if m_data.get('vo2MaxPreciseValue'):
+                                            vo2_data['vo2MaxPrecise'] = m_data['vo2MaxPreciseValue']
+                                            
+                                        if m_data.get('fitnessAge') and 'fitnessAge' not in vo2_data:
+                                            vo2_data['fitnessAge'] = m_data['fitnessAge']
+                                
+                                if 'vo2Max' in vo2_data:
+                                    break
+                        except Exception:
+                            continue
+                            
             except Exception as e:
                 logger.warning(f"Could not get VO2 Max from max_metrics: {e}")
                 logger.warning(f"Error details: {traceback.format_exc()}")

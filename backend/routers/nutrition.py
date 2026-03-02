@@ -167,6 +167,8 @@ Return ONLY the JSON, no other text."""
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse AI response: {e}")
         raise HTTPException(status_code=500, detail="AI response parsing failed")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Food analysis failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
