@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from backend.routers.settings import load_settings
 
-from backend.auth_utils import get_current_user
+from backend.auth_utils import get_current_user, decrypt_garmin_password
 from backend.models import User
 
 @router.post("/daily-metrics")
@@ -31,7 +31,8 @@ async def get_daily_metrics(
             # Return specific error so frontend shows "Connect Garmin" modal
             raise HTTPException(status_code=400, detail="GARMIN_NOT_CONNECTED")
             
-        client = GarminClient(current_user.garmin_email, current_user.garmin_password)
+        decrypted_pass = decrypt_garmin_password(current_user.garmin_password)
+        client = GarminClient(current_user.garmin_email, decrypted_pass)
         
         # Pass DB session to login for persistence
         # We run login in a thread since it's synchronous

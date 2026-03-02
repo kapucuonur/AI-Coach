@@ -5,22 +5,30 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="AI Coach API", version="1.0.0")
+import os
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    import logging
+    logger = logging.getLogger("uvicorn")
+    logger.info(">>> STARTING AI COACH API - VERSION: SECURE_AUTH <<<")
+    yield
+    logger.info(">>> SHUTTING DOWN AI COACH API <<<")
+
+app = FastAPI(title="AI Coach API", version="1.0.0", lifespan=lifespan)
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Configure CORS
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://ai-coach-nine-rho.vercel.app,https://coachonurai.com,https://www.coachonurai.com")
+origins_list = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:5174",
-        "https://ai-coach-nine-rho.vercel.app",
-        "https://ai-coach-bgatm3iql-kapucuonurs-projects.vercel.app",
-        "https://ai-coach-kpb6cyg1q-kapucuonurs-projects.vercel.app",
-        "https://ai-coach-86p5pwe1w-kapucuonurs-projects.vercel.app",
-        "https://coachonurai.com",
-        "https://www.coachonurai.com",
-    ],
+    allow_origins=origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,11 +60,7 @@ async def validation_exception_handler(request, exc):
         content={"detail": exc.errors(), "body": str(exc.body)},
     )
 
-@app.on_event("startup")
-async def startup_event():
-    import logging
-    logger = logging.getLogger("uvicorn")
-    logger.info(">>> STARTING AI COACH API - VERSION: THREADED_MFA_FIX_CONFIRMED <<<")
+
 
 @app.get("/")
 @app.head("/")

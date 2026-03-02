@@ -1,9 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import requests
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from backend.database import get_db
 from backend.models import User
-from backend.auth_utils import verify_password, get_password_hash, create_access_token
+from backend.auth_utils import (
+    verify_password, get_password_hash, create_access_token, 
+    get_current_user, is_user_premium, encrypt_garmin_password
+)
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter(tags=["auth"])
 
@@ -59,12 +70,13 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login_user(request: Request, user_data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_data.email).first()
     if not user or not user.hashed_password or not verify_password(user_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password. If you registered via Google/Facebook, please use that to log in.",
+            detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
@@ -74,11 +86,6 @@ def login_user(user_data: UserLogin, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "has_garmin_connected": bool(user.garmin_email and user.garmin_password)
     }
-
-import os
-import requests
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 
 GOOGLE_CLIENT_ID = os.getenv("VITE_GOOGLE_CLIENT_ID", "YOUR_GOOGLE_CLIENT_ID")
 
@@ -142,8 +149,8 @@ def google_login(token_data: GoogleLoginRequest, db: Session = Depends(get_db)):
 def facebook_login(token_data: FacebookLoginRequest, db: Session = Depends(get_db)):
     try:
         # Verify Facebook access token by requesting user details
-        facebook_url = f"https://graph.facebook.com/me?access_token={token_data.accessToken}&fields=id,email,name"
-        response = requests.get(facebook_url)
+        facebook_url = "https://graph.facebook.com/me?fields=id,email,name"
+        response = requests.get(facebook_url, headers={"Authorization": f"Bearer {token_data.accessToken}"})
         data = response.json()
 
         if "error" in data:
@@ -184,18 +191,11 @@ def facebook_login(token_data: FacebookLoginRequest, db: Session = Depends(get_d
 
 
 
-from backend.auth_utils import verify_password, get_password_hash, create_access_token, get_current_user
-
 @router.get("/me")
 def get_current_user_info(current_user: User = Depends(get_current_user)):
-    from datetime import datetime, timedelta
+    from datetime import timedelta
     
-    is_premium = getattr(current_user, 'is_premium', False)
-    # 7-day free trial logic
-    if not is_premium and current_user.created_at:
-        trial_end = current_user.created_at + timedelta(days=7)
-        if datetime.utcnow() < trial_end:
-            is_premium = True
+    is_premium = is_user_premium(current_user)
             
     return {
         "email": current_user.email,
@@ -234,7 +234,7 @@ def connect_garmin_account(
         
     # Login succeeded without MFA — save credentials
     current_user.garmin_email = garmin_data.garmin_email
-    current_user.garmin_password = garmin_data.garmin_password
+    current_user.garmin_password = encrypt_garmin_password(garmin_data.garmin_password)
     
     db.add(current_user)
     db.commit()
@@ -265,7 +265,9 @@ def connect_garmin_mfa(
         # The password was already set during the initial /connect-garmin call
         # Retrieve it from the client if available
         if client.password and client.password != "session_restore_placeholder":
-            current_user.garmin_password = client.password
+            current_user.garmin_password = encrypt_garmin_password(client.password)
+        else:
+            raise HTTPException(status_code=400, detail="MFA verification failed: Garmin password is lost from session.")
         
         db.add(current_user)
         db.commit()

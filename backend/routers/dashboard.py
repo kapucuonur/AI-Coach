@@ -32,7 +32,7 @@ def clean_nans(obj):
         return [clean_nans(v) for v in obj]
     return obj
 
-from backend.auth_utils import get_current_user
+from backend.auth_utils import get_current_user, decrypt_garmin_password
 from backend.models import User
 
 def get_garmin_client(
@@ -51,7 +51,8 @@ def get_garmin_client(
         )
         
     logger.info(f"Using database session for {current_user.email}")
-    client = GarminClient(current_user.garmin_email, current_user.garmin_password)
+    decrypted_pass = decrypt_garmin_password(current_user.garmin_password)
+    client = GarminClient(current_user.garmin_email, decrypted_pass)
     
     # Attempt to authenticate/resume session from DB
     try:

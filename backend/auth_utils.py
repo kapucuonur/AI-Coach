@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "super-secret-key-change-in-prod")
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise ValueError("JWT_SECRET_KEY environment variable is not set!")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
@@ -58,3 +60,55 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
+
+
+# --- Garmin Password Encryption ---
+from cryptography.fernet import Fernet
+import logging
+
+logger = logging.getLogger(__name__)
+ENCRYPT_KEY = os.getenv("FIELD_ENCRYPT_KEY")
+
+def get_fernet():
+    if not ENCRYPT_KEY:
+        raise ValueError("FIELD_ENCRYPT_KEY environment variable is not set! Required for Garmin password encryption.")
+    # Ensure key is bytes
+    key = ENCRYPT_KEY.encode() if isinstance(ENCRYPT_KEY, str) else ENCRYPT_KEY
+    return Fernet(key)
+
+def encrypt_garmin_password(password: str) -> str:
+    """Encrypts a plaintext Garmin password for database storage."""
+    if not password:
+        return password
+    try:
+        f = get_fernet()
+        return f.encrypt(password.encode('utf-8')).decode('utf-8')
+    except Exception as e:
+        logger.error(f"Failed to encrypt password: {e}")
+        raise ValueError("Encryption failed")
+
+def decrypt_garmin_password(encrypted_password: str) -> str:
+    """Decrypts a stored Garmin password for API usage. Safely falls back if plaintext."""
+    if not encrypted_password:
+        return encrypted_password
+    try:
+        f = get_fernet()
+        return f.decrypt(encrypted_password.encode('utf-8')).decode('utf-8')
+    except Exception:
+        # If decryption fails, it might be an older plaintext password
+        return encrypted_password
+
+
+# --- Centralized Premium Check ---
+def is_user_premium(user) -> bool:
+    """Central logic to determine if a user has access to premium features (Subscription or Trial)."""
+    if getattr(user, 'is_premium', False):
+        return True
+    
+    # 7-day free trial logic
+    if user.created_at:
+        trial_end = user.created_at + timedelta(days=7)
+        if datetime.utcnow() < trial_end:
+            return True
+            
+    return False
