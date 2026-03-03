@@ -737,22 +737,39 @@ class GarminClient:
         Create a structured workout in Garmin Connect.
         workout_json must follow Garmin's workout format.
         Returns the created workout JSON (which includes the new workoutId).
+        Retries up to 2 times on connection errors (stale keep-alive sockets).
         """
         if not self.client:
             logger.error("Client not authenticated.")
             raise Exception("Client not authenticated.")
         
-        try:
-            import json
-            logger.info("Creating workout in Garmin Connect...")
-            logger.info(f"PAYLOAD: {json.dumps(workout_json)}")
-            # Using python-garminconnect's built-in upload_workout
-            created_workout = self.client.upload_workout(workout_json)
-            logger.info(f"Workout created successfully: {created_workout.get('workoutId')}")
-            return created_workout
-        except Exception as e:
-            logger.error(f"Failed to create workout: {e}")
-            raise e
+        import json, time
+        logger.info("Creating workout in Garmin Connect...")
+        logger.info(f"PAYLOAD: {json.dumps(workout_json)}")
+        
+        last_error = None
+        for attempt in range(1, 4):  # 3 attempts total
+            try:
+                created_workout = self.client.upload_workout(workout_json)
+                logger.info(f"✅ Workout created successfully: {created_workout.get('workoutId')} (attempt {attempt})")
+                return created_workout
+            except Exception as e:
+                last_error = e
+                err_str = str(e)
+                # Only retry on connection-level errors (reset, timeout, broken pipe)
+                if any(kw in err_str for kw in ("ConnectionReset", "Connection reset", "ConnectionAborted", "Connection aborted", "BrokenPipe", "RemoteDisconnected", "104", "Connection refused")):
+                    if attempt < 3:
+                        wait = attempt * 1.5
+                        logger.warning(f"Connection error on attempt {attempt}, retrying in {wait}s... ({e})")
+                        time.sleep(wait)
+                        continue
+                # Non-connection error or out of retries — raise immediately
+                logger.error(f"Failed to create workout (attempt {attempt}): {e}")
+                raise e
+        
+        logger.error(f"Failed to create workout after 3 attempts: {last_error}")
+        raise last_error
+
 
     def schedule_workout(self, workout_id: int, date_str: str) -> bool:
         """

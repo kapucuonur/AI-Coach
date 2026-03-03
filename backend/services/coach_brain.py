@@ -267,15 +267,14 @@ class CoachBrain:
         ALL text, sentences, guidance, and markdown headers MUST be translated into {target_language}. DO NOT output English text if {target_language} is not English!
 
         **Structure Details (Format this structure into {target_language}, applying rich markdown like bolding and lists):**
-        1. **Physiological Analytics & Readiness (Physiological Analytics & Readiness)**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
-        2. **Training Directive (Training Directive)**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session.
-        3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context.
-           - IF OFF DAY (Rest Day): As specified in Current Context, you must prescribe `null` for the workout JSON and just recommend rest/recovery.
-           - OVERTRAINING PROTECTION (CRITICAL): If the athlete has already completed >= 2 sessions today, OR if the total duration of today's training exceeds {MAX_DAILY_TRAINING_MINUTES} minutes, YOU MUST PRESCRIBE TOTAL REST. Professional athletes need recovery. Provide `null` for the workout JSON.
-           - IF trained today already (but < {MAX_DAILY_TRAINING_MINUTES} mins): Prescribe active recovery, mobility, or total rest.
-           - CYCLING RESTRICTION: No running if "Runs: No", only cycle, stretch, strength, or rest.
-           - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport. Warmup/Main Set/Cooldown required in the JSON workout section if providing an active workout.
-        4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout (if applicable), and Post-workout macronutrient focus.
+        1. **Physiological Analytics & Readiness**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
+        2. **Training Directive**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session.
+        3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context. THIS SECTION MUST NEVER BE EMPTY IN THE TEXT.
+           - IF OFF DAY (Rest Day) or OVERTRAINING PROTECTION triggers: You MUST explicitly narrate the physical recovery protocol here (e.g., "Full rest today", "10-minute light stretching focused on hips"). Describe the instructions in text, and prescribe `null` for the workout JSON.
+           - IF trained today already (but < {MAX_DAILY_TRAINING_MINUTES} mins): Write the active recovery, mobility, or total rest text protocol here.
+           - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
+           - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
+        4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.
         5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
 
         **Output Format:**
