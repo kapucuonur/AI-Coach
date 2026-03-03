@@ -251,18 +251,27 @@ async def sync_workout_to_watch(
         if not workout_id:
             raise HTTPException(status_code=500, detail="Failed to retrieve workout ID after creation")
             
-        # 2. Schedule Workout for Today
+        # 2. Schedule Workout for Today (non-fatal - workout is already saved if this fails)
         today_str = date.today().isoformat()
-        await asyncio.to_thread(client.schedule_workout, workout_id, today_str)
+        scheduled = False
+        try:
+            scheduled = await asyncio.to_thread(client.schedule_workout, workout_id, today_str)
+        except Exception as sched_err:
+            logger.warning(f"Could not schedule workout on calendar (non-fatal): {sched_err}")
         
         # 3. Queue for specific device (if provided)
         if device_id:
-            await asyncio.to_thread(client.send_workout_to_device, workout_id, device_id)
+            try:
+                await asyncio.to_thread(client.send_workout_to_device, workout_id, device_id)
+            except Exception as dev_err:
+                logger.warning(f"Could not send workout to device (non-fatal): {dev_err}")
             
+        msg = "Workout saved and scheduled for today." if scheduled else "Workout saved to Garmin Connect. Calendar scheduling unavailable - open the Garmin Connect app to see it."
         return {
             "status": "success", 
-            "message": "Workout saved and scheduled for today.",
-            "workoutId": workout_id
+            "message": msg,
+            "workoutId": workout_id,
+            "scheduled": scheduled
         }
         
     except HTTPException as he:
