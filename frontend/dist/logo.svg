@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Background Gradient: Deep blue to active green (endurance/health) -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a" /> <!-- Dark Blue -->
+      <stop offset="100%" stop-color="#10b981" /> <!-- Emerald Green -->
+    </linearGradient>
+    
+    <!-- Accent Gradient for the core design -->
+    <linearGradient id="accentGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" /> <!-- Light Blue -->
+      <stop offset="100%" stop-color="#fbbf24" /> <!-- Amber/Gold -->
+    </linearGradient>
+  </defs>
+
+  <!-- Outer Circle Frame -->
+  <circle cx="50" cy="50" r="48" fill="url(#bgGradient)" />
+  <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-dasharray="4 4" />
+
+  <!-- Data / Heartbeat Line (representing health metrics and AI analysis) -->
+  <path d="M 15 50 L 35 50 L 45 30 L 55 70 L 65 50 L 85 50" 
+        fill="none" 
+        stroke="url(#accentGradient)" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Stylized Runner Silhouette (representing the sport/coaching aspect) -->
+  <path d="M 50 15 
+           A 4 4 0 1 1 50 23 
+           A 4 4 0 1 1 50 15 Z
+           
+           M 46 27
+           L 54 27
+           L 56 45
+           L 44 45
+           Z
+           
+           M 44 45 L 35 60 L 40 60 L 48 48
+           M 56 45 L 65 60 L 60 60 L 52 48
+           " 
+        fill="#ffffff" 
+        opacity="0.9" />
+
+  <!-- AI Brain / Network Nodes scattered around -->
+  <circle cx="35" cy="30" r="3" fill="#ffffff" opacity="0.8" />
+  <circle cx="65" cy="30" r="3" fill="#ffffff" opacity="0.8" />
+  <circle cx="50" cy="65" r="4" fill="#fbbf24" opacity="0.9" />
+  
+  <path d="M 35 30 L 45 30" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.5" />
+  <path d="M 65 30 L 55 30" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.5" />
+  <path d="M 50 65 L 55 70" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="2 2" opacity="0.5" />
+
+</svg>
