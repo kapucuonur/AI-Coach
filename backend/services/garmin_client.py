@@ -24,6 +24,11 @@ load_dotenv()
 GLOBAL_CLIENTS = {}
 GLOBAL_CLIENTS_LOCK = threading.RLock()
 
+# Session verification cache - Prevents excessive API calls
+# Key: email, Value: timestamp of last verification
+SESSION_LAST_VERIFIED = {}
+SESSION_VERIFY_INTERVAL = 300  # 5 minutes = 300 seconds
+
 # Garmin API Endpoints Constants
 class GarminAPIEndpoints:
     SCHEDULE_WORKOUT = "/calendar-service/workout/{workout_id}/schedule/{date_str}"
@@ -103,49 +108,73 @@ class GarminClient:
                 else:
                     setting.value = saved_state
                 db.commit()
+                
+                # Mark as freshly verified when saving
+                SESSION_LAST_VERIFIED[self.email] = time.time()
+                
                 logger.info(f"Saved session to DB for {self.email}")
                 
         except Exception as e:
             logger.error(f"Failed to save session to DB: {e}")
 
     def restore_session_from_data(self, session_data):
-        """Restore garth session from data dict."""
+        """Restore garth session from data dict with smart verification."""
         try:
-            # Create a client instance (password not used when loading from session)
             pwd = self.password if self.password else "session_restore_placeholder"
             self.client = Garmin(self.email, pwd)
             
-            # Use temp dir to load
+            # Load session from temp dir
             with tempfile.TemporaryDirectory() as tmpdirname:
                 for filename, content in session_data.items():
                     with open(os.path.join(tmpdirname, filename), 'w') as f:
                         f.write(content)
-                
                 self.client.garth.load(tmpdirname)
             
-            # Verify validity
-            try:
-                self.client.display_name = None
-                # Lightweight check
-                social_profile = self.client.connectapi("/userprofile-service/socialProfile")
-                if social_profile and 'displayName' in social_profile:
-                     self.client.display_name = social_profile['displayName']
-            except:
-                pass
-                
-            if not self.client.display_name:
-                profile = self.client.get_user_profile()
-                if 'displayName' in profile:
-                    self.client.display_name = profile['displayName']
+            # Smart verification - only check if needed
+            now = time.time()
+            last_verified = SESSION_LAST_VERIFIED.get(self.email, 0)
+            time_since_verify = now - last_verified
+            
+            if time_since_verify > SESSION_VERIFY_INTERVAL:
+                logger.info(f"⏰ Last verified {int(time_since_verify)}s ago - verifying session...")
+                try:
+                    self.client.display_name = None
+                    social_profile = self.client.connectapi(
+                        "/userprofile-service/socialProfile"
+                    )
+                    
+                    if social_profile and 'displayName' in social_profile:
+                        self.client.display_name = social_profile['displayName']
+                        SESSION_LAST_VERIFIED[self.email] = now
+                        logger.info(f"✅ Session verified for {self.client.display_name}")
+                    else:
+                        # Try fallback
+                        profile = self.client.get_user_profile()
+                        if 'displayName' in profile:
+                            self.client.display_name = profile['displayName']
+                            SESSION_LAST_VERIFIED[self.email] = now
+                            logger.info(f"✅ Session verified via profile for {self.client.display_name}")
+                    
+                except Exception as verify_error:
+                    logger.warning(f"⚠️ Session verification failed: {verify_error}")
+                    self.client = None
+                    return False
+            else:
+                # Skip verification - use cached validation
+                remaining = int(SESSION_VERIFY_INTERVAL - time_since_verify)
+                logger.info(f"⚡ FAST RESTORE - Skipping verify ({remaining}s until next check)")
+                self.client.display_name = self.email  # Placeholder until next verify
             
             if self.client.display_name:
-                logger.info(f"Session successfully resumed from DB data for {self.client.display_name}")
                 with GLOBAL_CLIENTS_LOCK:
                     GLOBAL_CLIENTS[self.email] = self.client
+                logger.info(f"✅ Session restored for {self.client.display_name}")
                 return True
+                
         except Exception as e:
             logger.warning(f"Failed to restore session from data: {e}")
             self.client = None
+        
         return False
 
     def login(self, db: Session = None, mfa_code=None):
@@ -330,7 +359,13 @@ class GarminClient:
                         try: self.client.garth.dump(garth_dir)
                         except: pass
                     
-                    GLOBAL_CLIENTS[self.email] = self.client
+                    # Thread-safe cache update
+                    with GLOBAL_CLIENTS_LOCK:
+                        GLOBAL_CLIENTS[self.email] = self.client
+                    
+                    # Mark as verified now
+                    SESSION_LAST_VERIFIED[self.email] = time.time()
+                    
                     del PENDING_SESSIONS[self.email]
                     return True, "SUCCESS", "Authenticated successfully"
                 if session.status == "FAILED":
@@ -434,13 +469,14 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return None
         
+        # Define today at the top to avoid NameError in fallback blocks
+        today = date.today()
+        
         try:
             vo2_data = {}
             
             # VO2 Max doesn't update daily
             try:
-                today = date.today()
-                
                 # 1. Try get_training_status() first - it has a "mostRecentVO2Max" field
                 try:
                     logger.info("Fetching VO2 Max from get_training_status()...")
