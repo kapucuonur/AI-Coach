@@ -31,9 +31,11 @@ SESSION_VERIFY_INTERVAL = 300  # 5 minutes = 300 seconds
 
 # Garmin API Endpoints Constants
 class GarminAPIEndpoints:
-    # Primary schedule endpoint (workouts-service)
+    # Attempt 1: workout-service with JSON body {workoutId, calendarDate}
     SCHEDULE_WORKOUT_V2 = "/workout-service/schedule"
-    # Legacy fallback (returns 404 on some accounts, kept for reference)
+    # Attempt 2: workout-service REST-style path (community implementations)
+    SCHEDULE_WORKOUT_V3 = "/workout-service/workout/{workout_id}/schedule/{date_str}"
+    # Attempt 3: legacy calendar-service (original, now mostly 404)
     SCHEDULE_WORKOUT = "/calendar-service/workout/{workout_id}/schedule/{date_str}"
     DEVICE_WORKOUTS = "/device-service/devices/{device_id}/workouts"
     SOCIAL_PROFILE = "/userprofile-service/socialProfile"
@@ -755,35 +757,41 @@ class GarminClient:
     def schedule_workout(self, workout_id: int, date_str: str) -> bool:
         """
         Schedule a workout on a specific date (YYYY-MM-DD) on the Garmin calendar.
-        Tries the modern workout-service endpoint first, then legacy calendar-service.
-        Returns True if scheduled, False if all attempts fail (non-fatal).
+        Tries 3 known endpoint patterns. Returns True on success, False if all fail (non-fatal).
         """
         if not self.client:
             logger.error("Client not authenticated.")
             return False
         
-        # --- Attempt 1: workout-service/schedule (current working endpoint) ---
+        # --- Attempt 1: POST /workout-service/schedule with JSON body ---
         try:
-            logger.info(f"Scheduling workout {workout_id} for {date_str} (v2)...")
+            logger.info(f"Scheduling workout {workout_id} for {date_str} (v2 JSON body)...")
             url = GarminAPIEndpoints.SCHEDULE_WORKOUT_V2
-            payload = {
-                "workoutId": workout_id,
-                "calendarDate": date_str,
-            }
+            payload = {"workoutId": workout_id, "calendarDate": date_str}
             self.client.garth.post("connectapi", url, json=payload, api=True)
             logger.info(f"✅ Workout {workout_id} scheduled via workout-service for {date_str}")
             return True
         except Exception as e1:
-            logger.warning(f"workout-service schedule failed ({e1}), trying legacy calendar-service...")
+            logger.warning(f"Attempt 1 failed ({e1})")
         
-        # --- Attempt 2: legacy calendar-service (may 404 depending on account) ---
+        # --- Attempt 2: POST /workout-service/workout/{id}/schedule/{date} (REST path) ---
+        try:
+            logger.info(f"Scheduling workout {workout_id} for {date_str} (v3 REST path)...")
+            url = GarminAPIEndpoints.SCHEDULE_WORKOUT_V3.format(workout_id=workout_id, date_str=date_str)
+            self.client.garth.post("connectapi", url, api=True)
+            logger.info(f"✅ Workout {workout_id} scheduled via workout-service REST path")
+            return True
+        except Exception as e2:
+            logger.warning(f"Attempt 2 failed ({e2})")
+        
+        # --- Attempt 3: legacy calendar-service ---
         try:
             url = GarminAPIEndpoints.SCHEDULE_WORKOUT.format(workout_id=workout_id, date_str=date_str)
             self.client.garth.post("connectapi", url, api=True)
-            logger.info(f"✅ Workout {workout_id} scheduled via calendar-service for {date_str}")
+            logger.info(f"✅ Workout {workout_id} scheduled via legacy calendar-service")
             return True
-        except Exception as e2:
-            logger.warning(f"Legacy calendar-service schedule also failed ({e2}). Workout is still saved in Garmin Connect.")
+        except Exception as e3:
+            logger.warning(f"All schedule attempts failed. Workout saved in Garmin Connect but not on calendar. ({e3})")
             return False
 
     def send_workout_to_device(self, workout_id: int, device_id: str) -> bool:
