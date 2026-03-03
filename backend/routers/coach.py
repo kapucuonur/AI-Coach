@@ -217,11 +217,11 @@ async def generate_advice(
         raise HTTPException(status_code=500, detail=str(e))
 
 from backend.routers.dashboard import get_garmin_client
-from typing import Optional
+from typing import Optional, Union
 
 class WorkoutSyncRequest(BaseModel):
     workout: dict
-    deviceId: Optional[str] = None
+    deviceId: Optional[Union[str, int]] = None
 
 @router.post("/sync")
 async def sync_workout_to_watch(
