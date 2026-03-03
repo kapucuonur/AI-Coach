@@ -160,9 +160,62 @@ export function AdviceBlock({ advice, workout, isGenerating, language }) {
 
             <div className="p-6 relative z-10">
                 {isGenerating ? (
-                    <div className="flex flex-col items-center justify-center py-8 text-center animate-pulse">
-                        <div className="w-10 h-10 border-4 border-garmin-blue border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">AI Coach is analyzing your recovery and generating your daily plan...</p>
+                    <div className="flex flex-col items-center justify-center py-10 gap-5 select-none">
+                        {/* Rocket + sport orbit */}
+                        <div className="relative flex items-center justify-center w-28 h-28">
+                            {/* Orbit ring */}
+                            <div
+                                className="absolute w-24 h-24 rounded-full border border-blue-400/20"
+                                style={{ animation: 'orbitSpin 7s linear infinite' }}
+                            />
+                            {/* Sport icons */}
+                            {['🏃‍♂️', '🚴‍♂️', '🏊‍♂️', '⛷️', '🏋️‍♂️'].map((icon, i) => (
+                                <span
+                                    key={i}
+                                    className="absolute text-lg"
+                                    style={{
+                                        transform: `rotate(${i * 72}deg) translateY(-46px) rotate(${-(i * 72)}deg)`,
+                                        animation: `orbitSpin 7s linear infinite`,
+                                        animationDelay: `${i * -1.4}s`,
+                                    }}
+                                >
+                                    {icon}
+                                </span>
+                            ))}
+                            {/* Rocket center */}
+                            <div className="relative z-10 text-center">
+                                <span
+                                    style={{
+                                        fontSize: '2.2rem',
+                                        display: 'inline-block',
+                                        animation: 'advRocketBob 1.2s ease-in-out infinite',
+                                    }}
+                                >
+                                    🚀
+                                </span>
+                                <div className="w-2 h-3 rounded-full bg-blue-400/40 blur-sm mx-auto mt-0.5 animate-pulse" />
+                            </div>
+                        </div>
+
+                        <style>{`
+                            @keyframes advRocketBob {
+                                0%, 100% { transform: translateY(0px) rotate(-45deg); }
+                                50% { transform: translateY(-7px) rotate(-45deg); }
+                            }
+                            @keyframes orbitSpin {
+                                from { transform: rotate(0deg) translateY(-46px) rotate(0deg); }
+                                to { transform: rotate(360deg) translateY(-46px) rotate(-360deg); }
+                            }
+                        `}</style>
+
+                        <div className="text-center space-y-1.5 max-w-xs">
+                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                                AI Coach is analyzing your recovery...
+                            </p>
+                            <p className="text-xs text-garmin-blue dark:text-blue-400 animate-pulse">
+                                Building your personalized daily plan ⚡
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300 font-sans leading-relaxed mb-6 dark:prose-invert">

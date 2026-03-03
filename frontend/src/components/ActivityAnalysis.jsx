@@ -166,10 +166,58 @@ export function ActivityAnalysis({ activityId, onClose }) {
 
                     <div className="p-6 space-y-8 flex-1">
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center h-64 gap-4">
-                                <div className="w-8 h-8 border-t-2 border-b-2 border-blue-500 rounded-full animate-spin"></div>
-                                <p className="text-gray-400 animate-pulse">Analyzing performance data...</p>
+                            <div className="flex flex-col items-center justify-center h-72 gap-6 select-none">
+                                {/* Rocket + Sport icons animation */}
+                                <div className="relative flex items-center justify-center w-32 h-32">
+                                    {/* Outer orbit ring */}
+                                    <div className="absolute w-28 h-28 rounded-full border border-blue-500/20 animate-spin" style={{ animationDuration: '8s' }} />
+                                    {/* Sport icons orbiting */}
+                                    {['🏃‍♂️', '🚴‍♂️', '🏊‍♂️', '🏋️‍♂️'].map((icon, i) => (
+                                        <span
+                                            key={i}
+                                            className="absolute text-xl"
+                                            style={{
+                                                transform: `rotate(${i * 90}deg) translateY(-52px) rotate(${-(i * 90)}deg)`,
+                                                animation: `spin 8s linear infinite`,
+                                                animationDelay: `${i * -2}s`,
+                                            }}
+                                        >
+                                            {icon}
+                                        </span>
+                                    ))}
+                                    {/* Rocket center */}
+                                    <div className="relative z-10 flex flex-col items-center">
+                                        <span
+                                            className="text-4xl"
+                                            style={{
+                                                animation: 'rocketBob 1.4s ease-in-out infinite',
+                                                display: 'inline-block',
+                                            }}
+                                        >
+                                            🚀
+                                        </span>
+                                        {/* Exhaust glow */}
+                                        <div className="w-2 h-4 rounded-full bg-blue-500/30 blur-sm mt-0.5 animate-pulse" />
+                                    </div>
+                                </div>
+
+                                <style>{`
+                                    @keyframes rocketBob {
+                                        0%, 100% { transform: translateY(0px) rotate(-45deg); }
+                                        50% { transform: translateY(-8px) rotate(-45deg); }
+                                    }
+                                    @keyframes spin {
+                                        from { transform: rotate(var(--start-deg, 0deg)) translateY(-52px) rotate(calc(-1 * var(--start-deg, 0deg))); }
+                                        to { transform: rotate(calc(var(--start-deg, 0deg) + 360deg)) translateY(-52px) rotate(calc(-1 * (var(--start-deg, 0deg) + 360deg))); }
+                                    }
+                                `}</style>
+
+                                <div className="text-center space-y-1">
+                                    <p className="text-white font-semibold text-base">Analyzing performance data...</p>
+                                    <p className="text-blue-400/70 text-sm animate-pulse">Crunching your splits & metrics ⚡</p>
+                                </div>
                             </div>
+
                         ) : error ? (
                             <div className="text-red-400 text-center p-8 bg-red-900/10 rounded-xl border border-red-500/20">
                                 {error}
