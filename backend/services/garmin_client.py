@@ -411,13 +411,23 @@ class GarminClient:
             if not details:
                 return None
             
-            # Fetch splits (laps) - This resolves the empty charts issue
+            # Fetch splits (laps)
             try:
                 splits = self.client.get_activity_splits(activity_id)
                 if splits:
                     details['splits'] = splits
             except Exception as e:
                 logger.warning(f"Could not fetch splits for {activity_id}: {e}")
+
+            # Fetch high-resolution stream data (metrics)
+            try:
+                logger.info(f"Fetching high-resolution metrics for activity {activity_id}...")
+                high_res = self.client.get_activity_details(activity_id)
+                if high_res:
+                    details['high_res'] = high_res
+                    logger.info("High-resolution metrics fetched successfully.")
+            except Exception as e:
+                logger.warning(f"Could not fetch high-res metrics for {activity_id}: {e}")
                 
             return details
         except Exception as e:

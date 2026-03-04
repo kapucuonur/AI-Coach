@@ -97,39 +97,74 @@ export function ActivityAnalysis({ activityId, onClose }) {
     // Garmin API uses summaryDTO wrapper or root level fields
     const summary = data?.details?.summaryDTO || data?.details || {};
 
-    // Extract lap data for charts - Garmin usually stores this in details.splits.lapDTOs
-    let laps = [];
-    if (data?.details?.splits?.lapDTOs) {
-        laps = data.details.splits.lapDTOs;
-    } else if (Array.isArray(data?.details?.splits)) {
-        laps = data.details.splits;
-    }
+    // Attempt to use high-resolution stream data first for detailed "up down" visuals
+    let chartData = [];
+    const highRes = data?.details?.high_res;
 
-    const chartData = laps.map((split, index) => {
-        const avgSpeed = split.averageSpeed || split.average_speed || 0;
-        let paceStr = 0;
-        let paceNum = 0;
+    if (highRes && highRes.metrics && highRes.metricDescriptors) {
+        // Garmin Detailed Metrics format: metrics[] with indices matching metricDescriptors[]
+        const descriptors = highRes.metricDescriptors;
+        const hrIdx = descriptors.findIndex(d => d.key === 'directHeartRate');
+        const speedIdx = descriptors.findIndex(d => d.key === 'directSpeed');
+        const elevIdx = descriptors.findIndex(d => d.key === 'directAltitude' || d.key === 'directElevation');
+        const powerIdx = descriptors.findIndex(d => d.key === 'directPower');
+        const distIdx = descriptors.findIndex(d => d.key === 'sumDistance');
 
-        if (avgSpeed > 0) {
-            // Speed is m/s. Pace is min/km. 
-            // min/km = (1000 / m/s) / 60
-            const pacePerKmSec = 1000 / avgSpeed;
-            paceNum = pacePerKmSec / 60; // Decimal minutes
+        // Map and downsample (e.g., take every 5th-10th point if > 500 points)
+        const rawMetrics = highRes.metrics || [];
+        const skip = Math.max(1, Math.floor(rawMetrics.length / 300)); // Target ~300 points for smoothness
+
+        chartData = rawMetrics.filter((_, i) => i % skip === 0).map((m, index) => {
+            const items = m.metricsItems || [];
+            const speed = speedIdx !== -1 ? items[speedIdx] : 0;
+            let paceNum = 0;
+            if (speed > 0) {
+                paceNum = (1000 / speed) / 60;
+            }
+
+            return {
+                name: `Point ${index * skip}`,
+                distance: distIdx !== -1 ? Math.round(items[distIdx]) : 0,
+                avgHR: hrIdx !== -1 ? items[hrIdx] : null,
+                avgSpeed: speed,
+                pace: paceNum > 0 && paceNum < 30 ? paceNum : null, // Filter crazy outliers
+                elevation: elevIdx !== -1 ? Math.round(items[elevIdx]) : null,
+                power: powerIdx !== -1 ? items[powerIdx] : null
+            };
+        });
+    } else {
+        // Fallback to coarse Lap data
+        let laps = [];
+        if (data?.details?.splits?.lapDTOs) {
+            laps = data.details.splits.lapDTOs;
+        } else if (Array.isArray(data?.details?.splits)) {
+            laps = data.details.splits;
         }
 
-        const avgElevation = split.averageElevation || split.average_elevation || split.elevationGain || split.maxElevation || split.minElevation || null;
-        const avgPower = split.averagePower || split.average_power || null;
+        chartData = laps.map((split, index) => {
+            const avgSpeed = split.averageSpeed || split.average_speed || 0;
+            let paceNum = 0;
+            if (avgSpeed > 0) {
+                paceNum = (1000 / avgSpeed) / 60;
+            }
 
-        return {
-            name: `Lap ${index + 1}`,
-            distance: Math.round(split.distance || 0),
-            avgHR: split.averageHR || split.average_hr || null,
-            avgSpeed: avgSpeed,
-            pace: paceNum,
-            elevation: avgElevation !== null ? Math.round(avgElevation) : null,
-            power: avgPower
-        };
-    }).filter(point => point.avgHR !== null || point.pace > 0 || point.elevation !== null || point.power !== null);
+            const avgElevation = split.averageElevation || split.average_elevation || split.elevationGain || split.maxElevation || split.minElevation || null;
+            const avgPower = split.averagePower || split.average_power || null;
+
+            return {
+                name: `Lap ${index + 1}`,
+                distance: Math.round(split.distance || 0),
+                avgHR: split.averageHR || split.average_hr || null,
+                avgSpeed: avgSpeed,
+                pace: paceNum,
+                elevation: avgElevation !== null ? Math.round(avgElevation) : null,
+                power: avgPower
+            };
+        });
+    }
+
+    // Final filtering to remove invalid points
+    chartData = chartData.filter(point => point.avgHR !== null || (point.pace && point.pace > 0) || point.elevation !== null || point.power !== null);
 
     return (
         <AnimatePresence>
