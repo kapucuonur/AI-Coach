@@ -114,17 +114,28 @@ class CoachBrain:
         
         # Format Today's Activities
         today_context = "No activities recorded today yet."
+        total_duration_today_mins = 0
+        session_count_today = 0
+        
         if todays_activities and len(todays_activities) > 0:
             today_details = []
+            session_count_today = len(todays_activities)
             for act in todays_activities:
                 # Safely access dict keys or object attributes
                 a_name = act.get('activityName', 'Unknown Activity')
                 a_type = act.get('activityType', {}).get('typeKey', 'exercise') if isinstance(act.get('activityType'), dict) else 'exercise'
+                
+                # Check for duration (seconds) and convert to minutes for accumulation
+                dur_secs = float(act.get('duration', 0) or 0)
+                total_duration_today_mins += dur_secs / 60
+                
                 a_dist = f"{float(act.get('distance', 0) or 0) / 1000:.2f} km"
-                a_dur = f"{float(act.get('duration', 0) or 0) / 60:.0f} min"
+                a_dur = f"{dur_secs / 60:.0f} min"
                 today_details.append(f"- {a_name} ({a_type}): {a_dist}, {a_dur}")
             
             today_context = "\n".join(today_details)
+
+        training_completed_today = (total_duration_today_mins >= MAX_DAILY_TRAINING_MINUTES) or (session_count_today >= 2)
 
         # Extract specific data points safely
         name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
@@ -259,6 +270,9 @@ class CoachBrain:
         **4. Recent Load (Activities):**
         - Past Week Load: {activities_str}
         - Completed Today: {today_context}
+        - Total Today Duration: {total_duration_today_mins:.0f} minutes
+        - Session Count Today: {session_count_today}
+        - Training Goal Reached: {"YES" if training_completed_today else "NO"}
 
         **Task:**
         Generate a highly rigorous, professional Daily Briefing. 
@@ -270,8 +284,9 @@ class CoachBrain:
         1. **Physiological Analytics & Readiness**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
         2. **Training Directive**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session.
         3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context. THIS SECTION MUST NEVER BE EMPTY IN THE TEXT.
-           - IF OFF DAY (Rest Day) or OVERTRAINING PROTECTION triggers: You MUST explicitly narrate the physical recovery protocol here (e.g., "Full rest today", "10-minute light stretching focused on hips"). Describe the instructions in text, and prescribe `null` for the workout JSON.
-           - IF trained today already (but < {MAX_DAILY_TRAINING_MINUTES} mins): Write the active recovery, mobility, or total rest text protocol here.
+           - **OVERTRAINING PROTECTION (CRITICAL)**: If Training Goal Reached is YES (athlete has already completed {total_duration_today_mins:.0f} mins across {session_count_today} sessions), YOU MUST NOT prescribe any additional active workout today. Your advice must prioritize recovery, hydration, and central nervous system rest. Explain that they have already done enough for their Olympic-level development today.
+           - IF OFF DAY (Rest Day) triggers: You MUST explicitly narrate the physical recovery protocol here (e.g., "Full rest today", "10-minute light stretching focused on hips"). Describe the instructions in text, and prescribe `null` for the workout JSON.
+           - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
            - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.

@@ -160,23 +160,26 @@ export function AdviceBlock({ advice, workout, isGenerating, language }) {
 
             <div className="p-6 relative z-10">
                 {isGenerating ? (
-                    <div className="flex flex-col items-center justify-center py-10 gap-5 select-none">
-                        {/* Rocket + sport orbit */}
-                        <div className="relative flex items-center justify-center w-28 h-28">
+                    <div className="flex flex-col items-center justify-center py-16 gap-8 select-none">
+                        {/* Premium Rocket + Sport orbit animation */}
+                        <div className="relative flex items-center justify-center w-40 h-40">
+                            {/* Glow backdrop */}
+                            <div className="absolute inset-4 bg-blue-500/5 rounded-full blur-2xl animate-pulse" />
+
                             {/* Orbit ring */}
                             <div
-                                className="absolute w-24 h-24 rounded-full border border-blue-400/20"
-                                style={{ animation: 'orbitSpin 7s linear infinite' }}
+                                className="absolute w-32 h-32 rounded-full border border-blue-400/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                                style={{ animation: 'orbitSpinPremium 8s linear infinite' }}
                             />
                             {/* Sport icons */}
                             {['🏃‍♂️', '🚴‍♂️', '🏊‍♂️', '⛷️', '🏋️‍♂️'].map((icon, i) => (
                                 <span
                                     key={i}
-                                    className="absolute text-lg"
+                                    className="absolute text-2xl filter drop-shadow-[0_0_5px_rgba(59,130,246,0.3)]"
                                     style={{
-                                        transform: `rotate(${i * 72}deg) translateY(-46px) rotate(${-(i * 72)}deg)`,
-                                        animation: `orbitSpin 7s linear infinite`,
-                                        animationDelay: `${i * -1.4}s`,
+                                        transform: `rotate(${i * 72}deg) translateY(-60px) rotate(${-(i * 72)}deg)`,
+                                        animation: `orbitSpinPremium 8s linear infinite`,
+                                        animationDelay: `${i * -1.6}s`,
                                     }}
                                 >
                                     {icon}
@@ -185,34 +188,35 @@ export function AdviceBlock({ advice, workout, isGenerating, language }) {
                             {/* Rocket center */}
                             <div className="relative z-10 text-center">
                                 <span
+                                    className="filter drop-shadow-[0_4px_10px_rgba(59,130,246,0.4)]"
                                     style={{
-                                        fontSize: '2.2rem',
+                                        fontSize: '3.5rem',
                                         display: 'inline-block',
-                                        animation: 'advRocketBob 1.2s ease-in-out infinite',
+                                        animation: 'advRocketBobPremium 1.5s ease-in-out infinite',
                                     }}
                                 >
                                     🚀
                                 </span>
-                                <div className="w-2 h-3 rounded-full bg-blue-400/40 blur-sm mx-auto mt-0.5 animate-pulse" />
+                                <div className="w-3 h-5 rounded-full bg-blue-400/30 blur-sm mx-auto mt-1 animate-pulse" />
                             </div>
                         </div>
 
                         <style>{`
-                            @keyframes advRocketBob {
-                                0%, 100% { transform: translateY(0px) rotate(-45deg); }
-                                50% { transform: translateY(-7px) rotate(-45deg); }
+                            @keyframes advRocketBobPremium {
+                                0%, 100% { transform: translateY(0px) rotate(-45deg) scale(1); }
+                                50% { transform: translateY(-10px) rotate(-42deg) scale(1.05); }
                             }
-                            @keyframes orbitSpin {
-                                from { transform: rotate(0deg) translateY(-46px) rotate(0deg); }
-                                to { transform: rotate(360deg) translateY(-46px) rotate(-360deg); }
+                            @keyframes orbitSpinPremium {
+                                from { transform: rotate(0deg) translateY(-60px) rotate(0deg); }
+                                to { transform: rotate(360deg) translateY(-60px) rotate(-360deg); }
                             }
                         `}</style>
 
-                        <div className="text-center space-y-1.5 max-w-xs">
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        <div className="text-center space-y-2 max-w-sm">
+                            <p className="text-lg font-bold text-gray-800 dark:text-white tracking-tight">
                                 AI Coach is analyzing your recovery...
                             </p>
-                            <p className="text-xs text-garmin-blue dark:text-blue-400 animate-pulse">
+                            <p className="text-sm text-garmin-blue dark:text-blue-400 font-medium animate-pulse tracking-wide">
                                 Building your personalized daily plan ⚡
                             </p>
                         </div>

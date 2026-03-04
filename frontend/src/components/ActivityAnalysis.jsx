@@ -117,7 +117,7 @@ export function ActivityAnalysis({ activityId, onClose }) {
             paceNum = pacePerKmSec / 60; // Decimal minutes
         }
 
-        const avgElevation = split.averageElevation || split.average_elevation || split.elevationGain || null;
+        const avgElevation = split.averageElevation || split.average_elevation || split.elevationGain || split.maxElevation || split.minElevation || null;
         const avgPower = split.averagePower || split.average_power || null;
 
         return {
@@ -126,10 +126,10 @@ export function ActivityAnalysis({ activityId, onClose }) {
             avgHR: split.averageHR || split.average_hr || null,
             avgSpeed: avgSpeed,
             pace: paceNum,
-            elevation: avgElevation,
+            elevation: avgElevation !== null ? Math.round(avgElevation) : null,
             power: avgPower
         };
-    }).filter(point => point.avgHR !== null || point.pace > 0 || point.power !== null);
+    }).filter(point => point.avgHR !== null || point.pace > 0 || point.elevation !== null || point.power !== null);
 
     return (
         <AnimatePresence>
@@ -166,55 +166,84 @@ export function ActivityAnalysis({ activityId, onClose }) {
 
                     <div className="p-6 space-y-8 flex-1">
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center h-72 gap-6 select-none">
-                                {/* Rocket + Sport icons animation */}
-                                <div className="relative flex items-center justify-center w-32 h-32">
-                                    {/* Outer orbit ring */}
-                                    <div className="absolute w-28 h-28 rounded-full border border-blue-500/20 animate-spin" style={{ animationDuration: '8s' }} />
+                            <div className="flex flex-col items-center justify-center h-96 gap-10 select-none">
+                                {/* Enhanced Rocket + Sport icons animation */}
+                                <div className="relative flex items-center justify-center w-56 h-56">
+                                    {/* Glassmorphic backdrop glow */}
+                                    <div className="absolute inset-0 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
+
+                                    {/* Outer orbit ring - slower */}
+                                    <div
+                                        className="absolute w-52 h-52 rounded-full border border-blue-500/10 shadow-[0_0_15px_rgba(59,130,246,0.1)]"
+                                        style={{ animation: 'spinClockwise 12s linear infinite' }}
+                                    />
+
+                                    {/* Inner orbit ring - faster */}
+                                    <div
+                                        className="absolute w-44 h-44 rounded-full border border-blue-400/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+                                        style={{ animation: 'spinCounter 8s linear infinite' }}
+                                    />
+
                                     {/* Sport icons orbiting */}
-                                    {['🏃‍♂️', '🚴‍♂️', '🏊‍♂️', '🏋️‍♂️'].map((icon, i) => (
-                                        <span
+                                    {['🏃‍♂️', '🚴‍♂️', '🏊‍♂️', '🏋️‍♂️', '🧘‍♂️'].map((icon, i) => (
+                                        <div
                                             key={i}
-                                            className="absolute text-xl"
+                                            className="absolute text-3xl filter drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]"
                                             style={{
-                                                transform: `rotate(${i * 90}deg) translateY(-52px) rotate(${-(i * 90)}deg)`,
-                                                animation: `spin 8s linear infinite`,
-                                                animationDelay: `${i * -2}s`,
+                                                transform: `rotate(${i * 72}deg) translateY(-88px) rotate(${-(i * 72)}deg)`,
+                                                animation: `orbitScale 3s ease-in-out infinite`,
+                                                animationDelay: `${i * -0.6}s`,
                                             }}
                                         >
                                             {icon}
-                                        </span>
+                                        </div>
                                     ))}
+
                                     {/* Rocket center */}
                                     <div className="relative z-10 flex flex-col items-center">
                                         <span
-                                            className="text-4xl"
+                                            className="text-7xl filter drop-shadow-[0_4px_12px_rgba(59,130,246,0.5)]"
                                             style={{
-                                                animation: 'rocketBob 1.4s ease-in-out infinite',
+                                                animation: 'rocketBobPremium 1.8s ease-in-out infinite',
                                                 display: 'inline-block',
                                             }}
                                         >
                                             🚀
                                         </span>
-                                        {/* Exhaust glow */}
-                                        <div className="w-2 h-4 rounded-full bg-blue-500/30 blur-sm mt-0.5 animate-pulse" />
+                                        {/* Dynamic engine glow */}
+                                        <div className="mt-2 flex flex-col items-center">
+                                            <div className="w-4 h-8 rounded-full bg-gradient-to-t from-orange-500/0 via-blue-500/40 to-blue-400 blur-md animate-pulse" />
+                                            <div className="w-1.5 h-12 rounded-full bg-blue-400/20 blur-sm -mt-6 animate-bounce" />
+                                        </div>
                                     </div>
                                 </div>
 
                                 <style>{`
-                                    @keyframes rocketBob {
-                                        0%, 100% { transform: translateY(0px) rotate(-45deg); }
-                                        50% { transform: translateY(-8px) rotate(-45deg); }
+                                    @keyframes rocketBobPremium {
+                                        0%, 100% { transform: translateY(0px) rotate(-45deg) scale(1); }
+                                        50% { transform: translateY(-15px) rotate(-42deg) scale(1.05); }
                                     }
-                                    @keyframes spin {
-                                        from { transform: rotate(var(--start-deg, 0deg)) translateY(-52px) rotate(calc(-1 * var(--start-deg, 0deg))); }
-                                        to { transform: rotate(calc(var(--start-deg, 0deg) + 360deg)) translateY(-52px) rotate(calc(-1 * (var(--start-deg, 0deg) + 360deg))); }
+                                    @keyframes spinClockwise {
+                                        from { transform: rotate(0deg); }
+                                        to { transform: rotate(360deg); }
+                                    }
+                                    @keyframes spinCounter {
+                                        from { transform: rotate(360deg); }
+                                        to { transform: rotate(0deg); }
+                                    }
+                                    @keyframes orbitScale {
+                                        0%, 100% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(1); opacity: 0.8; }
+                                        50% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(1.2); opacity: 1; }
                                     }
                                 `}</style>
 
-                                <div className="text-center space-y-1">
-                                    <p className="text-white font-semibold text-base">Analyzing performance data...</p>
-                                    <p className="text-blue-400/70 text-sm animate-pulse">Crunching your splits & metrics ⚡</p>
+                                <div className="text-center space-y-2">
+                                    <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white">
+                                        Analyzing performance data...
+                                    </p>
+                                    <p className="text-blue-400/80 text-base font-medium animate-pulse tracking-wide">
+                                        Crunching your splits & metrics ⚡
+                                    </p>
                                 </div>
                             </div>
 
@@ -425,7 +454,16 @@ export function ActivityAnalysis({ activityId, onClose }) {
                                                         itemStyle={{ color: '#fff' }}
                                                         formatter={(value) => [`${Math.round(value)}m`, 'Elevation']}
                                                     />
-                                                    <Area type="monotone" dataKey="elevation" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorElev)" activeDot={{ r: 6 }} />
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey="elevation"
+                                                        stroke="#10b981"
+                                                        strokeWidth={2}
+                                                        fillOpacity={1}
+                                                        fill="url(#colorElev)"
+                                                        activeDot={{ r: 6 }}
+                                                        connectNulls={true}
+                                                    />
                                                 </AreaChart>
                                             </ResponsiveContainer>
                                         </div>
