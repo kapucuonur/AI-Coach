@@ -266,6 +266,26 @@ async def sync_workout_to_watch(
             except Exception as dev_err:
                 logger.warning(f"Could not send workout to device (non-fatal): {dev_err}")
             
+        # 4. Save to DB for our custom Garmin Watch App
+        try:
+            from backend.database import SessionLocal
+            from backend.models import UserSetting
+            db = SessionLocal()
+            try:
+                setting = db.query(UserSetting).filter(UserSetting.key == "last_synced_workout").first()
+                if not setting:
+                    setting = UserSetting(key="last_synced_workout", value=workout)
+                    db.add(setting)
+                else:
+                    setting.value = workout
+                db.commit()
+            except Exception as db_err:
+                logger.error(f"Could not save workout to DB: {db_err}")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Failed setting up db session for workout cache: {e}")
+
         msg = "Workout saved and scheduled for today." if scheduled else "Workout saved to Garmin Connect. Calendar scheduling unavailable - open the Garmin Connect app to see it."
         return {
             "status": "success", 

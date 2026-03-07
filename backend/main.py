@@ -46,6 +46,8 @@ app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(plan.router, prefix="/api/plan", tags=["Plan"])
 app.include_router(nutrition.router, prefix="/api", tags=["Nutrition"])
 app.include_router(garmin.router, prefix="/api/garmin", tags=["Garmin"])
+from backend.routers import garmin_app
+app.include_router(garmin_app.router, prefix="/api/garmin-app", tags=["Garmin App"])
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 app.include_router(tts.router, prefix="/api/tts", tags=["TTS"])
 
