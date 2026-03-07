@@ -10,17 +10,33 @@ logger = logging.getLogger(__name__)
 
 @router.get("/workout")
 def get_todays_workout(
+    email: str = None,
     device: str = None,
     db: Session = Depends(get_db)
 ):
     """
-    Endpoint for Garmin CIQ App to fetch today's workout target.
-    Since CIQ app doesn't have OAuth yet, we fetch the latest approved workout.
+    Endpoint for Garmin CIQ Data Field to fetch today's workout target.
+    The CIQ app passes the user's coachonurai.com email address as a query
+    parameter so each user gets their own personalised training plan.
     """
     try:
-        # For prototype, we just grab the last saved workout for the main user
-        # In production, CIQ app sends a unique token mapped to the user.
-        setting = db.query(UserSetting).filter(UserSetting.key == "last_synced_workout").first()
+        setting = None
+        
+        if email:
+            # Look up the user by email, then find their last synced workout
+            user = db.query(User).filter(User.email == email).first()
+            if user:
+                setting = db.query(UserSetting).filter(
+                    UserSetting.user_id == user.id,
+                    UserSetting.key == "last_synced_workout"
+                ).first()
+                if not setting:
+                    logger.info(f"No saved workout for user: {email}, using fallback.")
+            else:
+                logger.warning(f"Garmin app: no user found with email: {email}")
+        else:
+            # Legacy: grab the first user's workout (for backward compatibility)
+            setting = db.query(UserSetting).filter(UserSetting.key == "last_synced_workout").first()
         
         if not setting or not setting.value:
             # Fallback mock data if user hasn't synced an AI workout yet
