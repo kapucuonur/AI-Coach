@@ -560,6 +560,55 @@ function App() {
   const [settingsData, setSettingsData] = useState(null);
   const [showGarminConnectModal, setShowGarminConnectModal] = useState(false);
 
+  const fetchAIAdvice = async (forceMins = null, languageOverride = null) => {
+    if (!isAuthenticated || !data) return;
+    if (data.advice && forceMins === null && languageOverride === null) return; // Only skip if we already have advice AND we aren't forcing a regeneration
+
+    setIsGeneratingAdvice(true);
+    try {
+      const payload = {
+        todays_activities: data.todays_activities || [],
+        activities_summary_dict: data.metrics?.weekly_volume || {},
+        health_stats: data.metrics?.health || {},
+        sleep_data: data.metrics?.sleep || {},
+        profile: data.metrics?.profile || {},
+        language: languageOverride || settingsData?.language || i18n.language || 'en',
+        client_local_time: new Date().toISOString()
+      };
+
+      if (forceMins !== null && forceMins > 0) {
+        payload.available_time_mins = forceMins;
+      }
+
+      const res = await client.post('/coach/generate-advice', payload);
+
+      setData(prev => ({
+        ...prev,
+        advice: res.data.advice,
+        workout: res.data.workout
+      }));
+    } catch (err) {
+      console.error("Failed to generate AI advice", err);
+      setData(prev => ({
+        ...prev,
+        advice: "Sorry, I could not generate your advice right now. Please try again later.",
+        workout: null
+      }));
+    } finally {
+      setIsGeneratingAdvice(false);
+    }
+  };
+
+  // Trigger AI generation AFTER dashboard data loads
+  useEffect(() => {
+    // Only fetch if authenticated, data exists, and advice hasn't been generated yet
+    if (isAuthenticated && data && !data.advice) {
+      if (!isGeneratingAdvice) {
+        fetchAIAdvice();
+      }
+    }
+  }, [isAuthenticated, data]);
+
   const fetchDashboardData = async () => {
     setLoading(true);
     setError(null);
@@ -701,7 +750,7 @@ function App() {
             darkMode={darkMode} setDarkMode={setDarkMode}
             settingsData={settingsData} setSettingsData={setSettingsData}
             showGarminConnectModal={showGarminConnectModal} setShowGarminConnectModal={setShowGarminConnectModal}
-            fetchAIAdvice={async () => { }} // Pass actual function reference down if needed, or rely on internal implementation inside Dashboard
+            fetchAIAdvice={fetchAIAdvice}
             requirePremium={(cb) => { if (isPremium || isAdmin) cb(); else setShowPaywall(true); }}
             fetchDashboardData={fetchDashboardData}
           />
