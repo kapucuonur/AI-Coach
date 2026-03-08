@@ -77,7 +77,8 @@ async def get_daily_metrics(
         processor = DataProcessor()
         
         # 1. Fetch Data Concurrently
-        activities_task = asyncio.to_thread(client.get_activities, 30)
+        # Reduced from 30 down to 10 activities to drastically improve login speed.
+        activities_task = asyncio.to_thread(client.get_activities, 10)
         health_stats_task = asyncio.to_thread(client.get_health_stats)
         sleep_data_task = asyncio.to_thread(client.get_sleep_data)
         profile_task = asyncio.to_thread(client.get_profile)

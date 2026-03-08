@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -15,94 +16,32 @@ import { YearlyStats } from './components/YearlyStats';
 import { DeviceCard } from './components/DeviceCard';
 import { GarminConnectModal } from './components/GarminConnectModal';
 import { PremiumPaywallModal } from './components/PremiumPaywallModal';
+import { PrivacyPolicy } from './components/PrivacyPolicy';
+import { TermsOfService } from './components/TermsOfService';
 import { Heart, Activity, Moon, Sun, Battery, Loader2, Settings, Zap, Clock, Home } from 'lucide-react';
 
-function App() {
+function Dashboard({
+  data, setData, loading, setLoading, error, setError,
+  isAuthenticated, setIsAuthenticated,
+  isGeneratingAdvice, setIsGeneratingAdvice,
+  trainingHours, setTrainingHours,
+  trainingMinutes, setTrainingMinutes,
+  isPremium, setIsPremium,
+  isAdmin, setIsAdmin,
+  showPaywall, setShowPaywall,
+  trialEndsAt, setTrialEndsAt,
+  subscriptionStatus, setSubscriptionStatus,
+  selectedActivityId, setSelectedActivityId,
+  selectedMetric, setSelectedMetric,
+  darkMode, setDarkMode,
+  settingsData, setSettingsData,
+  showGarminConnectModal, setShowGarminConnectModal,
+  fetchAIAdvice, requirePremium, fetchDashboardData
+}) {
   const { t, i18n } = useTranslation();
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState(null);
-  const [_error, setError] = useState(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
-  const [trainingHours, setTrainingHours] = useState("");
-  const [trainingMinutes, setTrainingMinutes] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
-
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [trialEndsAt, setTrialEndsAt] = useState(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
-
   const ADMIN_EMAILS = ['kapucuonur@hotmail.com', 'onurbenn@gmail.com'];
 
-  // Interaction States
-  const [selectedActivityId, setSelectedActivityId] = useState(null);
-  const [selectedMetric, setSelectedMetric] = useState(null);
-
-  // Dark mode state
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem('darkMode');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('darkMode', JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  const [settingsData, setSettingsData] = useState(null);
-
-  const fetchAIAdvice = async (forceMins = null, languageOverride = null) => {
-    if (!isAuthenticated || !data) return;
-    if (data.advice && forceMins === null && languageOverride === null) return; // Only skip if we already have advice AND we aren't forcing a regeneration
-
-    setIsGeneratingAdvice(true);
-    try {
-      const payload = {
-        todays_activities: data.todays_activities || [],
-        activities_summary_dict: data.metrics?.weekly_volume || {},
-        health_stats: data.metrics?.health || {},
-        sleep_data: data.metrics?.sleep || {},
-        profile: data.metrics?.profile || {},
-        language: languageOverride || settingsData?.language || i18n.language || 'en',
-        client_local_time: new Date().toISOString()
-      };
-
-      if (forceMins !== null && forceMins > 0) {
-        payload.available_time_mins = forceMins;
-      }
-
-      const res = await client.post('/coach/generate-advice', payload);
-
-      setData(prev => ({
-        ...prev,
-        advice: res.data.advice,
-        workout: res.data.workout
-      }));
-    } catch (err) {
-      console.error("Failed to generate AI advice", err);
-      setData(prev => ({
-        ...prev,
-        advice: "Sorry, I could not generate your advice right now. Please try again later.",
-        workout: null
-      }));
-    } finally {
-      setIsGeneratingAdvice(false);
-    }
-  };
-
-  // Trigger AI generation AFTER dashboard data loads
-  useEffect(() => {
-    // Only fetch if authenticated, data exists, and advice hasn't been generated yet
-    if (isAuthenticated && data && !data.advice) {
-      fetchAIAdvice();
-    }
-  }, [isAuthenticated, data]);
+  // Props fetchAIAdvice, requirePremium, fetchDashboardData passed in!
 
   const handleManualGenerate = () => {
     requirePremium(() => {
@@ -112,136 +51,6 @@ function App() {
       fetchAIAdvice(totalMins > 0 ? totalMins : null);
     });
   };
-
-  const requirePremium = (action) => {
-    if (isPremium || isAdmin) {
-      action();
-    } else {
-      setShowPaywall(true);
-    }
-  };
-
-  const [showGarminConnectModal, setShowGarminConnectModal] = useState(false);
-
-  // Helper to fetch all dashboard data once authenticated
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Fetch daily metrics with localized timezone support
-      const response = await client.post('/coach/daily-metrics', {
-        client_local_time: new Date().toISOString()
-      });
-      let enrichedData = response.data;
-
-      // Fetch settings
-      try {
-        const settingsRes = await client.get('/settings');
-        setSettingsData(settingsRes.data);
-        if (settingsRes.data.language) {
-          i18n.changeLanguage(settingsRes.data.language);
-        }
-      } catch (e) {
-        console.warn("Could not fetch settings", e);
-      }
-
-      // Fetch profile data
-      try {
-        const profileRes = await client.get('/dashboard/profile');
-        if (profileRes.data) {
-          enrichedData = {
-            ...enrichedData,
-            metrics: {
-              ...enrichedData.metrics,
-              profile: profileRes.data
-            }
-          };
-        }
-      } catch (e) {
-        console.warn("Could not fetch profile data", e);
-      }
-
-      setData(enrichedData);
-    } catch (err) {
-      console.error(err);
-      if (err.response?.data?.detail === "GARMIN_NOT_CONNECTED") {
-        setShowGarminConnectModal(true);
-      } else {
-        const msg = err.response?.data?.detail || "Could not fetch dashboard data.";
-        setError(msg);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogin = async (token, hasGarmin) => {
-    if (token) {
-      localStorage.setItem('access_token', token);
-      client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
-
-    setIsAuthenticated(true);
-    setLoading(true);
-
-    try {
-      // Fetch /me to ensure we have the correct premium & admin state on fresh login
-      const res = await client.get('/auth/me');
-      setIsPremium(res.data.is_premium || false);
-      setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
-      setTrialEndsAt(res.data.trial_ends_at || null);
-      setSubscriptionStatus(res.data.subscription_status || "inactive");
-    } catch (e) {
-      console.error("Failed to fetch user state format during login", e);
-    }
-
-    if (hasGarmin) {
-      await fetchDashboardData();
-    } else {
-      setShowGarminConnectModal(true);
-      setLoading(false);
-    }
-  };
-
-  // If we have a token on load, try to authenticate instantly
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      // Optimistically log in
-      client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      client.get('/auth/me').then(res => {
-        setIsAuthenticated(true);
-        setIsPremium(res.data.is_premium || false);
-        setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
-        setTrialEndsAt(res.data.trial_ends_at || null);
-        setSubscriptionStatus(res.data.subscription_status || "inactive");
-        if (res.data.has_garmin_connected) {
-          fetchDashboardData();
-        } else {
-          setShowGarminConnectModal(true);
-        }
-      }).catch(() => {
-        localStorage.removeItem('access_token');
-        delete client.defaults.headers.common['Authorization'];
-      });
-    }
-  }, []);
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark transition-colors duration-300">
-        <div className="absolute top-4 right-4 z-50">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors"
-          >
-            {darkMode ? <Sun size={24} /> : <Moon size={24} />}
-          </button>
-        </div>
-        <Login onLogin={handleLogin} />
-      </div>
-    );
-  }
 
   if (loading && isAuthenticated) {
     return (
@@ -677,6 +486,17 @@ function App() {
         {(isPremium || isAdmin) && (
           <ChatWidget userContext={{ health, sleep, metrics }} language={settingsData?.language || 'en'} />
         )}
+
+        {/* Footer Area */}
+        <footer className="mt-12 py-6 border-t border-gray-200 dark:border-white/10 text-center">
+          <div className="flex justify-center items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+            <a href="/privacy" className="hover:text-garmin-blue transition-colors">Privacy Policy</a>
+            <a href="/terms" className="hover:text-garmin-blue transition-colors">Terms of Service</a>
+          </div>
+          <p className="mt-2 text-xs text-gray-400 dark:text-gray-600">
+            &copy; {new Date().getFullYear()} CoachOnur AI. All rights reserved.
+          </p>
+        </footer>
       </div>
 
       <PremiumPaywallModal
@@ -693,6 +513,200 @@ function App() {
         />
       )}
     </>
+  );
+}
+
+function App() {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+
+  // App Level State
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
+  const [_error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
+  const [trainingHours, setTrainingHours] = useState("");
+  const [trainingMinutes, setTrainingMinutes] = useState("");
+  const [isPremium, setIsPremium] = useState(false);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [trialEndsAt, setTrialEndsAt] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
+
+  const ADMIN_EMAILS = ['kapucuonur@hotmail.com', 'onurbenn@gmail.com'];
+
+  // Interaction States
+  const [selectedActivityId, setSelectedActivityId] = useState(null);
+  const [selectedMetric, setSelectedMetric] = useState(null);
+
+  // Dark mode state
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
+
+  const [settingsData, setSettingsData] = useState(null);
+  const [showGarminConnectModal, setShowGarminConnectModal] = useState(false);
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await client.post('/coach/daily-metrics', {
+        client_local_time: new Date().toISOString()
+      });
+      let enrichedData = response.data;
+
+      try {
+        const settingsRes = await client.get('/settings');
+        setSettingsData(settingsRes.data);
+        if (settingsRes.data.language) {
+          i18n.changeLanguage(settingsRes.data.language);
+        }
+      } catch (e) {
+        console.warn("Could not fetch settings", e);
+      }
+
+      try {
+        const profileRes = await client.get('/dashboard/profile');
+        if (profileRes.data) {
+          enrichedData = { ...enrichedData, metrics: { ...enrichedData.metrics, profile: profileRes.data } };
+        }
+      } catch (e) {
+        console.warn("Could not fetch profile data", e);
+      }
+
+      setData(enrichedData);
+    } catch (err) {
+      console.error(err);
+      if (err.response?.data?.detail === "GARMIN_NOT_CONNECTED") {
+        setShowGarminConnectModal(true);
+      } else {
+        setError(err.response?.data?.detail || "Could not fetch dashboard data.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogin = async (token, hasGarmin) => {
+    if (token) {
+      localStorage.setItem('access_token', token);
+      client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+
+    setIsAuthenticated(true);
+    setLoading(true);
+
+    try {
+      const res = await client.get('/auth/me');
+      setIsPremium(res.data.is_premium || false);
+      setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
+      setTrialEndsAt(res.data.trial_ends_at || null);
+      setSubscriptionStatus(res.data.subscription_status || "inactive");
+    } catch (e) {
+      console.error("Failed to fetch user state format during login", e);
+    }
+
+    if (hasGarmin) {
+      await fetchDashboardData();
+    } else {
+      setShowGarminConnectModal(true);
+      setLoading(false);
+    }
+    navigate('/');
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      client.get('/auth/me').then(res => {
+        setIsAuthenticated(true);
+        setIsPremium(res.data.is_premium || false);
+        setIsAdmin(ADMIN_EMAILS.includes(res.data.email));
+        setTrialEndsAt(res.data.trial_ends_at || null);
+        setSubscriptionStatus(res.data.subscription_status || "inactive");
+        if (res.data.has_garmin_connected) {
+          fetchDashboardData();
+        } else {
+          setShowGarminConnectModal(true);
+        }
+      }).catch(() => {
+        localStorage.removeItem('access_token');
+        delete client.defaults.headers.common['Authorization'];
+      });
+    }
+  }, []);
+
+  return (
+    <Routes>
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+
+      <Route path="*" element={
+        !isAuthenticated ? (
+          <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark transition-colors duration-300 relative">
+            <div className="absolute top-4 right-4 z-50">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors"
+                title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {darkMode ? <Sun size={24} /> : <Moon size={24} />}
+              </button>
+            </div>
+            <div className="flex flex-col min-h-screen">
+              <div className="flex-grow">
+                <Login onLogin={handleLogin} />
+              </div>
+
+              {/* Minimal Login Footer */}
+              <div className="absolute bottom-4 w-full flex justify-center z-10">
+                <div className="flex gap-6 text-xs text-white/50 bg-black/50 backdrop-blur-sm px-6 py-2 rounded-full border border-white/10">
+                  <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+                  <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Dashboard
+            data={data} setData={setData}
+            loading={loading} setLoading={setLoading}
+            error={_error} setError={setError}
+            isAuthenticated={isAuthenticated} setIsAuthenticated={setIsAuthenticated}
+            isGeneratingAdvice={isGeneratingAdvice} setIsGeneratingAdvice={setIsGeneratingAdvice}
+            trainingHours={trainingHours} setTrainingHours={setTrainingHours}
+            trainingMinutes={trainingMinutes} setTrainingMinutes={setTrainingMinutes}
+            isPremium={isPremium} setIsPremium={setIsPremium}
+            isAdmin={isAdmin} setIsAdmin={setIsAdmin}
+            showPaywall={showPaywall} setShowPaywall={setShowPaywall}
+            trialEndsAt={trialEndsAt} setTrialEndsAt={setTrialEndsAt}
+            subscriptionStatus={subscriptionStatus} setSubscriptionStatus={setSubscriptionStatus}
+            selectedActivityId={selectedActivityId} setSelectedActivityId={setSelectedActivityId}
+            selectedMetric={selectedMetric} setSelectedMetric={setSelectedMetric}
+            darkMode={darkMode} setDarkMode={setDarkMode}
+            settingsData={settingsData} setSettingsData={setSettingsData}
+            showGarminConnectModal={showGarminConnectModal} setShowGarminConnectModal={setShowGarminConnectModal}
+            fetchAIAdvice={async () => { }} // Pass actual function reference down if needed, or rely on internal implementation inside Dashboard
+            requirePremium={(cb) => { if (isPremium || isAdmin) cb(); else setShowPaywall(true); }}
+            fetchDashboardData={fetchDashboardData}
+          />
+        )
+      } />
+    </Routes>
   );
 }
 
