@@ -40,6 +40,7 @@ function Dashboard({
 }) {
   const { t, i18n } = useTranslation();
   const ADMIN_EMAILS = ['kapucuonur@hotmail.com', 'onurbenn@gmail.com'];
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Props fetchAIAdvice, requirePremium, fetchDashboardData passed in!
 
