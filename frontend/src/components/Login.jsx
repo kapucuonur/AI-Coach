@@ -142,8 +142,8 @@ export function Login({ onLogin }) {
 
                                 <div className={`hidden md:flex absolute inset-0 flex-col items-center z-20 pointer-events-none transition-all duration-500
                                     ${isActive
-                                        ? 'justify-end pb-24 md:pb-24 md:justify-end'
-                                        : 'justify-center md:justify-end md:pb-24'}
+                                        ? 'justify-end pb-32 md:pb-32 md:justify-end'
+                                        : 'justify-center md:justify-end md:pb-32'}
                                 `}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
@@ -181,7 +181,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-center gap-8 px-4 py-8 md:py-0 h-full pointer-events-none pt-24 md:pt-0 md:-mt-16">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-6 px-4 py-8 md:py-0 h-full pointer-events-none pt-28 md:pt-32">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
                     <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
@@ -190,22 +190,22 @@ export function Login({ onLogin }) {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8 }}
                         >
-                            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md w-fit mx-auto">
+                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md w-fit mx-auto">
                                 <Zap size={16} className="text-blue-400" />
                                 <span className="text-sm font-medium text-blue-200">AI Powered Performance</span>
                             </div>
-                            <h1 className="mb-4 text-3xl font-bold leading-tight tracking-tight md:text-6xl max-w-3xl mx-auto">
+                            <h1 className="mb-3 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl max-w-3xl mx-auto">
                                 Train Smarter, <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                     Not Harder.
                                 </span>
                             </h1>
-                            <p className="mb-6 text-sm text-gray-300 md:text-xl max-w-lg mx-auto">
+                            <p className="mb-4 text-sm text-gray-300 md:text-lg max-w-lg mx-auto">
                                 Turn your Garmin data into a dynamic, adaptive training plan.
                                 Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
                             </p>
 
-                            <div className="flex flex-wrap gap-4 justify-center text-sm text-gray-400 mb-8">
+                            <div className="flex flex-wrap gap-4 justify-center text-xs md:text-sm text-gray-400 mb-6">
                                 <div className="flex items-center gap-2"><Activity size={18} /> Adaptive Plans</div>
                                 <div className="flex items-center gap-2"><HeartPulse size={18} /> Recovery Analysis</div>
                                 <div className="flex items-center gap-2"><Gauge size={18} /> VO2 Max focus</div>
