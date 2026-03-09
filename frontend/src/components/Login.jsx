@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus } from 'lucide-react';
-import client from '../api/client';
+import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus, ArrowUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
+import client from '../api/client';
 import FacebookLogin from '@greatsumini/react-facebook-login';
 
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID";
@@ -540,13 +541,20 @@ export function Login({ onLogin }) {
 
             {/* --- MINIMAL FOOTER --- */}
             <footer className="w-full bg-black py-8 border-t border-white/5 z-20 relative">
-                <div className="max-w-6xl mx-auto px-4 flex justify-between items-center text-xs md:text-sm text-gray-500">
-                    <div className="font-semibold text-gray-300">
-                        CoachOnur AI &copy; {new Date().getFullYear()}
+                <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs md:text-sm text-gray-500">
+                    <div className="font-semibold text-gray-300 flex items-center gap-4">
+                        <span>CoachOnur AI &copy; {new Date().getFullYear()}</span>
+                        <button
+                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+                        >
+                            <ArrowUp size={14} />
+                            <span>Back to top</span>
+                        </button>
                     </div>
                     <div className="flex gap-6">
-                        <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-                        <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
+                        <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                        <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
                     </div>
                 </div>
             </footer>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
@@ -491,8 +491,8 @@ function Dashboard({
         {/* Footer Area */}
         <footer className="mt-12 py-6 border-t border-gray-200 dark:border-white/10 text-center">
           <div className="flex justify-center items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
-            <a href="/privacy" className="hover:text-garmin-blue transition-colors">Privacy Policy</a>
-            <a href="/terms" className="hover:text-garmin-blue transition-colors">Terms of Service</a>
+            <Link to="/privacy" className="hover:text-garmin-blue transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-garmin-blue transition-colors">Terms of Service</Link>
           </div>
           <p className="mt-2 text-xs text-gray-400 dark:text-gray-600">
             &copy; {new Date().getFullYear()} CoachOnur AI. All rights reserved.
