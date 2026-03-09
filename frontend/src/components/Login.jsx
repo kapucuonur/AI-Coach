@@ -181,7 +181,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-4 px-4 py-8 md:py-0 h-full pointer-events-none pt-24 md:pt-28">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-2 lg:gap-4 px-4 py-8 md:py-0 h-full pointer-events-none pt-20 md:pt-24 pb-32">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
                     <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
@@ -190,22 +190,22 @@ export function Login({ onLogin }) {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8 }}
                         >
-                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md w-fit mx-auto">
-                                <Zap size={16} className="text-blue-400" />
-                                <span className="text-sm font-medium text-blue-200">AI Powered Performance</span>
+                            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 backdrop-blur-md w-fit mx-auto">
+                                <Zap size={14} className="text-blue-400" />
+                                <span className="text-xs font-medium text-blue-200">AI Powered Performance</span>
                             </div>
-                            <h1 className="mb-3 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl max-w-3xl mx-auto">
+                            <h1 className="mb-2 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl max-w-3xl mx-auto drop-shadow-lg">
                                 Train Smarter, <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                     Not Harder.
                                 </span>
                             </h1>
-                            <p className="mb-4 text-sm text-gray-300 md:text-lg max-w-lg mx-auto">
+                            <p className="mb-3 text-sm text-gray-200 md:text-md max-w-lg mx-auto drop-shadow-md font-medium">
                                 Turn your Garmin data into a dynamic, adaptive training plan.
                                 Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
                             </p>
 
-                            <div className="flex flex-wrap gap-4 justify-center text-xs md:text-sm text-gray-400 mb-6">
+                            <div className="flex flex-wrap gap-3 justify-center text-xs md:text-sm text-gray-300 font-medium mb-4 drop-shadow-md">
                                 <div className="flex items-center gap-2"><Activity size={18} /> Adaptive Plans</div>
                                 <div className="flex items-center gap-2"><HeartPulse size={18} /> Recovery Analysis</div>
                                 <div className="flex items-center gap-2"><Gauge size={18} /> VO2 Max focus</div>
@@ -240,18 +240,18 @@ export function Login({ onLogin }) {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2, duration: 0.5 }}
-                            className="overflow-hidden rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_0_40px_rgba(0,0,0,0.5)]"
+                            className="overflow-hidden rounded-2xl border border-white/10 bg-black/60 backdrop-blur-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] max-h-[85vh] overflow-y-auto"
                         >
-                            <div className="p-8">
-                                <div className="mb-8 text-center">
-                                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500">
-                                        {isRegistering ? <UserPlus className="text-white" size={20} /> : <Lock className="text-white" size={20} />}
+                            <div className="p-6">
+                                <div className="mb-4 text-center">
+                                    <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500">
+                                        {isRegistering ? <UserPlus className="text-white" size={18} /> : <Lock className="text-white" size={18} />}
                                     </div>
-                                    <h2 className="text-2xl font-semibold">
+                                    <h2 className="text-xl font-semibold">
                                         {isRegistering ? "Create Account" : "Login"}
                                     </h2>
-                                    <p className="text-sm text-gray-400">
-                                        {isRegistering ? "Join CoachOnur - AI Training today" : "Enter your CoachOnur - AI Training credentials"}
+                                    <p className="text-xs text-gray-400">
+                                        {isRegistering ? "Join CoachOnur - AI Training today" : "Enter your CoachOnur credentials"}
                                     </p>
                                 </div>
 
@@ -274,7 +274,7 @@ export function Login({ onLogin }) {
                                             initial={{ opacity: 0 }}
                                             animate={{ opacity: 1 }}
                                             exit={{ opacity: 0 }}
-                                            className="space-y-4"
+                                            className="space-y-3"
                                         >
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-400">Email Address</label>
@@ -282,7 +282,7 @@ export function Login({ onLogin }) {
                                                     type="email"
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
-                                                    className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                                                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                                                     placeholder="athlete@example.com"
                                                     required
                                                     disabled={loading}
@@ -294,7 +294,7 @@ export function Login({ onLogin }) {
                                                     type="password"
                                                     value={password}
                                                     onChange={(e) => setPassword(e.target.value)}
-                                                    className="w-full rounded-lg border border-white/10 bg-black/40 px-4 py-3 text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                                                    className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                                                     placeholder="••••••••"
                                                     required
                                                     disabled={loading}
@@ -310,18 +310,18 @@ export function Login({ onLogin }) {
                                             <button
                                                 type="submit"
                                                 disabled={loading}
-                                                className="group mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 font-semibold text-black transition-all hover:bg-gray-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                                                className="group mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition-all hover:bg-gray-200 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
                                             >
                                                 {isRegistering ? "Sign Up" : "Sign In"}
-                                                <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
+                                                <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
                                             </button>
 
-                                            <div className="relative my-6">
+                                            <div className="relative my-4">
                                                 <div className="absolute inset-0 flex items-center">
                                                     <div className="w-full border-t border-white/10"></div>
                                                 </div>
-                                                <div className="relative flex justify-center text-xs text-gray-400">
-                                                    <span className="bg-[#111] px-2 shadow-inner">OR CONTINUE WITH</span>
+                                                <div className="relative flex justify-center text-[10px] text-gray-400">
+                                                    <span className="bg-[#111] px-2 shadow-inner uppercase">Or continue with</span>
                                                 </div>
                                             </div>
 
