@@ -181,31 +181,31 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-6xl flex-col md:flex-row md:items-center justify-between gap-8 px-4 py-8 md:py-0 h-full pointer-events-none pt-24 md:pt-0">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-center gap-8 px-4 py-8 md:py-0 h-full pointer-events-none pt-24 md:pt-0 md:-mt-16">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
-                    <div className="flex-1 text-center md:text-left bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
+                    <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8 }}
                         >
-                            <div className="mb-6 inline-flex md:flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md w-fit">
+                            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 backdrop-blur-md w-fit mx-auto">
                                 <Zap size={16} className="text-blue-400" />
                                 <span className="text-sm font-medium text-blue-200">AI Powered Performance</span>
                             </div>
-                            <h1 className="mb-4 text-3xl font-bold leading-tight tracking-tight md:text-6xl max-w-2xl">
+                            <h1 className="mb-4 text-3xl font-bold leading-tight tracking-tight md:text-6xl max-w-3xl mx-auto">
                                 Train Smarter, <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                     Not Harder.
                                 </span>
                             </h1>
-                            <p className="mb-6 text-sm text-gray-300 md:text-xl max-w-md mx-auto md:mx-0">
+                            <p className="mb-6 text-sm text-gray-300 md:text-xl max-w-lg mx-auto">
                                 Turn your Garmin data into a dynamic, adaptive training plan.
                                 Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
                             </p>
 
-                            <div className="flex flex-wrap gap-4 justify-center md:justify-start text-sm text-gray-400 mb-8">
+                            <div className="flex flex-wrap gap-4 justify-center text-sm text-gray-400 mb-8">
                                 <div className="flex items-center gap-2"><Activity size={18} /> Adaptive Plans</div>
                                 <div className="flex items-center gap-2"><HeartPulse size={18} /> Recovery Analysis</div>
                                 <div className="flex items-center gap-2"><Gauge size={18} /> VO2 Max focus</div>
@@ -235,7 +235,7 @@ export function Login({ onLogin }) {
                     </div>
 
                     {/* LOGIN CARD */}
-                    <div className="w-full max-w-md pointer-events-auto mx-auto md:mx-0 mb-8 md:mb-0">
+                    <div className="w-full max-w-md pointer-events-auto mx-auto mb-8 md:mb-0 z-40">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -376,6 +376,22 @@ export function Login({ onLogin }) {
                             </div>
                         </motion.div>
                     </div>
+                </div>
+
+                {/* SCROLL DOWN INDICATOR */}
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
+                    <motion.div
+                        animate={{ y: [0, 10, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        className="flex flex-col items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
+                    >
+                        <span className="text-[10px] md:text-xs font-medium tracking-widest text-white uppercase bg-black/40 px-3 py-1 rounded-full backdrop-blur-md border border-white/20">Discover More</span>
+                        <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg hover:bg-black/60 transition-colors">
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                            </svg>
+                        </div>
+                    </motion.div>
                 </div>
             </section>
 
