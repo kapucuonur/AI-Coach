@@ -142,8 +142,8 @@ export function Login({ onLogin }) {
 
                                 <div className={`hidden md:flex absolute inset-0 flex-col items-center z-20 pointer-events-none transition-all duration-500
                                     ${isActive
-                                        ? 'justify-end pb-32 md:pb-40 md:justify-end'
-                                        : 'justify-center md:justify-end md:pb-40'}
+                                        ? 'justify-end pb-12 md:pb-12 md:justify-end'
+                                        : 'justify-end md:justify-end md:pb-12'}
                                 `}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
