@@ -181,7 +181,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-2 lg:gap-4 px-4 py-8 md:py-0 h-full pointer-events-none pt-20 md:pt-24 pb-32">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-2 px-4 py-4 md:py-0 h-full pointer-events-none pt-8 md:pt-12 pb-32">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
                     <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
@@ -190,22 +190,22 @@ export function Login({ onLogin }) {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.8 }}
                         >
-                            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 backdrop-blur-md w-fit mx-auto">
-                                <Zap size={14} className="text-blue-400" />
-                                <span className="text-xs font-medium text-blue-200">AI Powered Performance</span>
+                            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 backdrop-blur-md w-fit mx-auto">
+                                <Zap size={12} className="text-blue-400" />
+                                <span className="text-[10px] md:text-xs font-medium text-blue-200 uppercase tracking-widest">AI Powered</span>
                             </div>
-                            <h1 className="mb-2 text-3xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl max-w-3xl mx-auto drop-shadow-lg">
+                            <h1 className="mb-2 text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-5xl max-w-3xl mx-auto drop-shadow-lg">
                                 Train Smarter, <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                     Not Harder.
                                 </span>
                             </h1>
-                            <p className="mb-3 text-sm text-gray-200 md:text-md max-w-lg mx-auto drop-shadow-md font-medium">
+                            <p className="mb-3 text-sm text-gray-200 max-w-lg mx-auto drop-shadow-md font-medium">
                                 Turn your Garmin data into a dynamic, adaptive training plan.
                                 Your AI coach analyzes your sleep, stress, and recovery to prescribe the perfect workout, every day.
                             </p>
 
-                            <div className="flex flex-wrap gap-3 justify-center text-xs md:text-sm text-gray-300 font-medium mb-4 drop-shadow-md">
+                            <div className="flex flex-wrap gap-3 justify-center text-xs text-gray-300 font-medium mb-2 drop-shadow-md">
                                 <div className="flex items-center gap-2"><Activity size={18} /> Adaptive Plans</div>
                                 <div className="flex items-center gap-2"><HeartPulse size={18} /> Recovery Analysis</div>
                                 <div className="flex items-center gap-2"><Gauge size={18} /> VO2 Max focus</div>
