@@ -25,6 +25,7 @@ An AI-powered endurance sports coach that analyzes your Garmin ecosystem data to
 - **AI Coach (Gemini 2.5 Flash):** Generates bespoke 1-week and 1-month training plans aligned with your physical readiness, specific TSS, and personal goals.
 - **Nutrition Vision AI:** Upload a photo of your meal to instantly extract macroscopic nutritional values (Calories, Protein, Carbs, Fats) via advanced AI image analysis.
 - **Structured Workouts:** Delivers exact breakdowns of Warmup, Main Set, and Cooldown sequences effortlessly exported to your training regimen.
+- **Immersive Landing Page:** A responsive, motion-driven experience featuring auto-cycling cinematic video backgrounds for multiple endurance disciplines.
 - **Premium Glassmorphic UI:** A beautifully designed, responsive interface featuring dynamic charts, interactive activity maps, and sleek dark-mode aesthetics.
 - **Frictionless Authentication:** Quick and secure social logins via Google and Facebook alongside traditional JWT authentication.
 - **Stripe Subscriptions:** Robust paywall integration handling Free (Read-Only) and Pro (AI Interactive) tiers with automated webhooks.
