@@ -707,29 +707,17 @@ function App() {
 
       <Route path="*" element={
         !isAuthenticated ? (
-          <div className="min-h-screen bg-gray-50 dark:bg-garmin-dark transition-colors duration-300 relative">
-            <div className="absolute top-4 right-4 z-50">
+          <div className="min-h-screen bg-black transition-colors duration-300">
+            <div className="fixed top-4 right-4 z-50">
               <button
                 onClick={() => setDarkMode(!darkMode)}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-garmin-blue dark:hover:text-white rounded-full transition-colors"
+                className="p-2 bg-black/40 backdrop-blur-md text-gray-300 hover:text-white border border-white/10 rounded-full transition-colors shadow-lg"
                 title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
-                {darkMode ? <Sun size={24} /> : <Moon size={24} />}
+                {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
             </div>
-            <div className="flex flex-col min-h-screen">
-              <div className="flex-grow">
-                <Login onLogin={handleLogin} />
-              </div>
-
-              {/* Minimal Login Footer */}
-              <div className="absolute bottom-4 w-full flex justify-center z-10">
-                <div className="flex gap-6 text-xs text-white/50 bg-black/50 backdrop-blur-sm px-6 py-2 rounded-full border border-white/10">
-                  <a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
-                  <a href="/terms" className="hover:text-white transition-colors">Terms of Service</a>
-                </div>
-              </div>
-            </div>
+            <Login onLogin={handleLogin} />
           </div>
         ) : (
           <Dashboard
