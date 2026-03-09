@@ -142,8 +142,8 @@ export function Login({ onLogin }) {
 
                                 <div className={`hidden md:flex absolute inset-0 flex-col items-center z-20 pointer-events-none transition-all duration-500
                                     ${isActive
-                                        ? 'justify-end pb-32 md:pb-32 md:justify-end'
-                                        : 'justify-center md:justify-end md:pb-32'}
+                                        ? 'justify-end pb-32 md:pb-40 md:justify-end'
+                                        : 'justify-center md:justify-end md:pb-40'}
                                 `}>
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
@@ -181,7 +181,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-6 px-4 py-8 md:py-0 h-full pointer-events-none pt-28 md:pt-32">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-4 px-4 py-8 md:py-0 h-full pointer-events-none pt-24 md:pt-28">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
                     <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
@@ -214,7 +214,7 @@ export function Login({ onLogin }) {
                     </div>
 
                     {/* ACTIVE SPORT LABEL - MOBILE ONLY */}
-                    <div className="flex-1 flex flex-col items-center justify-center w-full md:hidden pointer-events-none z-30 min-h-[150px]">
+                    <div className="flex-1 flex flex-col items-center justify-center w-full md:hidden pointer-events-none z-30 min-h-[100px] mb-4">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={currentVideoIndex}
