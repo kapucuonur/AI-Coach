@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Response
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import os
 from google import genai
-from services.coach_brain import CoachBrain
+from backend.services.coach_brain import CoachBrain
 
 router = APIRouter()
 
