@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Request, Response
 from twilio.twiml.voice_response import VoiceResponse, Gather
 import os
-import google.generativeai as genai
-from services.coach_brain import CoachBrain # Assuming logic exists there
+from google import genai
+from services.coach_brain import CoachBrain
 
 router = APIRouter()
 
-# Initialize Gemini
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel('gemini-1.5-flash')
+# Initialize Gemini Client (New SDK)
+def get_genai_client():
+    key = os.getenv("GEMINI_API_KEY")
+    return genai.Client(api_key=key)
+
+client = get_genai_client()
+model_id = 'gemini-1.5-flash'
 
 @router.post("/incoming")
 async def handle_incoming_call(request: Request):
@@ -41,11 +45,10 @@ async def process_voice_input(request: Request):
     
     if user_speech:
         # 1. Send to Gemini for a "Coach" style response
-        # In a real scenario, we'd pull the user's latest Garmin data here
         prompt = f"You are Coach Onur, an expert triathlon coach. An athlete just said: '{user_speech}'. Give a very brief, motivating, and professional coach response in 2 sentences max."
         
         try:
-            ai_response = model.generate_content(prompt)
+            ai_response = client.models.generate_content(model=model_id, contents=prompt)
             coach_text = ai_response.text.strip()
         except Exception as e:
             coach_text = "I'm having trouble connecting to my coaching brain, but keep pushing hard!"
