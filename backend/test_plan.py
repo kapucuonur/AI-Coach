@@ -1,6 +1,6 @@
 import asyncio
-from services.coach_brain import CoachBrain
-from models import User
+from backend.services.coach_brain import CoachBrain
+from backend.models import User
 import os
 from dotenv import load_dotenv
 
