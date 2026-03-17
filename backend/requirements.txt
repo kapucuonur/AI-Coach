@@ -54,3 +54,4 @@ edge-tts==7.2.7
 gTTS==2.5.4
 tenacity==8.2.3
 slowapi==0.1.9
+twilio==9.3.0
