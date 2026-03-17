@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import auth, dashboard, coach, settings, chat, plan, nutrition, garmin, payments, tts
+from backend.routers import auth, dashboard, coach, settings, chat, plan, nutrition, garmin, payments, tts, voice
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -50,6 +50,7 @@ from backend.routers import garmin_app
 app.include_router(garmin_app.router, prefix="/api/garmin-app", tags=["Garmin App"])
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 app.include_router(tts.router, prefix="/api/tts", tags=["TTS"])
+app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
