@@ -422,7 +422,11 @@ class GarminClient:
         if not self.client:
             logger.error("Client not authenticated.")
             return None
-        return self.client.get_user_profile()
+        try:
+            return self.client.get_user_profile()
+        except Exception as e:
+            logger.error(f"Error fetching profile: {e}")
+            return None
 
     def get_activities(self, limit=30):
         """Fetch recent activities."""
@@ -431,7 +435,11 @@ class GarminClient:
             return []
         
         # Using 0 as start index to get 'limit' most recent activities regardless of date
-        return self.client.get_activities(0, limit)
+        try:
+            return self.client.get_activities(0, limit)
+        except Exception as e:
+            logger.error(f"Error fetching activities: {e}")
+            return []
 
     def get_activity_details(self, activity_id):
         """Fetch detailed activity data (summary and splits)."""
@@ -487,7 +495,11 @@ class GarminClient:
                 logger.debug(f"Failed to fetch health stats for {check_date}: {e}")
                 
         # Fallback to today's (likely empty) stats if nothing found
-        return self.client.get_stats_and_body(target_date.isoformat())
+        try:
+            return self.client.get_stats_and_body(target_date.isoformat())
+        except Exception as e:
+            logger.error(f"Error fetching health stats fallback: {e}")
+            return None
     
     def get_sleep_data(self, date_str=None):
         """Fetch sleep data, looking back up to 3 days if today's data is empty."""
@@ -506,7 +518,11 @@ class GarminClient:
             except Exception as e:
                 logger.debug(f"Failed to fetch sleep data for {check_date}: {e}")
                 
-        return self.client.get_sleep_data(target_date.isoformat())
+        try:
+            return self.client.get_sleep_data(target_date.isoformat())
+        except Exception as e:
+            logger.error(f"Error fetching sleep data fallback: {e}")
+            return None
     
     def get_vo2_max(self):
         """
