@@ -163,8 +163,8 @@ class GarminClient:
                 except Exception as verify_error:
                     error_msg = str(verify_error)
                     logger.warning(f"⚠️ Session verification failed: {error_msg}")
-                    if "429" in error_msg or "Too Many Requests" in error_msg:
-                        logger.info("Rate limit hit during verification. Assuming session is valid to avoid SSO spam.")
+                    if ("429" in error_msg or "Too Many Requests" in error_msg) and "oauth/exchange" not in error_msg:
+                        logger.info("Rate limit hit during verification (data api). Assuming session is valid to avoid SSO spam.")
                         self.client.display_name = self.email
                         SESSION_LAST_VERIFIED[self.email] = now
                     else:
@@ -241,6 +241,9 @@ class GarminClient:
                 session_data = self.load_session_from_db(db)
                 if session_data:
                     if self.restore_session_from_data(session_data):
+                        # Opportunistically save updated tokens (e.g. if refreshed during verification)
+                        if db:
+                            self.save_session_to_db(db)
                         return True, "SUCCESS", "Session resumed from database"
 
         # 2. Filesystem Fallback (Legacy/Local dev) - Keep attempting just in case
@@ -259,7 +262,8 @@ class GarminClient:
                         social_profile = self.client.connectapi("/userprofile-service/socialProfile")
                         if social_profile: self.client.display_name = social_profile.get('displayName')
                     except Exception as e:
-                        if "429" in str(e) or "Too Many Requests" in str(e):
+                        error_msg = str(e)
+                        if ("429" in error_msg or "Too Many Requests" in error_msg) and "oauth/exchange" not in error_msg:
                             logger.info("Rate limit hit during FS verification. Assuming valid.")
                             self.client.display_name = self.email
                     
@@ -268,7 +272,8 @@ class GarminClient:
                              profile = self.client.get_user_profile()
                              if 'displayName' in profile: self.client.display_name = profile['displayName']
                          except Exception as e:
-                             if "429" in str(e) or "Too Many Requests" in str(e):
+                             error_msg = str(e)
+                             if ("429" in error_msg or "Too Many Requests" in error_msg) and "oauth/exchange" not in error_msg:
                                  logger.info("Rate limit hit during FS verification fallback. Assuming valid.")
                                  self.client.display_name = self.email
 
