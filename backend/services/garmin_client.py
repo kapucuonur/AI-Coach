@@ -161,9 +161,15 @@ class GarminClient:
                             logger.info(f"✅ Session verified via profile for {self.client.display_name}")
                     
                 except Exception as verify_error:
-                    logger.warning(f"⚠️ Session verification failed: {verify_error}")
-                    self.client = None
-                    return False
+                    error_msg = str(verify_error)
+                    logger.warning(f"⚠️ Session verification failed: {error_msg}")
+                    if "429" in error_msg or "Too Many Requests" in error_msg:
+                        logger.info("Rate limit hit during verification. Assuming session is valid to avoid SSO spam.")
+                        self.client.display_name = self.email
+                        SESSION_LAST_VERIFIED[self.email] = now
+                    else:
+                        self.client = None
+                        return False
             else:
                 # Skip verification - use cached validation
                 remaining = int(SESSION_VERIFY_INTERVAL - time_since_verify)
@@ -252,11 +258,19 @@ class GarminClient:
                     try:
                         social_profile = self.client.connectapi("/userprofile-service/socialProfile")
                         if social_profile: self.client.display_name = social_profile.get('displayName')
-                    except: pass
+                    except Exception as e:
+                        if "429" in str(e) or "Too Many Requests" in str(e):
+                            logger.info("Rate limit hit during FS verification. Assuming valid.")
+                            self.client.display_name = self.email
                     
                     if not self.client.display_name:
-                         profile = self.client.get_user_profile()
-                         if 'displayName' in profile: self.client.display_name = profile['displayName']
+                         try:
+                             profile = self.client.get_user_profile()
+                             if 'displayName' in profile: self.client.display_name = profile['displayName']
+                         except Exception as e:
+                             if "429" in str(e) or "Too Many Requests" in str(e):
+                                 logger.info("Rate limit hit during FS verification fallback. Assuming valid.")
+                                 self.client.display_name = self.email
 
                     if self.client.display_name:
                          logger.info(f"Session resumed from disk")
