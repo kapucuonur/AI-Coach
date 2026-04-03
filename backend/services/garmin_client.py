@@ -307,49 +307,60 @@ class GarminClient:
                 return False, "FAILED", error
 
         else:
-            # New Login Request
-            if session:
-                try: del PENDING_SESSIONS[self.email]
-                except: pass
-            
-            # Create new session
-            session = LoginSession()
-            PENDING_SESSIONS[self.email] = session
-            session.status = "RUNNING"
-            
-            def login_thread():
-                try:
-                    def mfa_callback():
-                        logger.info("Background thread hit MFA requirement. Waiting for code...")
-                        session.status = "MFA_WAITING"
-                        # Wait for code
-                        if not session.code_event.wait(timeout=120):
-                             raise ValueError("MFA code timeout")
-                        logger.info("Background thread received code. Resuming...")
-                        return session.mfa_code
-
-                    # Init client
-                    client = Garmin(self.email, self.password, prompt_mfa=mfa_callback)
-                    if not client.login():
-                        raise Exception("Garmin login failed (invalid credentials or captcha)")
+            # We need to lock around session creation to prevent multiple concurrent logins
+            with get_client_lock(self.email):
+                # Double check inside the lock
+                session = PENDING_SESSIONS.get(self.email)
+                
+                # If a session is already working or waiting for MFA, attach to it instead of killing it
+                if session and session.status in ("RUNNING", "MFA_WAITING"):
+                    logger.info("Login already in progress (another thread started it). Attaching...")
+                    new_session_created = False
+                else:
+                    logger.info("Starting new Garmin login session in thread...")
+                    if session:
+                        try: del PENDING_SESSIONS[self.email]
+                        except: pass
                     
+                    session = LoginSession()
+                    PENDING_SESSIONS[self.email] = session
+                    session.status = "RUNNING"
+                    new_session_created = True
+
+            if new_session_created:
+                def login_thread():
                     try:
-                        client.get_user_profile()
-                    except: pass
+                        def mfa_callback():
+                            logger.info("Background thread hit MFA requirement. Waiting for code...")
+                            session.status = "MFA_WAITING"
+                            # Wait for code
+                            if not session.code_event.wait(timeout=120):
+                                 raise ValueError("MFA code timeout")
+                            logger.info("Background thread received code. Resuming...")
+                            return session.mfa_code
 
-                    session.client = client
-                    session.status = "SUCCESS"
-                except Exception as e:
-                    error_msg = str(e)
-                    logger.error(f"Background login failed: {error_msg}")
-                    session.error = error_msg
-                    session.status = "FAILED"
-                finally:
-                    session.result_event.set()
+                        # Init client
+                        client = Garmin(self.email, self.password, prompt_mfa=mfa_callback)
+                        if not client.login():
+                            raise Exception("Garmin login failed (invalid credentials or captcha)")
+                        
+                        try:
+                            client.get_user_profile()
+                        except: pass
 
-            session.thread = threading.Thread(target=login_thread)
-            session.thread.daemon = True
-            session.thread.start()
+                        session.client = client
+                        session.status = "SUCCESS"
+                    except Exception as e:
+                        error_msg = str(e)
+                        logger.error(f"Background login failed: {error_msg}")
+                        session.error = error_msg
+                        session.status = "FAILED"
+                    finally:
+                        session.result_event.set()
+
+                session.thread = threading.Thread(target=login_thread)
+                session.thread.daemon = True
+                session.thread.start()
             
             # Poll for status change
             start_poll = time.time()
@@ -358,30 +369,38 @@ class GarminClient:
                     return False, "MFA_REQUIRED", "Please enter the authentication code sent to your email."
                 if session.status == "SUCCESS":
                     self.client = session.client
-                    if db:
-                        self.save_session_to_db(db)
-                    else:
-                        try: self.client.garth.dump(garth_dir)
-                        except: pass
                     
-                    # Thread-safe cache update
-                    with GLOBAL_CLIENTS_LOCK:
-                        GLOBAL_CLIENTS[self.email] = self.client
-                    
-                    # Mark as verified now
-                    SESSION_LAST_VERIFIED[self.email] = time.time()
-                    
-                    del PENDING_SESSIONS[self.email]
+                    # Ensure only one thread performs the db commit step and cleanup
+                    with get_client_lock(self.email):
+                        if self.email in PENDING_SESSIONS and PENDING_SESSIONS[self.email] == session:
+                            if db:
+                                self.save_session_to_db(db)
+                            else:
+                                try: self.client.garth.dump(garth_dir)
+                                except: pass
+                            
+                            # Thread-safe cache update
+                            with GLOBAL_CLIENTS_LOCK:
+                                GLOBAL_CLIENTS[self.email] = self.client
+                            
+                            # Mark as verified now
+                            SESSION_LAST_VERIFIED[self.email] = time.time()
+                            
+                            del PENDING_SESSIONS[self.email]
+                            
                     return True, "SUCCESS", "Authenticated successfully"
                 if session.status == "FAILED":
                     err = session.error
-                    del PENDING_SESSIONS[self.email]
+                    with get_client_lock(self.email):
+                        if self.email in PENDING_SESSIONS and PENDING_SESSIONS[self.email] == session:
+                            del PENDING_SESSIONS[self.email]
                     return False, "FAILED", f"Login failed: {err}"
                 time.sleep(0.5)
             
             # Timeout occurred
-            if self.email in PENDING_SESSIONS:
-                del PENDING_SESSIONS[self.email]
+            with get_client_lock(self.email):
+                if self.email in PENDING_SESSIONS and PENDING_SESSIONS[self.email] == session:
+                    del PENDING_SESSIONS[self.email]
             return False, "FAILED", "Login timed out connecting to Garmin."
 
     def get_profile(self):
