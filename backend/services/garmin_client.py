@@ -29,6 +29,9 @@ GLOBAL_CLIENTS_LOCK = threading.RLock()
 SESSION_LAST_VERIFIED = {}
 SESSION_VERIFY_INTERVAL = 300  # 5 minutes = 300 seconds
 
+# Cooldown cache for failed SSO logins to prevent IP bans
+FAILED_LOGIN_COOLDOWN = {}
+
 # Garmin API Endpoints Constants
 class GarminAPIEndpoints:
     # Attempt 1: workout-service with JSON body {workoutId, calendarDate}
@@ -206,6 +209,14 @@ class GarminClient:
             logger.error(msg)
             return False, "FAILED", msg
 
+        # Check SSO Cooldown to avoid extending IP bans
+        cooldown_expiry = FAILED_LOGIN_COOLDOWN.get(self.email, 0)
+        if time.time() < cooldown_expiry:
+            remaining = int(cooldown_expiry - time.time())
+            msg = f"Garmin servers are currently blocking login attempts due to rate limits. Please try again in {remaining // 60}m {remaining % 60}s."
+            logger.warning(msg)
+            return False, "FAILED", msg
+
         # 0. Check In-Memory Cache (Fastest) - Thread Safe
         if not mfa_code:
             with GLOBAL_CLIENTS_LOCK:
@@ -374,6 +385,11 @@ class GarminClient:
                         logger.error(f"Background login failed: {error_msg}")
                         session.error = error_msg
                         session.status = "FAILED"
+                        
+                        if "429" in error_msg or "Too Many Requests" in error_msg:
+                            # Add 15-minute cooldown for SSO rate limits to let the IP recover
+                            FAILED_LOGIN_COOLDOWN[self.email] = time.time() + 900
+                            logger.warning(f"Applied 15-minute SSO login cooldown for {self.email} due to Garmin Rate Limit!")
                     finally:
                         session.result_event.set()
 
