@@ -24,10 +24,8 @@ load_dotenv()
 GLOBAL_CLIENTS = {}
 GLOBAL_CLIENTS_LOCK = threading.RLock()
 
-# Session verification cache - Prevents excessive API calls
-# Key: email, Value: timestamp of last verification
+# Tracks last save timestamp per email — prevents redundant DB writes
 SESSION_LAST_VERIFIED = {}
-SESSION_VERIFY_INTERVAL = 3600  # 60 minutes — garth handles token refresh internally
 
 # Cooldown cache for failed SSO logins to prevent IP bans
 FAILED_LOGIN_COOLDOWN = {}
@@ -142,84 +140,46 @@ class GarminClient:
             logger.error(f"Failed to save session to DB: {e}")
 
     def restore_session_from_data(self, session_data):
-        """Restore garth session from data dict with smart verification.
-        
-        Key design decisions:
-        - Garth handles OAuth2 token refresh internally (autorefresh=True by default).
-          We do NOT force a verification call — this only wastes requests and risks 429s.
-        - We only do an active verify when SESSION_VERIFY_INTERVAL has passed, and only
-          accept a 401/403 as a true session failure. 429 is NOT a session failure.
+        """Restore garth session from DB data. Makes ZERO network calls.
+
+        Design: Trust the stored tokens completely. Garth's autorefresh will
+        handle OAuth2 token expiry lazily when the first real data endpoint is
+        called. Calling connectapi() here to 'verify' only triggers the
+        oauth/exchange endpoint unnecessarily, which itself gets rate-limited
+        (429) by Garmin — causing a cascading failure that leads to a new SSO
+        login attempt (and another 429).
+
+        A session is only truly invalid if:
+        - The DB has no session data (handled by caller)
+        - A real API call returns 401/403 (handled at endpoint level)
         """
         try:
             pwd = self.password if self.password else "session_restore_placeholder"
             self.client = Garmin(self.email, pwd)
-            
-            # Load session from temp dir
+
+            # Load stored garth tokens from temp dir
             with tempfile.TemporaryDirectory() as tmpdirname:
                 for filename, content in session_data.items():
                     with open(os.path.join(tmpdirname, filename), 'w') as f:
                         f.write(content)
                 self.client.garth.load(tmpdirname)
-            
-            # Smart verification — only check if cache interval has expired
-            now = time.time()
-            last_verified = SESSION_LAST_VERIFIED.get(self.email, 0)
-            time_since_verify = now - last_verified
-            
-            if time_since_verify > SESSION_VERIFY_INTERVAL:
-                logger.info(f"⏰ Last verified {int(time_since_verify)}s ago — verifying session...")
-                try:
-                    social_profile = self.client.connectapi("/userprofile-service/socialProfile")
-                    if social_profile and 'displayName' in social_profile:
-                        self.client.display_name = social_profile['displayName']
-                        SESSION_LAST_VERIFIED[self.email] = now
-                        logger.info(f"✅ Session verified for {self.client.display_name}")
-                    else:
-                        # Try profile fallback
-                        profile = self.client.get_user_profile()
-                        if profile and 'displayName' in profile:
-                            self.client.display_name = profile['displayName']
-                            SESSION_LAST_VERIFIED[self.email] = now
-                            logger.info(f"✅ Session verified via profile for {self.client.display_name}")
-                        else:
-                            # Accept placeholder — garth will refresh token on next real API call
-                            self.client.display_name = self.email
-                            SESSION_LAST_VERIFIED[self.email] = now
-                            logger.info("⚡ Session assumed valid — garth will auto-refresh token on next call")
-                except Exception as verify_error:
-                    error_msg = str(verify_error)
-                    # 429 = Garmin is rate-limiting us, NOT a session failure
-                    if "429" in error_msg or "Too Many Requests" in error_msg:
-                        logger.warning("Rate limit hit during verification — assuming session valid, skipping SSO")
-                        self.client.display_name = self.email
-                        SESSION_LAST_VERIFIED[self.email] = now
-                    # 401/403 = Token truly expired and garth couldn't refresh
-                    elif "401" in error_msg or "403" in error_msg or "Unauthorized" in error_msg:
-                        logger.warning(f"Session truly expired (401/403) — will need fresh SSO login: {error_msg}")
-                        self.client = None
-                        return False
-                    else:
-                        # Network glitch, timeout, etc. — don't kill the session
-                        logger.warning(f"Verify error (non-auth, keeping session): {error_msg}")
-                        self.client.display_name = self.email
-                        SESSION_LAST_VERIFIED[self.email] = now
-            else:
-                # Skip verification — garth handles token refresh automatically
-                remaining = int(SESSION_VERIFY_INTERVAL - time_since_verify)
-                logger.info(f"⚡ FAST RESTORE — Skipping verify ({remaining}s until next check)")
-                self.client.display_name = self.email
-            
-            if self.client and self.client.display_name:
-                with GLOBAL_CLIENTS_LOCK:
-                    GLOBAL_CLIENTS[self.email] = self.client
-                logger.info(f"✅ Session restored for {self.client.display_name}")
-                return True
-                
+
+            # Trust the session — no network verification needed
+            self.client.display_name = self.email
+            SESSION_LAST_VERIFIED[self.email] = time.time()
+
+            with GLOBAL_CLIENTS_LOCK:
+                GLOBAL_CLIENTS[self.email] = self.client
+
+            logger.info(f"✅ Session restored from DB for {self.email} (no network verify needed)")
+            return True
+
         except Exception as e:
             logger.warning(f"Failed to restore session from data: {e}")
             self.client = None
-        
+
         return False
+
 
     def login(self, db: Session = None, mfa_code=None):
         """
