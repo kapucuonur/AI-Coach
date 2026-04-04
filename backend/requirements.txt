@@ -46,3 +46,5 @@ pydantic==2.12.5
 slowapi==0.1.9
 tenacity==8.2.3
 python-dateutil==2.9.0.post0
+twilio==9.3.0
+
