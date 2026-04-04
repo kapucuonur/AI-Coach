@@ -7,8 +7,7 @@ from backend.auth_utils import create_access_token
 from sqlalchemy.orm import Session
 import os
 from datetime import date
-import pandas as pd
-import numpy as np
+from backend.utils import sanitize_for_json
 import traceback
 import logging
 import asyncio
@@ -17,25 +16,6 @@ import time
 from fastapi import Request
 from jose import jwt, JWTError
 from backend.auth_utils import ALGORITHM, SECRET_KEY
-
-def sanitize_for_json(obj):
-    """Reusable JSON sanitizer for numpy/pandas data types."""
-    if isinstance(obj, pd.DataFrame):
-        return obj.to_dict(orient="records")
-    if isinstance(obj, (pd.Timestamp, date)):
-        return obj.isoformat()
-    if isinstance(obj, (np.integer, int)):
-        return int(obj)
-    if isinstance(obj, (np.floating, float)):
-        return None if pd.isna(obj) or np.isnan(obj) else float(obj)
-    if isinstance(obj, (np.ndarray, list)):
-        return [sanitize_for_json(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: sanitize_for_json(v) for k, v in obj.items()}
-    if pd.isna(obj): # Handles pd.NA, np.nan, None
-        return None
-    return obj
-
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -93,12 +73,12 @@ async def get_daily_metrics(
             profile.update(vo2_max_data)
             
         # 2. Process Data for summary block
-        df = processor.process_activities(activities)
-        weekly_summary = processor.calculate_weekly_summary(df)
+        processed_activities = processor.process_activities(activities)
+        activities_summary_dict = processor.calculate_weekly_summary(processed_activities)
         
         # Filter for TODAY'S activities (Timezone-Aware)
         todays_activities = []
-        if not df.empty and 'date' in df.columns:
+        if processed_activities:
             if payload.client_local_time:
                 try:
                     cleaned_time = payload.client_local_time.replace('Z', '+00:00')
@@ -109,14 +89,8 @@ async def get_daily_metrics(
             else:
                 today = date.today()
                 
-            todays_df = df[df['date'].dt.date == today]
-            if not todays_df.empty:
-                todays_activities = todays_df.to_dict(orient='records')
-
-        activities_summary_dict = {}
-        if not weekly_summary.empty:
-            weekly_summary.index = weekly_summary.index.astype(str)
-            activities_summary_dict = weekly_summary.to_dict()
+            today_str = today.isoformat()
+            todays_activities = [row for row in processed_activities if row.get('date', '').startswith(today_str)]
 
         # Sanitize helpers
 
