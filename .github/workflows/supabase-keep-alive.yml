@@ -1,0 +1,31 @@
+name: Supabase Keep Alive
+on:
+  schedule:
+    # Haftada 2 gün (Pazartesi ve Perşembe gecesi) çalışır
+    - cron: '0 0 * * 1,4'
+  workflow_dispatch: # Manuel tetikleme (buton)
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database to Keep it Alive
+        env:
+          # BU DEGERLER GITHUB SECRETS'TAN GELECEK, KOD ICINDE YOK
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "Supabase REST API uyanik tutuluyor..."
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "URL veya KEY eksik (GitHub Secrets ayarlanmamis). Iptal ediliyor."
+            exit 1
+          fi
+          
+          # HTTP durum kodunu al
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" "$SUPABASE_URL/rest/v1/")
+          
+          if [ "$STATUS" = "200" ]; then
+            echo "Basariyla uyandirildi! (HTTP 200)"
+          else
+            echo "Beklenmeyen durum kodu: $STATUS"
+          fi

@@ -209,13 +209,7 @@ class GarminClient:
             logger.error(msg)
             return False, "FAILED", msg
 
-        # Check SSO Cooldown to avoid extending IP bans
-        cooldown_expiry = FAILED_LOGIN_COOLDOWN.get(self.email, 0)
-        if time.time() < cooldown_expiry:
-            remaining = int(cooldown_expiry - time.time())
-            msg = f"Garmin servers are currently blocking login attempts due to rate limits. Please try again in {remaining // 60}m {remaining % 60}s."
-            logger.warning(msg)
-            return False, "FAILED", msg
+
 
         # 0. Check In-Memory Cache (Fastest) - Thread Safe
         if not mfa_code:
@@ -301,8 +295,16 @@ class GarminClient:
                 pass
 
 
-        # 3. Handle Active/Pending Login (For MFA flow)
+        # 3. Handle Active/Pending Login (For MFA flow) or New SSO Login
         session = PENDING_SESSIONS.get(self.email)
+
+        # Check SSO Cooldown to avoid extending IP bans before a new SSO login
+        cooldown_expiry = FAILED_LOGIN_COOLDOWN.get(self.email, 0)
+        if not mfa_code and not session and time.time() < cooldown_expiry:
+            remaining = int(cooldown_expiry - time.time())
+            msg = f"Garmin servers are currently blocking login attempts due to rate limits. Please try again in {remaining // 60}m {remaining % 60}s."
+            logger.warning(msg)
+            return False, "FAILED", msg
 
         if mfa_code:
             # We are verifying - we MUST have a waiting session
