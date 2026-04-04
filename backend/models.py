@@ -30,13 +30,18 @@ class User(Base):
 
     # Relationships
     nutrition_entries = relationship("NutritionEntry", back_populates="user")
+    settings = relationship("UserSetting", back_populates="user")
 
 class UserSetting(Base):
     __tablename__ = "user_settings"
 
     id = Column(Integer, primary_key=True, index=True)
-    key = Column(String, unique=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    key = Column(String, index=True)  # No longer globally unique — scoped per user
     value = Column(JSON)  # Store complex objects like 'metrics' or 'races' as JSON
+
+    # Relationship back to User (optional convenience)
+    user = relationship("User", back_populates="settings")
 
 class NutritionEntry(Base):
     __tablename__ = "nutrition_entries"

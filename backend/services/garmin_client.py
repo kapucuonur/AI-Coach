@@ -27,7 +27,7 @@ GLOBAL_CLIENTS_LOCK = threading.RLock()
 # Session verification cache - Prevents excessive API calls
 # Key: email, Value: timestamp of last verification
 SESSION_LAST_VERIFIED = {}
-SESSION_VERIFY_INTERVAL = 300  # 5 minutes = 300 seconds
+SESSION_VERIFY_INTERVAL = 3600  # 60 minutes — garth handles token refresh internally
 
 # Cooldown cache for failed SSO logins to prevent IP bans
 FAILED_LOGIN_COOLDOWN = {}
@@ -70,28 +70,38 @@ class LoginSession:
         self.code_event.set()
 
 class GarminClient:
-    def __init__(self, email, password=None):
+    def __init__(self, email, password=None, user_id=None):
         self.email = email
         self.password = password
         self.client = None
+        self.user_id = user_id  # DB user PK — used for scoped session storage
 
     def _get_db_session_key(self):
         return f"garmin_session_{self.email}"
 
     def load_session_from_db(self, db: Session):
-        """Load session tokens from the database."""
+        """Load session tokens from the database, scoped by user_id when available."""
         try:
             key = self._get_db_session_key()
-            setting = db.query(UserSetting).filter(UserSetting.key == key).first()
+            from backend.models import UserSetting
+            query = db.query(UserSetting).filter(UserSetting.key == key)
+            if self.user_id:
+                # Prefer user-scoped record
+                setting = query.filter(UserSetting.user_id == self.user_id).first()
+                if not setting:
+                    # Fallback: legacy global record (user_id IS NULL)
+                    setting = query.filter(UserSetting.user_id == None).first()
+            else:
+                setting = query.first()
             if setting and setting.value:
-                logger.info(f"Found persistent session in DB for {self.email}")
+                logger.info(f"Found persistent session in DB for {self.email} (user_id={self.user_id})")
                 return setting.value
         except Exception as e:
             logger.error(f"Failed to load session from DB: {e}")
         return None
 
     def save_session_to_db(self, db: Session):
-        """Save the current session tokens to the database."""
+        """Save the current session tokens to the database, scoped by user_id."""
         if not self.client or not self.client.garth:
             return
         
@@ -107,11 +117,17 @@ class GarminClient:
                         with open(file_path, 'r') as f:
                             saved_state[filename] = f.read()
                 
-                # Save 'saved_state' to DB
+                # Save 'saved_state' to DB — scoped by user_id
                 key = self._get_db_session_key()
-                setting = db.query(UserSetting).filter(UserSetting.key == key).first()
+                from backend.models import UserSetting
+                query = db.query(UserSetting).filter(UserSetting.key == key)
+                if self.user_id:
+                    setting = query.filter(UserSetting.user_id == self.user_id).first()
+                else:
+                    setting = query.filter(UserSetting.user_id == None).first()
+
                 if not setting:
-                    setting = UserSetting(key=key, value=saved_state)
+                    setting = UserSetting(key=key, value=saved_state, user_id=self.user_id)
                     db.add(setting)
                 else:
                     setting.value = saved_state
@@ -120,13 +136,20 @@ class GarminClient:
                 # Mark as freshly verified when saving
                 SESSION_LAST_VERIFIED[self.email] = time.time()
                 
-                logger.info(f"Saved session to DB for {self.email}")
+                logger.info(f"Saved session to DB for {self.email} (user_id={self.user_id})")
                 
         except Exception as e:
             logger.error(f"Failed to save session to DB: {e}")
 
     def restore_session_from_data(self, session_data):
-        """Restore garth session from data dict with smart verification."""
+        """Restore garth session from data dict with smart verification.
+        
+        Key design decisions:
+        - Garth handles OAuth2 token refresh internally (autorefresh=True by default).
+          We do NOT force a verification call — this only wastes requests and risks 429s.
+        - We only do an active verify when SESSION_VERIFY_INTERVAL has passed, and only
+          accept a 401/403 as a true session failure. 429 is NOT a session failure.
+        """
         try:
             pwd = self.password if self.password else "session_restore_placeholder"
             self.client = Garmin(self.email, pwd)
@@ -138,48 +161,55 @@ class GarminClient:
                         f.write(content)
                 self.client.garth.load(tmpdirname)
             
-            # Smart verification - only check if needed
+            # Smart verification — only check if cache interval has expired
             now = time.time()
             last_verified = SESSION_LAST_VERIFIED.get(self.email, 0)
             time_since_verify = now - last_verified
             
             if time_since_verify > SESSION_VERIFY_INTERVAL:
-                logger.info(f"⏰ Last verified {int(time_since_verify)}s ago - verifying session...")
+                logger.info(f"⏰ Last verified {int(time_since_verify)}s ago — verifying session...")
                 try:
-                    self.client.display_name = None
-                    social_profile = self.client.connectapi(
-                        "/userprofile-service/socialProfile"
-                    )
-                    
+                    social_profile = self.client.connectapi("/userprofile-service/socialProfile")
                     if social_profile and 'displayName' in social_profile:
                         self.client.display_name = social_profile['displayName']
                         SESSION_LAST_VERIFIED[self.email] = now
                         logger.info(f"✅ Session verified for {self.client.display_name}")
                     else:
-                        # Try fallback
+                        # Try profile fallback
                         profile = self.client.get_user_profile()
-                        if 'displayName' in profile:
+                        if profile and 'displayName' in profile:
                             self.client.display_name = profile['displayName']
                             SESSION_LAST_VERIFIED[self.email] = now
                             logger.info(f"✅ Session verified via profile for {self.client.display_name}")
-                    
+                        else:
+                            # Accept placeholder — garth will refresh token on next real API call
+                            self.client.display_name = self.email
+                            SESSION_LAST_VERIFIED[self.email] = now
+                            logger.info("⚡ Session assumed valid — garth will auto-refresh token on next call")
                 except Exception as verify_error:
                     error_msg = str(verify_error)
-                    logger.warning(f"⚠️ Session verification failed: {error_msg}")
-                    if ("429" in error_msg or "Too Many Requests" in error_msg) and "oauth/exchange" not in error_msg:
-                        logger.info("Rate limit hit during verification (data api). Assuming session is valid to avoid SSO spam.")
+                    # 429 = Garmin is rate-limiting us, NOT a session failure
+                    if "429" in error_msg or "Too Many Requests" in error_msg:
+                        logger.warning("Rate limit hit during verification — assuming session valid, skipping SSO")
                         self.client.display_name = self.email
                         SESSION_LAST_VERIFIED[self.email] = now
-                    else:
+                    # 401/403 = Token truly expired and garth couldn't refresh
+                    elif "401" in error_msg or "403" in error_msg or "Unauthorized" in error_msg:
+                        logger.warning(f"Session truly expired (401/403) — will need fresh SSO login: {error_msg}")
                         self.client = None
                         return False
+                    else:
+                        # Network glitch, timeout, etc. — don't kill the session
+                        logger.warning(f"Verify error (non-auth, keeping session): {error_msg}")
+                        self.client.display_name = self.email
+                        SESSION_LAST_VERIFIED[self.email] = now
             else:
-                # Skip verification - use cached validation
+                # Skip verification — garth handles token refresh automatically
                 remaining = int(SESSION_VERIFY_INTERVAL - time_since_verify)
-                logger.info(f"⚡ FAST RESTORE - Skipping verify ({remaining}s until next check)")
-                self.client.display_name = self.email  # Placeholder until next verify
+                logger.info(f"⚡ FAST RESTORE — Skipping verify ({remaining}s until next check)")
+                self.client.display_name = self.email
             
-            if self.client.display_name:
+            if self.client and self.client.display_name:
                 with GLOBAL_CLIENTS_LOCK:
                     GLOBAL_CLIENTS[self.email] = self.client
                 logger.info(f"✅ Session restored for {self.client.display_name}")

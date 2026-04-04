@@ -42,7 +42,7 @@ async def get_garmin_client(
         
     logger.info(f"Using database session for {current_user.email}")
     decrypted_pass = decrypt_garmin_password(current_user.garmin_password)
-    client = GarminClient(current_user.garmin_email, decrypted_pass)
+    client = GarminClient(current_user.garmin_email, decrypted_pass, user_id=current_user.id)
     
     # Attempt to authenticate/resume session from DB
     try:

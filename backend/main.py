@@ -15,10 +15,38 @@ async def lifespan(app: FastAPI):
     import logging
     logger = logging.getLogger("uvicorn")
     logger.info(">>> STARTING AI COACH API - VERSION: SECURE_AUTH <<<")
+    
+    # Run DB migrations safely (idempotent)
+    try:
+        from backend.database import engine, SessionLocal
+        from sqlalchemy import text, inspect
+        with engine.connect() as conn:
+            inspector = inspect(engine)
+            columns = [c['name'] for c in inspector.get_columns('user_settings')]
+            if 'user_id' not in columns:
+                logger.info("Running migration: adding user_id to user_settings...")
+                conn.execute(text("ALTER TABLE user_settings ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE"))
+                conn.commit()
+                logger.info("✅ Migration complete: user_id added to user_settings")
+            else:
+                logger.info("✅ Migration not needed: user_id already exists in user_settings")
+            
+            # Drop the unique index on key if it still exists (PostgreSQL)
+            try:
+                conn.execute(text("DROP INDEX IF EXISTS ix_user_settings_key"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_user_settings_key ON user_settings (key)"))
+                conn.commit()
+                logger.info("✅ Replaced global unique index with non-unique index on user_settings.key")
+            except Exception:
+                pass  # SQLite or index may not exist
+    except Exception as migration_err:
+        logger.error(f"Migration warning (non-fatal): {migration_err}")
+    
     # Initialize global CoachBrain singleton
     app.state.brain = CoachBrain()
     yield
     logger.info(">>> SHUTTING DOWN AI COACH API <<<")
+
 
 app = FastAPI(title="AI Coach API", version="1.0.0", lifespan=lifespan)
 

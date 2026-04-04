@@ -214,7 +214,7 @@ def connect_garmin_account(
     from backend.services.garmin_client import GarminClient
     
     try:
-        client = GarminClient(garmin_data.garmin_email, garmin_data.garmin_password)
+        client = GarminClient(garmin_data.garmin_email, garmin_data.garmin_password, user_id=current_user.id)
         success, login_status, error_msg = client.login(db=db)
         
         if not success:
@@ -253,7 +253,7 @@ def connect_garmin_mfa(
     from backend.services.garmin_client import GarminClient
     
     try:
-        client = GarminClient(mfa_data.garmin_email)
+        client = GarminClient(mfa_data.garmin_email, user_id=current_user.id)
         success, login_status, error_msg = client.login(db=db, mfa_code=mfa_data.mfa_code)
         
         if not success:

@@ -31,7 +31,16 @@ class UserSettings(BaseModel):
 @router.get("/", response_model=UserSettings)
 def get_settings(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     setting_key = f"{current_user.email.lower()}_config"
-    setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
+    setting = db.query(models.UserSetting).filter(
+        models.UserSetting.key == setting_key,
+        models.UserSetting.user_id == current_user.id
+    ).first()
+    # Fallback: legacy record without user_id (migration period)
+    if not setting:
+        setting = db.query(models.UserSetting).filter(
+            models.UserSetting.key == setting_key,
+            models.UserSetting.user_id == None
+        ).first()
     
     if setting and setting.value:
         # Create default model, then update with stored values to ensure no missing keys
@@ -44,7 +53,16 @@ def get_settings(db: Session = Depends(get_db), current_user = Depends(get_curre
 @router.post("/", response_model=UserSettings)
 def save_settings(settings: UserSettings, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     setting_key = f"{current_user.email.lower()}_config"
-    db_setting = db.query(models.UserSetting).filter(models.UserSetting.key == setting_key).first()
+    db_setting = db.query(models.UserSetting).filter(
+        models.UserSetting.key == setting_key,
+        models.UserSetting.user_id == current_user.id
+    ).first()
+    # Fallback: legacy record (migration period)
+    if not db_setting:
+        db_setting = db.query(models.UserSetting).filter(
+            models.UserSetting.key == setting_key,
+            models.UserSetting.user_id == None
+        ).first()
     
     # Get only the fields explicitly provided in the request
     update_data = settings.model_dump(exclude_unset=True)
@@ -61,10 +79,12 @@ def save_settings(settings: UserSettings, db: Session = Depends(get_db), current
     final_settings = UserSettings(**current_settings)
     
     if not db_setting:
-        db_setting = models.UserSetting(key=setting_key, value=final_settings.model_dump())
+        db_setting = models.UserSetting(key=setting_key, value=final_settings.model_dump(), user_id=current_user.id)
         db.add(db_setting)
     else:
         db_setting.value = final_settings.model_dump()
+        if db_setting.user_id is None:
+            db_setting.user_id = current_user.id  # Upgrade legacy record
     
     db.commit()
     db.refresh(db_setting)
