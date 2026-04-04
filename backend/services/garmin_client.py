@@ -74,6 +74,19 @@ class GarminClient:
         self.client = None
         self.user_id = user_id  # DB user PK — used for scoped session storage
 
+    def _inject_proxy(self, garmin_instance):
+        """Inject proxies into the garth requests.Session to prevent Datacenter IP bans."""
+        proxy_url = os.getenv("GARMIN_PROXY_URL")
+        if proxy_url and garmin_instance and hasattr(garmin_instance, 'garth'):
+            try:
+                garmin_instance.garth.sess.proxies.update({
+                    "http": proxy_url,
+                    "https": proxy_url
+                })
+                logger.info(f"🛡️ Active Proxy injected for {self.email}")
+            except Exception as e:
+                logger.warning(f"Failed to inject proxy: {e}")
+
     def _get_db_session_key(self):
         return f"garmin_session_{self.email}"
 
@@ -156,6 +169,7 @@ class GarminClient:
         try:
             pwd = self.password if self.password else "session_restore_placeholder"
             self.client = Garmin(self.email, pwd)
+            self._inject_proxy(self.client)
 
             # Load stored garth tokens from temp dir
             with tempfile.TemporaryDirectory() as tmpdirname:
@@ -363,6 +377,7 @@ class GarminClient:
 
                         # Init client
                         client = Garmin(self.email, self.password, prompt_mfa=mfa_callback)
+                        self._inject_proxy(client)
                         if not client.login():
                             raise Exception("Garmin login failed (invalid credentials or captcha)")
                         
