@@ -58,24 +58,35 @@ async def get_daily_metrics(
             cached_data = setting.value
             timestamp = cached_data.get("timestamp", 0)
             if time.time() - timestamp < 900:  # 15 minutes
-                logger.info(f"Serving /daily-metrics from DB cache for {current_user.email}")
-                # We still need to evaluate token refresh
-                needs_refresh = False
-                auth_header = request.headers.get("Authorization")
-                if auth_header and auth_header.startswith("Bearer "):
-                    token = auth_header.split(" ")[1]
-                    try:
-                        jwt_payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                        if jwt_payload.get("exp", 0) - time.time() < 86400:
+                # Validate cache quality — discard if health data was empty (captured during an error state)
+                cached_health = cached_data.get("data", {}).get("metrics", {}).get("health", {})
+                health_is_stale = (
+                    not cached_health or
+                    (cached_health.get("restingHeartRate") is None and
+                     cached_health.get("averageStressLevel") is None and
+                     cached_health.get("bodyBatteryMostRecentValue") is None)
+                )
+                if not health_is_stale:
+                    logger.info(f"Serving /daily-metrics from DB cache for {current_user.email}")
+                    # We still need to evaluate token refresh
+                    needs_refresh = False
+                    auth_header = request.headers.get("Authorization")
+                    if auth_header and auth_header.startswith("Bearer "):
+                        token = auth_header.split(" ")[1]
+                        try:
+                            jwt_payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                            if jwt_payload.get("exp", 0) - time.time() < 86400:
+                                needs_refresh = True
+                        except JWTError:
                             needs_refresh = True
-                    except JWTError:
-                        needs_refresh = True
-                
-                resp = cached_data.get("data", {})
-                if needs_refresh:
-                    resp["access_token"] = create_access_token(data={"sub": current_user.email})
-                    resp["token_type"] = "bearer"
-                return resp
+                    
+                    resp = cached_data.get("data", {})
+                    if needs_refresh:
+                        resp["access_token"] = create_access_token(data={"sub": current_user.email})
+                        resp["token_type"] = "bearer"
+                    return resp
+                else:
+                    logger.warning(f"Cache for {current_user.email} has empty health data — forcing fresh fetch")
         
         # Pass DB session to login for persistence
         # We run login in a thread since it's synchronous
