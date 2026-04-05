@@ -658,8 +658,8 @@ class CoachBrain:
         
         # Validate JSON
         try:
-            json.loads(cleaned)  # Test parse
-            return cleaned
+            parsed = json.loads(cleaned, strict=False)
+            return json.dumps(parsed)
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON from Gemini: {e}\nRaw response header: {response_text[:500]}")
             # Try to recover using regex
@@ -667,9 +667,9 @@ class CoachBrain:
             match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if match:
                 try:
-                    json.loads(match.group())
+                    parsed = json.loads(match.group(), strict=False)
                     logger.info("Successfully recovered JSON using regex.")
-                    return match.group()
+                    return json.dumps(parsed)
                 except Exception as regex_err:
                     logger.error(f"Regex recovery failed: {regex_err}")
                     pass

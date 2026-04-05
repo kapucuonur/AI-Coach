@@ -445,11 +445,22 @@ class GarminClient:
                     del PENDING_SESSIONS[self.email]
             return False, "FAILED", "Login timed out connecting to Garmin."
 
+    def _ensure_valid_display_name(self):
+        """Garmin endpoints fail with 403 if display_name is an email address. Fix it lazily."""
+        if self.client and self.client.display_name and '@' in self.client.display_name:
+            try:
+                prof = self.client.get_user_profile()
+                if prof and 'displayName' in prof:
+                    self.client.display_name = prof['displayName']
+            except Exception as e:
+                logger.debug(f"Could not lazily fix display_name: {e}")
+
     def get_profile(self):
         """Fetch user profile."""
         if not self.client:
             logger.error("Client not authenticated.")
             return None
+        self._ensure_valid_display_name()
         try:
             return self.client.get_user_profile()
         except Exception as e:
@@ -462,6 +473,7 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return []
         
+        self._ensure_valid_display_name()
         # Using 0 as start index to get 'limit' most recent activities regardless of date
         try:
             return self.client.get_activities(0, limit)
@@ -474,6 +486,8 @@ class GarminClient:
         if not self.client:
             logger.error("Client not authenticated.")
             return None
+        
+        self._ensure_valid_display_name()
         try:
             # Fetch summary
             details = self.client.get_activity(activity_id)
@@ -509,6 +523,7 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return None
         
+        self._ensure_valid_display_name()
         target_date = date.fromisoformat(date_str) if date_str else date.today()
         
         # Look back up to 3 days to find populated health stats
@@ -535,6 +550,7 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return None
         
+        self._ensure_valid_display_name()
         target_date = date.fromisoformat(date_str) if date_str else date.today()
         
         for i in range(4):
@@ -561,6 +577,7 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return None
         
+        self._ensure_valid_display_name()
         # Define today at the top to avoid NameError in fallback blocks
         today = date.today()
         
@@ -701,6 +718,7 @@ class GarminClient:
             logger.error("Client not authenticated.")
             return None
         
+        self._ensure_valid_display_name()
         try:
             target_date = date_str if date_str else date.today().isoformat()
             return self.client.get_fitnessage_data(target_date)
