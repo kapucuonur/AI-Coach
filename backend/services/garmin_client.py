@@ -453,7 +453,8 @@ class GarminClient:
                 if hasattr(self.client.garth, 'profile') and self.client.garth.profile:
                     prof = self.client.garth.profile
                     if isinstance(prof, dict):
-                        name = prof.get('profileId') or prof.get('displayName')
+                        # The Garmin usersummary-service 403s if passed the numeric profileId instead of the string displayName
+                        name = prof.get('displayName') or prof.get('userName') or prof.get('profileId')
                         if name and '@' not in str(name):
                             self.client.display_name = str(name)
                             logger.info(f"Fixed display_name from local garth profile: {self.client.display_name}")
