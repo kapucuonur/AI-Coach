@@ -380,7 +380,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* SCROLL DOWN INDICATOR */}
-                <div className="absolute bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
+                <div className="absolute bottom-32 md:bottom-40 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
                     <motion.div
                         animate={{ y: [0, 10, 0] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
