@@ -249,7 +249,11 @@ class CoachBrain:
                     if mins:
                         duration_notes.append(f"{sport.capitalize()}: {mins} minutes")
                 if duration_notes:
-                    sport_modality_str += f"\n        - **Specific Duration Requests**: The athlete specifically requested the following time for each segment: {', '.join(duration_notes)}. YOU MUST respect these individual timings for each sport part while keeping the overall session within the {available_time_mins or 'total'} minute limit."
+                    sport_modality_str += (
+                        f"\n        - **Specific Duration Requests**: The athlete specifically requested the following time for each segment: {', '.join(duration_notes)}. "
+                        f"\n        - **HARD CONSTRAINT**: The total duration of the workout MUST reach exactly {available_time_mins or sum(int(m) for m in sport_durations.values() if m)} minutes. "
+                        f"\n        - **MULTI-SPORT STRUCTURE**: Since multiple sport durations are provided, you MUST create separate `workoutSegments` in the JSON structure for each sport discipline. For example, a 15-minute Cycling segment followed by a 105-minute Running segment."
+                    )
 
         
         rest_day_instruction = ""
@@ -302,9 +306,11 @@ class CoachBrain:
 
         **Structure Details (Format this structure into {target_language}, applying rich markdown like bolding and lists):**
         1. **Physiological Analytics & Readiness**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
-        2. **Training Directive**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session.
+        2. **Training Directive**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session. If specific sport durations were requested (like 15m Bike + 105m Run), explicitly mention this plan here.
         3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context. THIS SECTION MUST NEVER BE EMPTY IN THE TEXT.
-           - **OVERTRAINING PROTECTION (CRITICAL)**: If Training Goal Reached is YES (athlete has already completed {total_duration_today_mins:.0f} mins across {session_count_today} sessions), YOU MUST NOT prescribe any additional active workout today. Your advice must prioritize recovery, hydration, and central nervous system rest. Explain that they have already done enough for their Olympic-level development today.
+           - **TIME ACCURACY**: The sum of all workout steps MUST equal the requested available time ({available_time_mins} mins). Do not under-prescribe.
+           - **BRICK/TRANSITION LOGIC**: If multiple sports with different durations are requested, you MUST describe them as distinct phases (e.g. Phase 1: Cycling warm-up, Phase 2: Main Running set).
+           - **OVERTRAINING PROTECTION (CRITICAL)**: If Training Goal Reached is YES (athlete has already completed {total_duration_today_mins:.0f} mins across {session_count_today} sessions), YOU MUST NOT prescribe any additional active workout today.
            - IF OFF DAY (Rest Day) triggers: You MUST explicitly narrate the physical recovery protocol here (e.g., "Full rest today", "10-minute light stretching focused on hips"). Describe the instructions in text, and prescribe `null` for the workout JSON.
            - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
@@ -315,44 +321,48 @@ class CoachBrain:
         **Output Format:**
         JSON object:
         {{
-            "advice_text": "Markdown string...",
+            "advice_text": "Markdown string with physiological analysis and training protocol...",
             "workout": {{
-                "workoutName": "AI Coach - Duration/Type",
+                "workoutName": "CoachOnur - Duration/Type",
                 "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
-                "description": "Short description",
+                "description": "Short summary",
+                "instructions": "Detailed instructions...",
                 "workoutSegments": [
+                    {{
+                        "sportType": {{ "sportTypeId": 2, "sportTypeKey": "cycling" }},
+                        "workoutSteps": [
+                            {{
+                                "type": "ExecutableStepDTO",
+                                "description": "Warm-up / Initial set",
+                                "stepType": {{ "stepTypeId": 1, "stepTypeKey": "warmup" }},
+                                "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
+                                "endConditionValue": 900,
+                                "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
+                                "targetValueOne": 1, 
+                                "targetValueTwo": 2
+                            }}
+                        ]
+                    }},
                     {{
                         "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
                         "workoutSteps": [
                             {{
                                 "type": "ExecutableStepDTO",
-                                "description": "Warmup",
-                                "stepType": {{ "stepTypeId": 1, "stepTypeKey": "warmup" }},
-                                "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
-                                "preferredEndConditionUnit": null,
-                                "endConditionValue": 600,
-                                "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
-                                "targetValueOne": 1, 
-                                "targetValueTwo": 2,
-                                "zoneNumber": null
-                            }},
-                            {{
-                                "type": "ExecutableStepDTO",
-                                "description": "Main Set",
+                                "description": "Main set / Phase 2",
                                 "stepType": {{ "stepTypeId": 3, "stepTypeKey": "active" }},
                                 "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
-                                "preferredEndConditionUnit": null,
-                                "endConditionValue": 1200,
+                                "endConditionValue": 6300,
                                 "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
-                                "targetValueOne": 3, 
-                                "targetValueTwo": 4,
-                                "zoneNumber": null
+                                "targetValueOne": 2, 
+                                "targetValueTwo": 3
                             }}
                         ]
                     }}
                 ]
             }}
         }}
+
+        **MULTI-SPORT JSON RULE**: If the athlete requested a multi-sport set (e.g. Bike + Run), you MUST provide a separate entry in the `workoutSegments` array for each sport. The `workoutSteps` for each segment should reflect its specific sport.
         
         **CRITICAL GARMIN WORKOUT JSON RULES:**
         You must strictly adhere to the specific Garmin ID and Key mappings for workouts:
@@ -364,7 +374,7 @@ class CoachBrain:
         - Do not output target values as strings, they MUST be numeric/integers (e.g. `targetValueOne`: 1).
         - IF NO TARGET: use `no.target` (1). CRITICAL: If using no.target, you MUST OMIT the `targetValueOne`, `targetValueTwo`, and `zoneNumber` fields completely from that step's JSON. Sending them as null causes a server crash.
         - CRITICAL: DO NOT include `segmentOrder` or `stepOrder` anywhere in the JSON. Garmin will reject the upload if you do.
-        - CRITICAL: The `workoutSegments` array MUST contain ALWAYS exactly ONE item (one segment map). You must place ALL `workoutSteps` sequentially inside that single piece of segment logic. Do NOT create multiple segment items. Garmin API crashes if multiple segments are used for running/cycling.
+        - CRITICAL: For standard single-sport workouts, the `workoutSegments` array should usually contain exactly ONE item. However, for **MULTI-SPORT** (Brick/Transition) sessions, you MUST provide a separate segment for each sport discipline to ensure the timings add up correctly.
         (Set "workout": null if it's a rest day/evening. Workout steps should be valid Garmin JSON structure.)
         Output ONLY valid JSON.
         """
