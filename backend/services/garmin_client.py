@@ -448,12 +448,27 @@ class GarminClient:
     def _ensure_valid_display_name(self):
         """Garmin endpoints fail with 403 if display_name is an email address. Fix it lazily."""
         if self.client and self.client.display_name and '@' in self.client.display_name:
+            # 1. Try local garth profile dict (no network call)
+            try:
+                if hasattr(self.client.garth, 'profile') and self.client.garth.profile:
+                    prof = self.client.garth.profile
+                    if isinstance(prof, dict):
+                        name = prof.get('profileId') or prof.get('displayName')
+                        if name and '@' not in str(name):
+                            self.client.display_name = str(name)
+                            logger.info(f"Fixed display_name from local garth profile: {self.client.display_name}")
+                            return
+            except Exception as e:
+                pass
+
+            # 2. Fallback to API Profile sync
             try:
                 prof = self.client.get_user_profile()
                 if prof and 'displayName' in prof:
                     self.client.display_name = prof['displayName']
+                    logger.info(f"Fixed display_name from API sync: {self.client.display_name}")
             except Exception as e:
-                logger.debug(f"Could not lazily fix display_name: {e}")
+                logger.warning(f"Could not fix display_name; some Garmin endpoints may 403: {e}")
 
     def get_profile(self):
         """Fetch user profile."""
