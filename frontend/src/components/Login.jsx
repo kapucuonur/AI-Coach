@@ -182,10 +182,10 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-2 px-4 py-4 md:py-0 h-full pointer-events-none pt-4 md:pt-6 pb-24">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-1 px-4 py-0 h-full pointer-events-none pt-1 md:pt-2 pb-16">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
-                    <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
+                    <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-0">
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
