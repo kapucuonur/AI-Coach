@@ -56,6 +56,11 @@ async def get_garmin_client(
     
     if not success:
         logger.warning(f"Garmin session expired or invalid for {current_user.email}")
+        if msg and "PROXY_FAILURE" in msg:
+            raise HTTPException(
+                status_code=502,
+                detail=msg
+            )
         raise HTTPException(
             status_code=401,
             detail="Garmin session expired. Please log in again."

@@ -750,10 +750,12 @@ function App() {
       setData(enrichedData);
     } catch (err) {
       console.error(err);
-      if (err.response?.data?.detail === "GARMIN_NOT_CONNECTED") {
+      if (err.response?.status === 502 || err.response?.status === 504) {
+        setError("⚠️ Proxy Connection Error. Your Webshare Proxy is rejecting the request. Please add the new Render IP to your allowlist or use Username:Password authentication in settings.");
+      } else if (err.response?.data?.detail === "GARMIN_NOT_CONNECTED") {
         setShowGarminConnectModal(true);
       } else {
-        setError(err.response?.data?.detail || "Could not fetch dashboard data.");
+        setError(err.response?.data?.detail || "Could not fetch dashboard data. Please check your internet and Garmin connection.");
       }
     } finally {
       setLoading(false);
