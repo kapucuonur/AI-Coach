@@ -36,6 +36,7 @@ function Dashboard({
   darkMode, setDarkMode,
   settingsData, setSettingsData,
   showGarminConnectModal, setShowGarminConnectModal,
+  selectedSports, toggleSport,
   fetchAIAdvice, requirePremium, fetchDashboardData
 }) {
   const { t, i18n } = useTranslation();
@@ -788,6 +789,7 @@ function App() {
             darkMode={darkMode} setDarkMode={setDarkMode}
             settingsData={settingsData} setSettingsData={setSettingsData}
             showGarminConnectModal={showGarminConnectModal} setShowGarminConnectModal={setShowGarminConnectModal}
+            selectedSports={selectedSports} toggleSport={toggleSport}
             fetchAIAdvice={fetchAIAdvice}
             requirePremium={(cb) => { if (isPremium || isAdmin) cb(); else setShowPaywall(true); }}
             fetchDashboardData={fetchDashboardData}
