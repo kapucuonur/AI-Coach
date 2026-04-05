@@ -72,7 +72,7 @@ class CoachBrain:
         )
 
     @rate_limit(max_calls=20, period=60)
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None):
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None, selected_sports=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
@@ -233,6 +233,16 @@ class CoachBrain:
 
         time_limit_str = f"- **Time Constraint**: The athlete has specified they only have {available_time_mins} minutes to train today. YOU MUST fit the overall recommended workout duration strictly within this time limit." if available_time_mins is not None else ""
         
+        # Sport modality instruction
+        sport_modality_str = ""
+        if selected_sports and len(selected_sports) > 0:
+            sport_labels = ", ".join(s.capitalize() for s in selected_sports)
+            if len(selected_sports) == 1:
+                sport_modality_str = f"- **Requested Sport**: The athlete wants to train **{sport_labels}** today. Design the workout specifically for this discipline."
+            else:
+                sport_modality_str = f"- **Combined Session Request**: The athlete wants a combined session today: **{sport_labels}**. Design a multi-sport session that includes each of these disciplines. For example, if cycling and running are selected, structure a brick/transition workout or warm-up + main set combo."
+
+        
         rest_day_instruction = ""
         if is_rest_day:
             rest_day_instruction = f"\\n        - **CRITICAL**: Today ({today_name}) is explicitly marked as an OFF DAY (Rest Day) in the athlete's settings. You MUST NOT prescribe any active workout. Your workout recommendation must be strictly rest, light stretching, or recovery. Provide `null` for the workout JSON or a pure rest day JSON."
@@ -259,7 +269,8 @@ class CoachBrain:
         **2. Current Context & Time Constraints:**
         - Local Time: {time_context_str}
         - Race Schedule: {race_context}
-        {time_limit_str}{rest_day_instruction}
+        {time_limit_str}
+        {sport_modality_str}{rest_day_instruction}
         
         **3. Physical & Mental Condition (Readiness):**
         - Resting HR: {resting_hr} bpm

@@ -379,47 +379,89 @@ function Dashboard({
             <div className="lg:col-span-2 space-y-6">
               <DeviceCard />
 
-              {/* Daily Training Time Configuration */}
-              <div className="bg-white dark:bg-garmin-card rounded-2xl p-4 md:p-6 border border-gray-200 dark:border-white/10 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all duration-300">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <Clock size={20} className="text-garmin-blue" />
-                    {t('daily_training_time') || "Daily Training Time"}
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {t('daily_training_desc') || "How much time do you have to train today?"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Hrs"
-                      value={trainingHours}
-                      onChange={(e) => setTrainingHours(e.target.value)}
-                      className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                    />
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">h</span>
-                    <input
-                      type="number"
-                      min="0"
-                      max="59"
-                      placeholder="Min"
-                      value={trainingMinutes}
-                      onChange={(e) => setTrainingMinutes(e.target.value)}
-                      className="w-16 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                    />
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">m</span>
+              {/* Daily Training Session Planner */}
+              <div className="bg-white dark:bg-garmin-card rounded-2xl p-4 md:p-6 border border-gray-200 dark:border-white/10 shadow-sm transition-all duration-300">
+                <div className="flex flex-col gap-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <Clock size={20} className="text-garmin-blue" />
+                        {t('daily_training_time') || "Today's Training Session"}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                        {t('daily_training_desc') || "Select sports and set your available time"}
+                      </p>
+                    </div>
+                    {/* Time inputs */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <input
+                        type="number" min="0" placeholder="Hrs"
+                        value={trainingHours}
+                        onChange={(e) => setTrainingHours(e.target.value)}
+                        className="w-14 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                      />
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">h</span>
+                      <input
+                        type="number" min="0" max="59" placeholder="Min"
+                        value={trainingMinutes}
+                        onChange={(e) => setTrainingMinutes(e.target.value)}
+                        className="w-14 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                      />
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">m</span>
+                    </div>
                   </div>
-                  <button
-                    onClick={handleManualGenerate}
-                    disabled={isGeneratingAdvice}
-                    className="px-4 py-2 bg-garmin-blue hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {isGeneratingAdvice ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                    {t('update_plan') || "Update Plan"}
-                  </button>
+
+                  {/* Sport Selector */}
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: 'running',      label: t('sport_running')      || 'Running',       emoji: '🏃' },
+                      { key: 'cycling',      label: t('sport_cycling')      || 'Cycling',       emoji: '🚴' },
+                      { key: 'swimming',     label: t('sport_swimming')     || 'Swimming',      emoji: '🏊' },
+                      { key: 'strength',     label: t('sport_strength')     || 'Strength',      emoji: '🏋️' },
+                      { key: 'indoor_cycling', label: t('sport_indoor_cycling') || 'Indoor Bike', emoji: '🚵' },
+                      { key: 'triathlon',    label: t('sport_triathlon')    || 'Triathlon',     emoji: '🥇' },
+                      { key: 'walking',      label: t('sport_walking')      || 'Walking',       emoji: '🚶' },
+                      { key: 'yoga',         label: t('sport_yoga')         || 'Yoga',          emoji: '🧘' },
+                      { key: 'hiit',         label: t('sport_hiit')         || 'HIIT',          emoji: '⚡' },
+                      { key: 'skiing',       label: t('sport_skiing')       || 'Skiing',        emoji: '⛷️' },
+                    ].map(({ key, label, emoji }) => {
+                      const active = selectedSports.includes(key);
+                      return (
+                        <button
+                          key={key}
+                          onClick={() => toggleSport(key)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 select-none ${
+                            active
+                              ? 'bg-garmin-blue text-white border-garmin-blue shadow-md scale-105'
+                              : 'bg-gray-50 dark:bg-garmin-gray text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-garmin-blue hover:text-garmin-blue'
+                          }`}
+                        >
+                          <span>{emoji}</span>
+                          <span>{label}</span>
+                          {active && <span className="ml-0.5">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Footer: selected summary + Update button */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {selectedSports.length === 0
+                        ? (t('sport_none_hint') || 'No sport selected — AI will decide based on your data')
+                        : `${selectedSports.length} sport${selectedSports.length > 1 ? 's' : ''} selected: ${selectedSports.join(', ')}`
+                      }
+                    </p>
+                    <button
+                      onClick={handleManualGenerate}
+                      disabled={isGeneratingAdvice}
+                      className="px-4 py-2 bg-garmin-blue hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isGeneratingAdvice ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                      {t('update_plan') || 'Update Plan'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -529,6 +571,13 @@ function App() {
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
   const [trainingHours, setTrainingHours] = useState("");
   const [trainingMinutes, setTrainingMinutes] = useState("");
+  const [selectedSports, setSelectedSports] = useState([]);
+
+  const toggleSport = (sport) => {
+    setSelectedSports(prev =>
+      prev.includes(sport) ? prev.filter(s => s !== sport) : [...prev, sport]
+    );
+  };
   const [isPremium, setIsPremium] = useState(false);
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -573,7 +622,8 @@ function App() {
         sleep_data: data.metrics?.sleep || {},
         profile: data.metrics?.profile || {},
         language: languageOverride || settingsData?.language || i18n.language || 'en',
-        client_local_time: new Date().toISOString()
+        client_local_time: new Date().toISOString(),
+        selected_sports: selectedSports
       };
 
       if (forceMins !== null && forceMins > 0) {
