@@ -182,7 +182,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-2 px-4 py-4 md:py-0 h-full pointer-events-none pt-8 md:pt-12 pb-32">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-2 px-4 py-4 md:py-0 h-full pointer-events-none pt-4 md:pt-6 pb-24">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
                     <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-4 md:mt-0">
@@ -195,7 +195,7 @@ export function Login({ onLogin }) {
                                 <Zap size={12} className="text-blue-400" />
                                 <span className="text-[10px] md:text-xs font-medium text-blue-200 uppercase tracking-widest">AI Powered</span>
                             </div>
-                            <h1 className="mb-2 text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-5xl max-w-3xl mx-auto drop-shadow-lg">
+                            <h1 className="mb-2 text-2xl font-bold leading-[1.1] tracking-tight md:text-3xl lg:text-4xl max-w-2xl mx-auto drop-shadow-lg uppercase italic font-black">
                                 Train Smarter, <br />
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                                     Not Harder.
@@ -380,16 +380,16 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* SCROLL DOWN INDICATOR */}
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
+                <div className="absolute bottom-16 md:bottom-24 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
                     <motion.div
                         animate={{ y: [0, 10, 0] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                         className="flex flex-col items-center gap-2 opacity-70 hover:opacity-100 transition-opacity"
                     >
-                        <span className="text-[10px] md:text-xs font-medium tracking-widest text-white uppercase bg-black/40 px-3 py-1 rounded-full backdrop-blur-md border border-white/20">Discover More</span>
-                        <div className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-lg hover:bg-black/60 transition-colors">
-                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                        <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] text-white uppercase bg-black/60 px-4 py-1.5 rounded-full backdrop-blur-md border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.1)]">Discover More</span>
+                        <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/30 flex items-center justify-center shadow-2xl hover:bg-black/80 transition-all hover:scale-110 active:scale-95">
+                            <svg className="w-5 h-5 text-white animate-bounce-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                             </svg>
                         </div>
                     </motion.div>

@@ -197,6 +197,7 @@ class AIAdviceRequest(BaseModel):
     profile: dict = {}
     available_time_mins: int = None
     selected_sports: list = []  # e.g. ["cycling", "running"]
+    sport_durations: dict = {}  # e.g. {"cycling": 15, "running": 105}
     language: str = None  # Add explicit language parameter
     client_local_time: str = None
 
@@ -228,7 +229,8 @@ async def generate_advice(
             payload.todays_activities,
             client_local_time=payload.client_local_time,
             available_time_mins=payload.available_time_mins,
-            selected_sports=payload.selected_sports
+            selected_sports=payload.selected_sports,
+            sport_durations=payload.sport_durations
         )
         
         # Parse the JSON string from Gemini

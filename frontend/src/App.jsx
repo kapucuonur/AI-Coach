@@ -36,7 +36,8 @@ function Dashboard({
   darkMode, setDarkMode,
   settingsData, setSettingsData,
   showGarminConnectModal, setShowGarminConnectModal,
-  selectedSports, toggleSport,
+  selectedSports, setSelectedSports, toggleSport,
+  sportDurations, setSportDurations,
   fetchAIAdvice, requirePremium, fetchDashboardData
 }) {
   const { t, i18n } = useTranslation();
@@ -438,28 +439,47 @@ function Dashboard({
                       { key: 'skiing',       label: t('sport_skiing') || 'Skiing', emoji: '⛷️' },
                     ].map(({ key, label, emoji }) => {
                       const active = selectedSports.includes(key);
+                      const duration = sportDurations[key] || "";
+                      
                       return (
-                        <button
-                          key={key}
-                          onClick={() => toggleSport(key)}
-                          className={`relative overflow-hidden group flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border transition-all duration-200 ${
-                            active
-                              ? 'bg-garmin-blue/10 border-garmin-blue dark:border-garmin-blue shadow-[0_0_15px_rgba(0,123,255,0.1)]'
-                              : 'bg-white dark:bg-white/[0.02] border-gray-100 dark:border-white/5 hover:border-garmin-blue/30'
-                          }`}
-                        >
-                          <span className={`text-xl md:text-2xl mb-1.5 transition-transform duration-200 ${active ? 'scale-110 drop-shadow-md' : 'group-hover:scale-110'}`}>
-                            {emoji}
-                          </span>
-                          <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wider text-center ${active ? 'text-garmin-blue' : 'text-gray-500 dark:text-gray-400'}`}>
-                            {label}
-                          </span>
+                        <div key={key} className="relative group">
+                          <button
+                            onClick={() => toggleSport(key)}
+                            className={`w-full overflow-hidden flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border transition-all duration-200 ${
+                              active
+                                ? 'bg-garmin-blue/10 border-garmin-blue dark:border-garmin-blue shadow-[0_0_15px_rgba(0,123,255,0.1)]'
+                                : 'bg-white dark:bg-white/[0.02] border-gray-100 dark:border-white/5 hover:border-garmin-blue/30'
+                            }`}
+                          >
+                            <span className={`text-xl md:text-2xl mb-1.5 transition-transform duration-200 ${active ? 'scale-110 drop-shadow-md mb-6 md:mb-8' : 'group-hover:scale-110'}`}>
+                              {emoji}
+                            </span>
+                            <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wider text-center ${active ? 'text-garmin-blue opacity-40' : 'text-gray-500 dark:text-gray-400'}`}>
+                              {label}
+                            </span>
+                            {active && (
+                              <div className="absolute top-1 right-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-garmin-blue animate-pulse" />
+                              </div>
+                            )}
+                          </button>
+
+                          {/* Duration Input - Only visible when active */}
                           {active && (
-                            <div className="absolute top-1 right-1">
-                              <div className="w-1.5 h-1.5 rounded-full bg-garmin-blue animate-pulse" />
+                            <div className="absolute inset-x-2 bottom-2 md:bottom-3 flex items-center justify-center gap-1 bg-white dark:bg-garmin-card border border-garmin-blue/30 rounded-lg p-1 shadow-lg animate-in slide-in-from-bottom-1 duration-200 pointer-events-auto">
+                              <input
+                                type="number"
+                                min="0"
+                                placeholder="Min"
+                                value={duration}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => setSportDurations(prev => ({ ...prev, [key]: e.target.value }))}
+                                className="w-full bg-transparent text-center text-[10px] md:text-xs font-bold text-gray-900 dark:text-white focus:outline-none placeholder:text-gray-300 dark:placeholder:text-gray-600"
+                              />
+                              <span className="text-[8px] font-black text-garmin-blue uppercase opacity-60 pr-1">m</span>
                             </div>
                           )}
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -472,7 +492,7 @@ function Dashboard({
                        </div>
                        {selectedSports.length > 0 && (
                          <button 
-                           onClick={() => setSelectedSports([])}
+                           onClick={() => { setSelectedSports([]); setSportDurations({}); }}
                            className="text-[10px] uppercase font-bold text-gray-400 hover:text-red-500 transition-colors"
                          >
                            {t('clear_all') || 'Clear'}
@@ -603,11 +623,21 @@ function App() {
   const [trainingHours, setTrainingHours] = useState("");
   const [trainingMinutes, setTrainingMinutes] = useState("");
   const [selectedSports, setSelectedSports] = useState([]);
+  const [sportDurations, setSportDurations] = useState({});
 
   const toggleSport = (sport) => {
-    setSelectedSports(prev =>
-      prev.includes(sport) ? prev.filter(s => s !== sport) : [...prev, sport]
-    );
+    setSelectedSports(prev => {
+      const isActive = prev.includes(sport);
+      if (isActive) {
+        // Clear duration when unselecting
+        const newDurations = { ...sportDurations };
+        delete newDurations[sport];
+        setSportDurations(newDurations);
+        return prev.filter(s => s !== sport);
+      } else {
+        return [...prev, sport];
+      }
+    });
   };
   const [isPremium, setIsPremium] = useState(false);
 
@@ -652,14 +682,12 @@ function App() {
         health_stats: data.metrics?.health || {},
         sleep_data: data.metrics?.sleep || {},
         profile: data.metrics?.profile || {},
+        available_time_mins: forceMins !== null ? forceMins : (parseInt(trainingHours || 0) * 60) + parseInt(trainingMinutes || 0),
+        selected_sports: selectedSports,
+        sport_durations: sportDurations,
         language: languageOverride || settingsData?.language || i18n.language || 'en',
-        client_local_time: new Date().toISOString(),
-        selected_sports: selectedSports
+        client_local_time: new Date().toISOString()
       };
-
-      if (forceMins !== null && forceMins > 0) {
-        payload.available_time_mins = forceMins;
-      }
 
       const res = await client.post('/coach/generate-advice', payload);
 
@@ -694,9 +722,10 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await client.post('/coach/daily-metrics', {
-        client_local_time: new Date().toISOString()
-      });
+    const payload = {
+      client_local_time: new Date().toISOString()
+    };
+    const response = await client.post('/coach/daily-metrics', payload);
       let enrichedData = response.data;
 
       try {
@@ -819,7 +848,8 @@ function App() {
             darkMode={darkMode} setDarkMode={setDarkMode}
             settingsData={settingsData} setSettingsData={setSettingsData}
             showGarminConnectModal={showGarminConnectModal} setShowGarminConnectModal={setShowGarminConnectModal}
-            selectedSports={selectedSports} toggleSport={toggleSport}
+            selectedSports={selectedSports} setSelectedSports={setSelectedSports} toggleSport={toggleSport}
+            sportDurations={sportDurations} setSportDurations={setSportDurations}
             fetchAIAdvice={fetchAIAdvice}
             requirePremium={(cb) => { if (isPremium || isAdmin) cb(); else setShowPaywall(true); }}
             fetchDashboardData={fetchDashboardData}

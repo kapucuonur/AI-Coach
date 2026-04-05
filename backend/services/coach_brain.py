@@ -72,7 +72,7 @@ class CoachBrain:
         )
 
     @rate_limit(max_calls=20, period=60)
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None, selected_sports=None):
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None, selected_sports=None, sport_durations=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
@@ -241,6 +241,15 @@ class CoachBrain:
                 sport_modality_str = f"- **Requested Sport**: The athlete wants to train **{sport_labels}** today. Design the workout specifically for this discipline."
             else:
                 sport_modality_str = f"- **Combined Session Request**: The athlete wants a combined session today: **{sport_labels}**. Design a multi-sport session that includes each of these disciplines. For example, if cycling and running are selected, structure a brick/transition workout or warm-up + main set combo."
+            
+            # Add specific durations if provided
+            if sport_durations:
+                duration_notes = []
+                for sport, mins in sport_durations.items():
+                    if mins:
+                        duration_notes.append(f"{sport.capitalize()}: {mins} minutes")
+                if duration_notes:
+                    sport_modality_str += f"\n        - **Specific Duration Requests**: The athlete specifically requested the following time for each segment: {', '.join(duration_notes)}. YOU MUST respect these individual timings for each sport part while keeping the overall session within the {available_time_mins or 'total'} minute limit."
 
         
         rest_day_instruction = ""
