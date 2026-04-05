@@ -111,7 +111,20 @@ const resources = {
             "walking": "Walking",
             "other": "Other",
             "ready_to_train": "Ready to train?",
-            "hero_subtitle": "Your daily performance intelligence and AI coaching report is ready."
+            "hero_subtitle": "Your daily performance intelligence and AI coaching report is ready.",
+            "manual_training_settings": "Manual Training Set",
+            "manual_training_desc": "Optionally choose sport(s) and available training time — AI will use your selection to plan your session",
+            "sport_running": "Running",
+            "sport_cycling": "Cycling",
+            "sport_swimming": "Swimming",
+            "sport_strength": "Strength",
+            "sport_indoor_cycling": "Indoor Bike",
+            "sport_triathlon": "Triathlon",
+            "sport_walking": "Walking",
+            "sport_yoga": "Yoga",
+            "sport_hiit": "HIIT",
+            "sport_skiing": "Skiing",
+            "sport_none_hint": "No sport selected — AI will decide based on your data"
         }
     },
     tr: {
@@ -222,7 +235,20 @@ const resources = {
             "walking": "Yürüyüş",
             "other": "Diğer",
             "ready_to_train": "Sınırlarını zorlamaya hazır mısın?",
-            "hero_subtitle": "Günlük performans zekan ve yapay zeka koçluk raporun hazır."
+            "hero_subtitle": "Günlük performans zekan ve yapay zeka koçluk raporun hazır.",
+            "manual_training_settings": "Manuel Antrenman Ayarı",
+            "manual_training_desc": "Opsiyonel olarak spor branşlarını ve müsait sürenizi seçin — Yapay zeka planlamayı seçiminize göre yapacaktır",
+            "sport_running": "Koşu",
+            "sport_cycling": "Bisiklet",
+            "sport_swimming": "Yüzme",
+            "sport_strength": "Kuvvet",
+            "sport_indoor_cycling": "Indoor Bisiklet",
+            "sport_triathlon": "Triatlon",
+            "sport_walking": "Yürüyüş",
+            "sport_yoga": "Yoga",
+            "sport_hiit": "HIIT",
+            "sport_skiing": "Kayak",
+            "sport_none_hint": "Spor seçilmedi — Yapay zeka verilerinize göre karar verecektir"
         }
     },
     de: {

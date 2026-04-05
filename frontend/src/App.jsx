@@ -380,86 +380,116 @@ function Dashboard({
             <div className="lg:col-span-2 space-y-6">
               <DeviceCard />
 
-              {/* Daily Training Session Planner */}
-              <div className="bg-white dark:bg-garmin-card rounded-2xl p-4 md:p-6 border border-gray-200 dark:border-white/10 shadow-sm transition-all duration-300">
-                <div className="flex flex-col gap-4">
-                  {/* Header */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <div>
+              {/* Manual Training Session Planner */}
+              <div className="bg-white dark:bg-garmin-card rounded-2xl overflow-hidden border border-gray-200 dark:border-white/10 shadow-sm transition-all duration-300">
+                {/* Header Section */}
+                <div className="p-4 md:p-6 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <Clock size={20} className="text-garmin-blue" />
-                        {t('manual_training_settings') || "Manual Training Settings"}
+                        <div className="p-1.5 bg-garmin-blue/10 rounded-lg">
+                          <Clock size={18} className="text-garmin-blue" />
+                        </div>
+                        {t('manual_training_settings') || "Manual Training Set"}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                      <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 max-w-xl">
                         {t('manual_training_desc') || "Optionally choose sport(s) and available training time — AI will use your selection to plan your session"}
                       </p>
                     </div>
-                    {/* Time inputs */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <input
-                        type="number" min="0" placeholder="Hrs"
-                        value={trainingHours}
-                        onChange={(e) => setTrainingHours(e.target.value)}
-                        className="w-14 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                      />
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">h</span>
-                      <input
-                        type="number" min="0" max="59" placeholder="Min"
-                        value={trainingMinutes}
-                        onChange={(e) => setTrainingMinutes(e.target.value)}
-                        className="w-14 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-center text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                      />
-                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400">m</span>
+                    
+                    {/* Time Input Section - Integrated in Header */}
+                    <div className="flex items-center gap-3 bg-white dark:bg-garmin-gray/50 p-2 rounded-xl border border-gray-200 dark:border-gray-700/50 shadow-inner">
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number" min="0" placeholder="0"
+                          value={trainingHours}
+                          onChange={(e) => setTrainingHours(e.target.value)}
+                          className="w-10 bg-transparent text-center font-bold text-gray-900 dark:text-white focus:outline-none"
+                        />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">hrs</span>
+                      </div>
+                      <div className="w-px h-4 bg-gray-200 dark:bg-gray-700" />
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number" min="0" max="59" placeholder="0"
+                          value={trainingMinutes}
+                          onChange={(e) => setTrainingMinutes(e.target.value)}
+                          className="w-10 bg-transparent text-center font-bold text-gray-900 dark:text-white focus:outline-none"
+                        />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">min</span>
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  {/* Sport Selector */}
-                  <div className="flex flex-wrap gap-2">
+                {/* Sports Selection Grid */}
+                <div className="p-4 md:p-6 space-y-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-3">
                     {[
-                      { key: 'running',      label: t('sport_running')      || 'Running',       emoji: '🏃' },
-                      { key: 'cycling',      label: t('sport_cycling')      || 'Cycling',       emoji: '🚴' },
-                      { key: 'swimming',     label: t('sport_swimming')     || 'Swimming',      emoji: '🏊' },
-                      { key: 'strength',     label: t('sport_strength')     || 'Strength',      emoji: '🏋️' },
+                      { key: 'running',      label: t('sport_running') || 'Running', emoji: '🏃' },
+                      { key: 'cycling',      label: t('sport_cycling') || 'Cycling', emoji: '🚴' },
+                      { key: 'swimming',     label: t('sport_swimming') || 'Swimming', emoji: '🏊' },
+                      { key: 'strength',     label: t('sport_strength') || 'Strength', emoji: '🏋️' },
                       { key: 'indoor_cycling', label: t('sport_indoor_cycling') || 'Indoor Bike', emoji: '🚵' },
-                      { key: 'triathlon',    label: t('sport_triathlon')    || 'Triathlon',     emoji: '🥇' },
-                      { key: 'walking',      label: t('sport_walking')      || 'Walking',       emoji: '🚶' },
-                      { key: 'yoga',         label: t('sport_yoga')         || 'Yoga',          emoji: '🧘' },
-                      { key: 'hiit',         label: t('sport_hiit')         || 'HIIT',          emoji: '⚡' },
-                      { key: 'skiing',       label: t('sport_skiing')       || 'Skiing',        emoji: '⛷️' },
+                      { key: 'triathlon',    label: t('sport_triathlon') || 'Triathlon', emoji: '🥇' },
+                      { key: 'walking',      label: t('sport_walking') || 'Walking', emoji: '🚶' },
+                      { key: 'yoga',         label: t('sport_yoga') || 'Yoga', emoji: '🧘' },
+                      { key: 'hiit',         label: t('sport_hiit') || 'HIIT', emoji: '⚡' },
+                      { key: 'skiing',       label: t('sport_skiing') || 'Skiing', emoji: '⛷️' },
                     ].map(({ key, label, emoji }) => {
                       const active = selectedSports.includes(key);
                       return (
                         <button
                           key={key}
                           onClick={() => toggleSport(key)}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 select-none ${
+                          className={`relative overflow-hidden group flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border transition-all duration-200 ${
                             active
-                              ? 'bg-garmin-blue text-white border-garmin-blue shadow-md scale-105'
-                              : 'bg-gray-50 dark:bg-garmin-gray text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-garmin-blue hover:text-garmin-blue'
+                              ? 'bg-garmin-blue/10 border-garmin-blue dark:border-garmin-blue shadow-[0_0_15px_rgba(0,123,255,0.1)]'
+                              : 'bg-white dark:bg-white/[0.02] border-gray-100 dark:border-white/5 hover:border-garmin-blue/30'
                           }`}
                         >
-                          <span>{emoji}</span>
-                          <span>{label}</span>
-                          {active && <span className="ml-0.5">✓</span>}
+                          <span className={`text-xl md:text-2xl mb-1.5 transition-transform duration-200 ${active ? 'scale-110 drop-shadow-md' : 'group-hover:scale-110'}`}>
+                            {emoji}
+                          </span>
+                          <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wider text-center ${active ? 'text-garmin-blue' : 'text-gray-500 dark:text-gray-400'}`}>
+                            {label}
+                          </span>
+                          {active && (
+                            <div className="absolute top-1 right-1">
+                              <div className="w-1.5 h-1.5 rounded-full bg-garmin-blue animate-pulse" />
+                            </div>
+                          )}
                         </button>
                       );
                     })}
                   </div>
 
-                  {/* Footer: selected summary + Update button */}
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {selectedSports.length === 0
-                        ? (t('sport_none_hint') || 'No sport selected — AI will decide based on your data')
-                        : `${selectedSports.length} sport${selectedSports.length > 1 ? 's' : ''} selected: ${selectedSports.join(', ')}`
-                      }
-                    </p>
+                  {/* Action Bar */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                    <div className="flex items-center gap-2">
+                       <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${selectedSports.length > 0 ? 'bg-garmin-blue text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-400'}`}>
+                          {selectedSports.length === 0 ? t('sport_none_hint') : `${selectedSports.length} Selected`}
+                       </div>
+                       {selectedSports.length > 0 && (
+                         <button 
+                           onClick={() => setSelectedSports([])}
+                           className="text-[10px] uppercase font-bold text-gray-400 hover:text-red-500 transition-colors"
+                         >
+                           {t('clear_all') || 'Clear'}
+                         </button>
+                       )}
+                    </div>
+
                     <button
                       onClick={handleManualGenerate}
                       disabled={isGeneratingAdvice}
-                      className="px-4 py-2 bg-garmin-blue hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors shadow-sm disabled:opacity-50 flex items-center gap-2"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-garmin-blue hover:bg-blue-600 disabled:bg-gray-400 text-white text-sm font-black uppercase tracking-widest rounded-xl shadow-lg transition-all active:scale-95 group"
                     >
-                      {isGeneratingAdvice ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                      {isGeneratingAdvice ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Zap size={18} className="transition-transform group-hover:scale-110" />
+                      )}
                       {t('update_plan') || 'Update Plan'}
                     </button>
                   </div>
