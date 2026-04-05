@@ -44,6 +44,39 @@ async def get_daily_metrics(
         decrypted_pass = decrypt_garmin_password(current_user.garmin_password)
         client = GarminClient(current_user.garmin_email, decrypted_pass)
         
+        # 0. Check DB Cache first (TTL: 15 minutes)
+        import time
+        from backend.models import UserSetting
+        
+        setting = db.query(UserSetting).filter(
+            UserSetting.user_id == current_user.id,
+            UserSetting.key == "cache_daily_metrics"
+        ).first()
+
+        force_refresh = payload.force_refresh if hasattr(payload, 'force_refresh') else False
+        if setting and setting.value and not force_refresh:
+            cached_data = setting.value
+            timestamp = cached_data.get("timestamp", 0)
+            if time.time() - timestamp < 900:  # 15 minutes
+                logger.info(f"Serving /daily-metrics from DB cache for {current_user.email}")
+                # We still need to evaluate token refresh
+                needs_refresh = False
+                auth_header = request.headers.get("Authorization")
+                if auth_header and auth_header.startswith("Bearer "):
+                    token = auth_header.split(" ")[1]
+                    try:
+                        jwt_payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                        if jwt_payload.get("exp", 0) - time.time() < 86400:
+                            needs_refresh = True
+                    except JWTError:
+                        needs_refresh = True
+                
+                resp = cached_data.get("data", {})
+                if needs_refresh:
+                    resp["access_token"] = create_access_token(data={"sub": current_user.email})
+                    resp["token_type"] = "bearer"
+                return resp
+        
         # Pass DB session to login for persistence
         # We run login in a thread since it's synchronous
         success, status, error_msg = await asyncio.to_thread(client.login, db)
@@ -118,11 +151,25 @@ async def get_daily_metrics(
             "todays_activities": todays_activities # Pass down for the AI to use later
         }
         
-        if needs_refresh:
-            response_data["access_token"] = create_access_token(data={"sub": current_user.email})
-            response_data["token_type"] = "bearer"
+        cleaned_response = sanitize_for_json(response_data)
         
-        return sanitize_for_json(response_data)
+        # Save payload to DB cache
+        try:
+            if not setting:
+                setting = UserSetting(user_id=current_user.id, key="cache_daily_metrics")
+                db.add(setting)
+            setting.value = {"timestamp": time.time(), "data": cleaned_response}
+            db.commit()
+            logger.info(f"Saved /daily-metrics to DB cache for {current_user.email}")
+        except Exception as cache_err:
+            logger.error(f"Failed to save metrics cache: {cache_err}")
+            db.rollback()
+        
+        if needs_refresh:
+            cleaned_response["access_token"] = create_access_token(data={"sub": current_user.email})
+            cleaned_response["token_type"] = "bearer"
+        
+        return cleaned_response
 
     except HTTPException as he:
         raise he
