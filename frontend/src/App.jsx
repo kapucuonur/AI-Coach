@@ -387,10 +387,10 @@ function Dashboard({
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <Clock size={20} className="text-garmin-blue" />
-                        {t('daily_training_time') || "Today's Training Session"}
+                        {t('manual_training_settings') || "Manual Training Settings"}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                        {t('daily_training_desc') || "Select sports and set your available time"}
+                        {t('manual_training_desc') || "Optionally choose sport(s) and available training time — AI will use your selection to plan your session"}
                       </p>
                     </div>
                     {/* Time inputs */}
