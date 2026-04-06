@@ -99,8 +99,10 @@ async def get_user_profile(client: GarminClient = Depends(get_garmin_client)):
         logger.info(f"Profile fetched successfully: {type(profile)}")
         
         if not profile:
-            logger.warning("Profile data is None or empty")
-            raise HTTPException(status_code=404, detail="Profile not found")
+            logger.warning("Profile data is None or empty. This usually means a connection failure to Garmin.")
+            if not client.client:
+                 raise HTTPException(status_code=401, detail="Garmin session invalid or not initialized.")
+            raise HTTPException(status_code=502, detail="Failed to fetch profile from Garmin Connect. Check proxy/connection.")
         
         # Fetch VO2 Max data separately using get_max_metrics()
         try:

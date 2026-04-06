@@ -750,8 +750,8 @@ function App() {
       setData(enrichedData);
     } catch (err) {
       console.error(err);
-      if (err.response?.status === 502 || err.response?.status === 504) {
-        setError("⚠️ Proxy Connection Error. Your Webshare Proxy is rejecting the request. Please add the new Render IP to your allowlist or use Username:Password authentication in settings.");
+      if (err.response?.status === 502 || err.response?.status === 504 || (err.response?.data?.detail && String(err.response.data.detail).includes("PROXY_FAILURE"))) {
+        setError("⚠️ Proxy Connection Error: Your proxy server is currently rejecting connections (502 Bad Gateway). Action Required: Check your proxy dashboard/allowlist, or verify credentials in settings.");
       } else if (err.response?.data?.detail === "GARMIN_NOT_CONNECTED") {
         setShowGarminConnectModal(true);
       } else {

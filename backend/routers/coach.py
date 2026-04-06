@@ -96,6 +96,10 @@ async def get_daily_metrics(
              logger.warning(f"Login failed: {status} - {error_msg}")
              if status == "MFA_REQUIRED":
                  raise HTTPException(status_code=401, detail="GARMIN_MFA_REQUIRED")
+             
+             if error_msg and "PROXY_FAILURE" in error_msg:
+                 raise HTTPException(status_code=502, detail=error_msg)
+                 
              raise HTTPException(status_code=401, detail=f"Garmin auth failed: {error_msg}")
              
         processor = DataProcessor()

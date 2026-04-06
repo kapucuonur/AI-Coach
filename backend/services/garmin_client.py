@@ -83,12 +83,12 @@ class GarminClient:
         if proxy_url and garmin_instance and hasattr(garmin_instance, 'garth'):
             try:
                 # Set a strict timeout to avoid the 30-second Render hang
-                garmin_instance.garth.sess.timeout = 10
+                garmin_instance.garth.sess.timeout = 5
                 garmin_instance.garth.sess.proxies.update({
                     "http": proxy_url,
                     "https": proxy_url
                 })
-                logger.info(f"🛡️ Active Proxy injected for {self.email} (Timeout set to 10s)")
+                logger.info(f"🛡️ Active Proxy injected for {self.email} (Timeout set to 5s)")
             except Exception as e:
                 logger.warning(f"Failed to inject proxy: {e}")
 
@@ -393,7 +393,7 @@ class GarminClient:
                         session.client = client
                         session.status = "SUCCESS"
                     except (ProxyError, MaxRetryError, ConnectTimeout) as pe:
-                        error_msg = f"PROXY_FAILURE: Tunnel connection failed (502/504). This usually means the Webshare proxy server is rejecting the connection. Action required: Add the Render IP to your Webshare allowlist or use Username:Password authentication. Details: {str(pe)}"
+                        error_msg = f"PROXY_FAILURE: Tunnel connection failed (502/504). This usually means the your proxy server is rejecting the connection. Details: {str(pe)}"
                         logger.error(error_msg)
                         session.error = error_msg
                         session.status = "FAILED"
