@@ -93,7 +93,9 @@ Unlike rule-based systems, CoachOnur AI leverages a context-aware intelligence l
 - FastAPI (Python 3.10+), SQLAlchemy ORM, Google GenAI SDK (Gemini), Stripe SDK.
 
 ### 🌐 Infrastructure
-- **Render:** API & PostgreSQL Hosting.
+- **Self-hosted:** Raspberry Pi 5 (16GB RAM) with Hailo-8 AI Accelerator (26 TOPS)
+- **Cloudflare Tunnel:** Zero-trust secure HTTPS routing
+- **Supabase:** PostgreSQL cloud database
 - **Cloudflare/Vercel:** Secure DNS and frontend mapping.
 
 ---
