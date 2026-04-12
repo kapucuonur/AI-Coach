@@ -149,3 +149,4 @@ npm run dev
 <div align="center">
   <p>Built with ❤️ for endurance athletes by <strong>Onur Kapucu</strong></p>
 </div>
+# updated
