@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bike Fit Webcam</title>
+</head>
+<body>
+  <h1>Bike Fit Poz Analizi</h1>
+  <video id="video" width="640" height="480" autoplay></video>
+  <button id="capture">Pozu Gönder</button>
+  <p id="result"></p>
+
+  <script>
+    const video = document.getElementById('video');
+    const result = document.getElementById('result');
+
+    // Webcam aç
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => console.error('Webcam açma hatası:', err));
+
+    document.getElementById('capture').addEventListener('click', () => {
+      // Video frame'ini canvas'a çiz
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Base64 string olarak al
+      const dataURL = canvas.toDataURL('image/jpeg');
+
+      // Backend'e POST isteği gönder
+      fetch('http://localhost:8001/analyze/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ image_base64: dataURL })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data.error) {
+          result.textContent = "Hata: " + data.error;
+        } else {
+          result.textContent = "Diz Açısı: " + data.knee_angle.toFixed(2);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        result.textContent = "İstek gönderilirken hata oluştu.";
+      });
+    });
+  </script>
+</body>
+</html>

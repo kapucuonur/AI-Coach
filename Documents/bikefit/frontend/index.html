@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BikeFit AI – coachonurai.com</title>
+  <meta name="description" content="AI-powered professional bike fit analysis. Get instant position feedback powered by computer vision." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===== NAVIGATION ===== -->
+<nav class="nav">
+  <a class="logo" href="https://coachonurai.com">🚴 BikeFit AI</a>
+  <div class="lang-bar" id="lang-bar"></div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <h1 id="hero-title"></h1>
+  <p id="hero-sub"></p>
+</section>
+
+<!-- ===== MAIN APP ===== -->
+<main class="app-grid">
+
+  <!-- LEFT: Camera Panel -->
+  <div class="panel camera-panel">
+    <div class="panel-header">
+      <span class="panel-icon">📷</span>
+      <span id="panel-camera-title"></span>
+    </div>
+
+    <div class="camera-box" id="camera-box">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="overlay" class="overlay"></canvas>
+      <div class="camera-placeholder" id="camera-placeholder">
+        <div class="placeholder-icon">📷</div>
+        <p id="placeholder-text"></p>
+      </div>
+    </div>
+
+    <div class="camera-controls">
+      <select id="bike-type-select" class="btn" style="background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding-left: 10px; padding-right: 10px;">
+        <option value="road">Road Bike</option>
+        <option value="triathlon">Triathlon Bike</option>
+      </select>
+
+      <button class="btn btn-primary" id="btn-start-camera">
+        <span>📷</span> <span id="btn-start-text"></span>
+      </button>
+
+      <label class="btn btn-primary" id="btn-upload-video" style="cursor: pointer;">
+        <span>📁</span> <span id="btn-upload-text">Upload Video</span>
+        <input type="file" id="video-upload-input" accept="video/*" style="display: none;" />
+      </label>
+
+      <button class="btn btn-success" id="btn-analyze" disabled>
+        <span>🔍</span> <span id="btn-analyze-text"></span>
+      </button>
+      <button class="btn btn-danger" id="btn-stop" style="display:none">
+        <span>⏹</span> <span id="btn-stop-text"></span>
+      </button>
+    </div>
+
+    <!-- Live mode toggle -->
+    <label class="toggle-row" id="live-toggle-row">
+      <input type="checkbox" id="live-mode-toggle" />
+      <span class="toggle-slider"></span>
+      <span id="live-mode-label"></span>
+    </label>
+  </div>
+
+  <!-- RIGHT: Results Panel -->
+  <div class="panel results-panel">
+    <div class="panel-header">
+      <span class="panel-icon">📊</span>
+      <span id="panel-results-title"></span>
+    </div>
+
+    <!-- Sensor Dashboard -->
+    <div class="sensor-dashboard" id="sensor-dashboard">
+      <div class="sensor-header">
+        <div>
+          <span class="sensor-icon">📡</span>
+          <span id="sensor-title">Smart Sensors</span>
+        </div>
+        <button class="btn btn-primary" id="btn-connect-sensor" style="padding: 6px 12px; font-size: 0.75rem;">Connect BLE</button>
+      </div>
+      <div class="sensor-data-grid">
+        <div class="sensor-data-item">
+          <div class="sensor-label">Power</div>
+          <div class="sensor-value" id="val-power">—<span class="unit">W</span></div>
+        </div>
+        <div class="sensor-data-item">
+          <div class="sensor-label">Cadence</div>
+          <div class="sensor-value" id="val-cadence">—<span class="unit">RPM</span></div>
+        </div>
+        <div class="sensor-data-item">
+          <div class="sensor-label">Speed</div>
+          <div class="sensor-value" id="val-speed">—<span class="unit">km/h</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Idle state -->
+    <div class="idle-state" id="idle-state">
+      <div class="idle-icon">🚴</div>
+      <p id="idle-text"></p>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading-state" id="loading-state" style="display:none">
+      <div class="spinner"></div>
+      <p id="loading-text"></p>
+    </div>
+
+    <!-- Results -->
+    <div class="results-list" id="results-list" style="display:none">
+      <div class="result-item" id="r-knee">
+        <div class="result-header">
+          <span class="result-emoji">🦵</span>
+          <span id="label-knee"></span>
+        </div>
+        <div class="result-bar-wrap">
+          <div class="result-bar" id="bar-knee"></div>
+        </div>
+        <div class="result-footer">
+          <span class="result-angle" id="val-knee">—°</span>
+          <span class="result-feedback" id="fb-knee">—</span>
+        </div>
+      </div>
+
+      <div class="result-item" id="r-hip">
+        <div class="result-header">
+          <span class="result-emoji">🏋️</span>
+          <span id="label-hip"></span>
+        </div>
+        <div class="result-bar-wrap">
+          <div class="result-bar" id="bar-hip"></div>
+        </div>
+        <div class="result-footer">
+          <span class="result-angle" id="val-hip">—°</span>
+          <span class="result-feedback" id="fb-hip">—</span>
+        </div>
+      </div>
+
+      <div class="result-item" id="r-elbow">
+        <div class="result-header">
+          <span class="result-emoji">💪</span>
+          <span id="label-elbow"></span>
+        </div>
+        <div class="result-bar-wrap">
+          <div class="result-bar" id="bar-elbow"></div>
+        </div>
+        <div class="result-footer">
+          <span class="result-angle" id="val-elbow">—°</span>
+          <span class="result-feedback" id="fb-elbow">—</span>
+        </div>
+      </div>
+
+      <div class="result-item" id="r-torso">
+        <div class="result-header">
+          <span class="result-emoji">🧍</span>
+          <span id="label-torso"></span>
+        </div>
+        <div class="result-bar-wrap">
+          <div class="result-bar" id="bar-torso"></div>
+        </div>
+        <div class="result-footer">
+          <span class="result-angle" id="val-torso">—°</span>
+          <span class="result-feedback" id="fb-torso">—</span>
+        </div>
+      </div>
+
+      <div class="result-item" id="r-ankle">
+        <div class="result-header">
+          <span class="result-emoji">🦶</span>
+          <span id="label-ankle"></span>
+        </div>
+        <div class="result-bar-wrap">
+          <div class="result-bar" id="bar-ankle"></div>
+        </div>
+        <div class="result-footer">
+          <span class="result-angle" id="val-ankle">—°</span>
+          <span class="result-feedback" id="fb-ankle">—</span>
+        </div>
+      </div>
+
+      <div class="overall-score" id="overall-score">
+        <span id="score-label"></span>
+        <span class="score-value" id="score-value">—</span>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div class="error-state" id="error-state" style="display:none">
+      <div class="error-icon">⚠️</div>
+      <p id="error-text"></p>
+    </div>
+  </div>
+</main>
+
+<!-- ===== FEATURES ===== -->
+<section class="features">
+  <div class="feature-card">
+    <div class="feature-icon">⚡</div>
+    <h3 id="f1-title"></h3>
+    <p id="f1-desc"></p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🎯</div>
+    <h3 id="f2-title"></h3>
+    <p id="f2-desc"></p>
+  </div>
+  <div class="feature-card">
+    <div class="feature-icon">🌍</div>
+    <h3 id="f3-title"></h3>
+    <p id="f3-desc"></p>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+  <p id="footer-text"></p>
+</footer>
+<!-- ===== PAYWALL MODAL ===== -->
+<div id="paywall-modal" class="paywall-overlay" style="display:none">
+  <div class="paywall-box">
+    <div class="paywall-icon">🔒</div>
+    <h2 id="pw-title">Unlock Premium AI Analysis</h2>
+    <p id="pw-desc">Get a 24-hour unlimited pass for professional real-time bike fit feedback.</p>
+    <button id="btn-checkout" class="primary-btn checkout-btn">
+      <span id="pw-btn">Unlock Now ($4.99)</span>
+    </button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

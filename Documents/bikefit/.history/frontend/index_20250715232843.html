@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bike Fit Poz Analizi</title>
+</head>
+<body>
+  <h1>Bike Fit Poz Analizi</h1>
+  <video id="video" width="640" height="480" autoplay></video>
+  <button id="capture">Pozu Gönder</button>
+  <div id="result"></div>
+
+  <script>
+    const video = document.getElementById('video');
+    const result = document.getElementById('result');
+
+    // Webcam aç
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => video.srcObject = stream)
+      .catch(err => console.error('Webcam açma hatası:', err));
+
+    document.getElementById('capture').addEventListener('click', () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataURL = canvas.toDataURL('image/jpeg');
+
+      fetch('http://localhost:8001/analyze/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ image_base64: dataURL })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          result.textContent = "Hata: " + data.error;
+        } else {
+          result.innerHTML = `
+            <p><strong>Diz Açısı:</strong> ${data.knee_angle.toFixed(1)}° – ${data.knee_feedback}</p>
+            <p><strong>Kalça Açısı:</strong> ${data.hip_angle.toFixed(1)}° – ${data.hip_feedback}</p>
+            <p><strong>Dirsek Açısı:</strong> ${data.elbow_angle.toFixed(1)}° – ${data.elbow_feedback}</p>
+            <p><strong>Gövde Açısı:</strong> ${data.torso_angle.toFixed(1)}° – ${data.torso_feedback}</p>
+            <p><strong>Ayak Bileği Açısı:</strong> ${data.ankle_angle.toFixed(1)}° – ${data.ankle_feedback}</p>
+          `;
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        result.textContent = "İstek gönderilirken hata oluştu.";
+      });
+    });
+  </script>
+</body>
+</html>

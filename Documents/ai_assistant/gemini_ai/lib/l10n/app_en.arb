@@ -1,0 +1,10 @@
+{
+  "appTitle": "Gemini AI",
+  "geminiTitle": "Gemini 2.5 Flash",
+  "hintText": "Type a message or speak...",
+  "thinking": "Gemini is thinking...",
+  "welcomeMessage": "Hi! I'm Gemini 2.5 Flash. You can send images or speak to me!",
+  "imagePromptGallery": "What's in this image? Can you describe it?",
+  "imagePromptCamera": "I just took this photo, what do you see?",
+  "@@locale": "en"
+}
