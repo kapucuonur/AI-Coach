@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Sparkles, X, Activity, Zap, ShieldCheck } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import client from '../api/client';
 
 export function PremiumPaywallModal({ isOpen, onClose }) {
     const [loading, setLoading] = useState(false);
 
     const handleUpgrade = async () => {
+        if (Capacitor.isNativePlatform()) {
+            alert("Premium upgrade is currently not available in the mobile app. Please visit www.coachonurai.com from your web browser to upgrade your account and access premium features.");
+            return;
+        }
+
         setLoading(true);
         try {
             // Call our new backend endpoint to get the Stripe Checkout Session URL

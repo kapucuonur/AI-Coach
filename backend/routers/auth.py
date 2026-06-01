@@ -279,3 +279,13 @@ def connect_garmin_mfa(
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"MFA verification failed: {str(e)}")
+
+@router.delete("/me")
+def delete_current_user(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    try:
+        db.delete(current_user)
+        db.commit()
+        return {"status": "SUCCESS", "message": "Account deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")

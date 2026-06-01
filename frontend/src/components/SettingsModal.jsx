@@ -70,6 +70,22 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        if (window.confirm(t('confirm_delete_account_message') || "Are you sure you want to permanently delete your account? This action cannot be undone.")) {
+            setLoading(true);
+            try {
+                await client.delete('/auth/me');
+                localStorage.removeItem('token');
+                window.location.href = '/'; // Redirect to login
+            } catch (error) {
+                console.error("Failed to delete account", error);
+                alert("Failed to delete account. Please try again.");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
     const addRace = () => {
         setRaces([...races, { name: '', date: '' }]);
     };
@@ -366,20 +382,29 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3 shrink-0">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center shrink-0">
                     <button
-                        onClick={onClose}
-                        className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white font-medium"
-                    >
-                        {t('cancel')}
-                    </button>
-                    <button
-                        onClick={handleSave}
+                        onClick={handleDeleteAccount}
                         disabled={loading}
-                        className="px-4 py-2 bg-garmin-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium shadow-sm"
+                        className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-medium transition-colors"
                     >
-                        {loading ? t('saving') : t('save_settings')}
+                        {t('delete_account') || "Delete Account"}
                     </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white font-medium"
+                        >
+                            {t('cancel')}
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={loading}
+                            className="px-4 py-2 bg-garmin-blue text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 font-medium shadow-sm"
+                        >
+                            {loading ? t('saving') : t('save_settings')}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
