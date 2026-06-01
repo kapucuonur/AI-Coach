@@ -604,6 +604,7 @@ function Dashboard({
             setShowGarminConnectModal(false);
             fetchDashboardData();
           }}
+          onClose={() => setShowGarminConnectModal(false)}
         />
       )}
     </>

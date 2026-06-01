@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Lock, ArrowRight, ShieldCheck } from 'lucide-react';
 import client from '../api/client';
 
-export function GarminConnectModal({ onConnected }) {
+export function GarminConnectModal({ onConnected, onClose }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [mfaCode, setMfaCode] = useState('');
@@ -138,6 +138,17 @@ export function GarminConnectModal({ onConnected }) {
                                             </>
                                         )}
                                     </button>
+
+                                    {onClose && (
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            disabled={loading}
+                                            className="mt-4 w-full text-center text-sm font-medium text-gray-500 hover:text-white transition-colors"
+                                        >
+                                            Skip for now
+                                        </button>
+                                    )}
 
                                     <p className="mt-6 text-center text-xs text-gray-500 max-w-xs mx-auto">
                                         We use industry-standard encryption to protect your Garmin credentials.
