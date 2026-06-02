@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Plus, Trash2, MessageCircle } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import client from '../api/client';
 
 export function SettingsModal({ isOpen, onClose, onSave }) {
@@ -28,7 +29,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
 
     const fetchSettings = async () => {
         try {
-            const res = await client.get('/settings');
+            const res = await client.get('/settings/');
             const data = res.data || {};
             setSport(data.primary_sport || "Running");
             setAge(data.age || "");
