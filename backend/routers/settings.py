@@ -39,7 +39,7 @@ def get_settings(db: Session = Depends(get_db), current_user = Depends(get_curre
     if not setting:
         setting = db.query(models.UserSetting).filter(
             models.UserSetting.key == setting_key,
-            models.UserSetting.user_id == None
+            models.UserSetting.user_id.is_(None)
         ).first()
     
     if setting and setting.value:
@@ -61,7 +61,7 @@ def save_settings(settings: UserSettings, db: Session = Depends(get_db), current
     if not db_setting:
         db_setting = db.query(models.UserSetting).filter(
             models.UserSetting.key == setting_key,
-            models.UserSetting.user_id == None
+            models.UserSetting.user_id.is_(None)
         ).first()
     
     # Get only the fields explicitly provided in the request

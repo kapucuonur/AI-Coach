@@ -43,6 +43,22 @@ async def lifespan(app: FastAPI):
             except Exception:
                 pass  # SQLite or index may not exist
                 
+            # Restore and map legacy settings (fix for migration bug)
+            try:
+                logger.info("Migrating legacy user_settings by mapping email to user_id...")
+                all_users = conn.execute(text("SELECT id, email FROM users")).fetchall()
+                for uid, email in all_users:
+                    key = f"{email.lower()}_config"
+                    null_row = conn.execute(text("SELECT key FROM user_settings WHERE key = :k AND user_id IS NULL"), {"k": key}).fetchone()
+                    if null_row:
+                        # They have an old row. Delete any new empty row that might have been accidentally created.
+                        conn.execute(text("DELETE FROM user_settings WHERE key = :k AND user_id = :uid"), {"k": key, "uid": uid})
+                        # Update the old row to have the correct user_id
+                        conn.execute(text("UPDATE user_settings SET user_id = :uid WHERE key = :k AND user_id IS NULL"), {"k": key, "uid": uid})
+                conn.commit()
+            except Exception as e:
+                logger.error(f"Failed to migrate legacy settings: {e}")
+                
             # Add telegram columns if missing
             users_columns = [c['name'] for c in inspector.get_columns('users')]
             if 'telegram_chat_id' not in users_columns:
