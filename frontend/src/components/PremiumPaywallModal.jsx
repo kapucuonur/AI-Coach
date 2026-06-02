@@ -101,26 +101,38 @@ export function PremiumPaywallModal({ isOpen, onClose }) {
                             </div>
 
                             {/* CTA Button */}
-                            <button
-                                onClick={handleUpgrade}
-                                disabled={loading}
-                                className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-6 py-4 font-bold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-blue-500/25 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait"
-                            >
-                                <span className="relative z-10 flex items-center gap-2">
-                                    {loading ? (
-                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    ) : (
-                                        <>Upgrade to Pro Now <Crown size={18} /></>
-                                    )}
-                                </span>
-                                {/* Hover Gradient Overlay */}
-                                <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
-                            </button>
+                            {Capacitor.isNativePlatform() ? (
+                                <button
+                                    disabled={true}
+                                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gray-600 px-6 py-4 font-bold text-white shadow-lg transition-all opacity-80 cursor-not-allowed"
+                                >
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        In-App Purchases Coming Soon <Crown size={18} />
+                                    </span>
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleUpgrade}
+                                    disabled={loading}
+                                    className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-blue-500 to-emerald-500 px-6 py-4 font-bold text-white shadow-lg transition-all hover:scale-[1.02] hover:shadow-blue-500/25 active:scale-[0.98] disabled:opacity-70 disabled:cursor-wait"
+                                >
+                                    <span className="relative z-10 flex items-center gap-2">
+                                        {loading ? (
+                                            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                        ) : (
+                                            <>Upgrade to Pro Now <Crown size={18} /></>
+                                        )}
+                                    </span>
+                                    <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
+                                </button>
+                            )}
 
-                            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
-                                <ShieldCheck size={14} />
-                                securely processed by Stripe
-                            </div>
+                            {!Capacitor.isNativePlatform() && (
+                                <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+                                    <ShieldCheck size={14} />
+                                    securely processed by Stripe
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </div>

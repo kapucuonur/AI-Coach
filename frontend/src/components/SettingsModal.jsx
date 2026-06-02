@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, MessageCircle } from 'lucide-react';
 import client from '../api/client';
 
 export function SettingsModal({ isOpen, onClose, onSave }) {
@@ -15,6 +15,10 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const [goals, setGoals] = useState({ running: "", triathlon: "", cycling: "" }); // New state for goals
     const [alsoRuns, setAlsoRuns] = useState(true);
     const [loading, setLoading] = useState(false);
+    
+    // Telegram State
+    const [telegramCode, setTelegramCode] = useState(null);
+    const [telegramLoading, setTelegramLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -67,6 +71,19 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
             console.error("Failed to save settings", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerateTelegramCode = async () => {
+        setTelegramLoading(true);
+        try {
+            const res = await client.get('/telegram/generate-link-code');
+            setTelegramCode(res.data.code);
+        } catch (error) {
+            console.error("Failed to generate Telegram link code", error);
+            alert("Failed to generate Telegram linking code. Ensure you are logged in.");
+        } finally {
+            setTelegramLoading(false);
         }
     };
 
@@ -338,6 +355,38 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                     </div>
 
 
+
+                    {/* Telegram Integration - ONLY on Web */}
+                    {!Capacitor.isNativePlatform() && (
+                        <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2 mb-2">
+                            <MessageCircle className="text-blue-500" size={20} />
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Connect Telegram (Premium)</h3>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-4">
+                            Chat with your AI Coach directly via Telegram. Click below to generate a unique linking code.
+                        </p>
+                        
+                        {!telegramCode ? (
+                            <button
+                                onClick={handleGenerateTelegramCode}
+                                disabled={telegramLoading}
+                                className="w-full bg-blue-500 hover:bg-blue-600 text-white rounded-lg py-2 px-4 text-sm font-medium transition-colors"
+                            >
+                                {telegramLoading ? "Generating..." : "Generate Link Code"}
+                            </button>
+                        ) : (
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-center">
+                                <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">
+                                    Send this code to our Telegram Bot:
+                                </p>
+                                <div className="text-2xl font-bold tracking-widest text-blue-600 dark:text-blue-400 mb-2">
+                                    /link {telegramCode}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    )}
 
                     {/* Races */}
                     <div>

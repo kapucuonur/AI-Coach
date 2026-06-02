@@ -1,12 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import auth, dashboard, coach, settings, chat, plan, nutrition, garmin, payments, tts, voice
+import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from backend directory BEFORE importing routers
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(dotenv_path=env_path)
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from backend.routers import auth, dashboard, coach, settings, chat, plan, nutrition, garmin, payments, tts, voice, telegram
 
 # AI Coach Backend - Unified SDK and Import Fix
-import os
 from contextlib import asynccontextmanager
 from backend.services.coach_brain import CoachBrain
 
@@ -39,6 +42,16 @@ async def lifespan(app: FastAPI):
                 logger.info("✅ Replaced global unique index with non-unique index on user_settings.key")
             except Exception:
                 pass  # SQLite or index may not exist
+                
+            # Add telegram columns if missing
+            users_columns = [c['name'] for c in inspector.get_columns('users')]
+            if 'telegram_chat_id' not in users_columns:
+                logger.info("Running migration: adding telegram columns to users...")
+                conn.execute(text("ALTER TABLE users ADD COLUMN telegram_chat_id VARCHAR"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN telegram_link_code VARCHAR"))
+                conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_telegram_chat_id ON users (telegram_chat_id)"))
+                conn.commit()
+                logger.info("✅ Migration complete: telegram columns added")
     except Exception as migration_err:
         logger.error(f"Migration warning (non-fatal): {migration_err}")
     
@@ -80,6 +93,7 @@ app.include_router(garmin_app.router, prefix="/api/garmin-app", tags=["Garmin Ap
 app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 app.include_router(tts.router, prefix="/api/tts", tags=["TTS"])
 app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
+app.include_router(telegram.router, prefix="/api/telegram", tags=["Telegram"])
 
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse

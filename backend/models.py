@@ -25,6 +25,10 @@ class User(Base):
     stripe_subscription_id = Column(String, unique=True, index=True, nullable=True)
     subscription_status = Column(String, default="inactive")
     
+    # Telegram Integration
+    telegram_chat_id = Column(String, unique=True, index=True, nullable=True)
+    telegram_link_code = Column(String, nullable=True)
+
     # Trial Period Tracking
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
