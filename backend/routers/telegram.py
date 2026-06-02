@@ -82,10 +82,29 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
     await send_telegram_message(chat_id, "🤔 Thinking...")
     
     try:
-        # We don't have Garmin sync data cached right here without querying DB, 
-        # but for a simple integration, we just use the user's latest settings/metrics if available.
-        # Ideally, we fetch from DB or call garmin_client here.
-        user_context = {"source": "telegram", "note": "Garmin data is not strictly pulled in real-time here yet."}
+        # Fetch settings and cached training plan
+        from backend.models import UserSetting
+        import json
+        
+        settings_key = f"{user.email.lower()}_config"
+        plan_key = f"{user.email.lower()}_latest_plan"
+        
+        user_settings = db.query(UserSetting).filter(
+            UserSetting.key == settings_key,
+            UserSetting.user_id == user.id
+        ).first()
+        
+        latest_plan = db.query(UserSetting).filter(
+            UserSetting.key == plan_key,
+            UserSetting.user_id == user.id
+        ).first()
+        
+        user_context = {
+            "source": "telegram",
+            "athlete_name": user.email.split("@")[0],
+            "settings": user_settings.value if user_settings else "No settings found.",
+            "latest_training_plan": latest_plan.value if latest_plan else "No generated training plan found. Tell the user to open the Plan tab on the dashboard to generate one."
+        }
         
         # Format message for Gemini
         messages = [{"role": "user", "content": text}]

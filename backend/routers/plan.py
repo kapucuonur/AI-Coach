@@ -86,6 +86,31 @@ def generate_plan(
         # Parse JSON
         try:
              plan_data = json.loads(plan_json_str)
+             
+             # Save plan to database for Telegram bot access
+             from backend.database import SessionLocal
+             from backend.models import UserSetting
+             
+             db_session = SessionLocal()
+             try:
+                 plan_key = f"{current_user.email.lower()}_latest_plan"
+                 db_plan = db_session.query(UserSetting).filter(
+                     UserSetting.key == plan_key,
+                     UserSetting.user_id == current_user.id
+                 ).first()
+                 
+                 if db_plan:
+                     db_plan.value = plan_data
+                 else:
+                     new_plan = UserSetting(key=plan_key, value=plan_data, user_id=current_user.id)
+                     db_session.add(new_plan)
+                 
+                 db_session.commit()
+             except Exception as db_e:
+                 logger.error(f"Failed to cache generated plan: {db_e}")
+             finally:
+                 db_session.close()
+
              return plan_data
         except json.JSONDecodeError:
              return {"error": "Failed to parse AI plan", "raw": plan_json_str}
