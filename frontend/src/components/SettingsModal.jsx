@@ -55,7 +55,7 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
     const handleSave = async () => {
         setLoading(true);
         try {
-            await client.post('/settings', {
+            await client.post('/settings/', {
                 primary_sport: sport,
                 age: age ? parseInt(age) : null,
                 gender: gender,
