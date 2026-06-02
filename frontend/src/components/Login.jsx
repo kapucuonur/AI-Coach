@@ -5,7 +5,20 @@ import { Activity, Lock, ArrowRight, Zap, HeartPulse, Gauge, UserPlus, ArrowUp }
 import { Link } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import client from '../api/client';
+import { Capacitor } from '@capacitor/core';
 import FacebookLogin from '@greatsumini/react-facebook-login';
+import { SocialLogin } from '@capgo/capacitor-social-login';
+
+// Initialize native social login with the Web Client ID
+SocialLogin.initialize({
+  google: {
+    webClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID
+  },
+  facebook: {
+    appId: import.meta.env.VITE_FACEBOOK_APP_ID,
+    clientToken: import.meta.env.VITE_FACEBOOK_CLIENT_TOKEN
+  }
+});
 
 const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "YOUR_FACEBOOK_APP_ID";
 
@@ -16,24 +29,30 @@ export function Login({ onLogin }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const backgroundVideos = [
+    const isNative = Capacitor.isNativePlatform();
+
+    const backgroundMedia = [
         {
             src: "/video-run.mp4",
+            img: "/bg-run.jpg",
             label: "RUNNING",
             sub: "5K • 10K • Half Marathon • Marathon"
         },
         {
             src: "/video-road-cycle.mp4",
+            img: "/bg-road-cycle.jpg",
             label: "CYCLING",
             sub: "Road • Gravel • Time Trial • FTP"
         },
         {
             src: "/video-swim.mp4",
+            img: "/bg-swim.jpg",
             label: "TRIATHLON",
             sub: "Sprint • Olympic • 70.3 • 140.6"
         },
         {
             src: "/video-strength.mp4",
+            img: "/bg-strength.jpg",
             label: "STRENGTH",
             sub: "Hypertrophy • Power • Mobility • Hyrox"
         }
@@ -43,10 +62,10 @@ export function Login({ onLogin }) {
     // Auto-cycle the active video focus every 4 seconds
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentVideoIndex((prev) => (prev + 1) % backgroundVideos.length);
+            setCurrentVideoIndex((prev) => (prev + 1) % backgroundMedia.length);
         }, 4000);
         return () => clearInterval(interval);
-    }, [backgroundVideos.length]);
+    }, [backgroundMedia.length]);
 
     const handleAuth = async (e) => {
         e.preventDefault();
@@ -54,7 +73,8 @@ export function Login({ onLogin }) {
         setError('');
 
         try {
-            const payload = { email, password };
+            const payload = { email: email.trim().toLowerCase(), password: password };
+            console.log("Sending Auth Payload:", { email: payload.email, password_length: payload.password.length });
             const endpoint = isRegistering ? '/auth/register' : '/auth/login';
 
             const response = await client.post(endpoint, payload);
@@ -92,6 +112,26 @@ export function Login({ onLogin }) {
         onError: () => setError("Google Login Failed")
     });
 
+    const handleNativeGoogleLogin = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await SocialLogin.login({
+                provider: 'google'
+            });
+            // Use accessToken so the backend can verify via the /userinfo endpoint
+            // (which matches how the web useGoogleLogin behaves)
+            const token = res.result.accessToken?.token || res.result.accessToken || res.result.idToken;
+            const response = await client.post('/auth/google', { credential: token });
+            const { access_token, has_garmin_connected } = response.data;
+            onLogin(access_token, has_garmin_connected);
+        } catch (err) {
+            console.error("Native Google Auth Error:", err);
+            setError(err?.message || "Native Google Login failed.");
+            setLoading(false);
+        }
+    };
+
     const handleFacebookResponse = async (facebookResponse) => {
         if (!facebookResponse.accessToken) {
             return; // user cancelled login
@@ -109,6 +149,31 @@ export function Login({ onLogin }) {
         }
     };
 
+    const handleNativeFacebookLogin = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await SocialLogin.login({
+                provider: 'facebook',
+                options: {
+                    permissions: ['email', 'public_profile']
+                }
+            });
+            const token = res.result.accessToken?.token || res.result.accessToken;
+            if (!token) {
+                throw new Error("No access token received from Facebook");
+            }
+            const response = await client.post('/auth/facebook', { accessToken: token });
+            const { access_token, has_garmin_connected } = response.data;
+            onLogin(access_token, has_garmin_connected);
+        } catch (err) {
+            console.error("Native Facebook Auth Error:", err);
+            setError(err?.message || "Native Facebook Login failed.");
+            setLoading(false);
+        }
+    };
+
+
     return (
         <div className="relative min-h-screen w-full bg-black font-sans text-white overflow-x-hidden">
 
@@ -117,7 +182,7 @@ export function Login({ onLogin }) {
 
                 {/* CINEMATIC ACCORDION BACKGROUND */}
                 <div className="absolute inset-0 z-0 flex flex-col md:flex-row bg-black overflow-hidden">
-                    {backgroundVideos.map((video, index) => {
+                    {backgroundMedia.map((media, index) => {
                         const isActive = index === currentVideoIndex;
                         return (
                             <motion.div
@@ -131,15 +196,23 @@ export function Login({ onLogin }) {
                             >
                                 <div className={`absolute inset-0 bg-black/40 transition-opacity duration-500 z-10 ${isActive ? "opacity-0" : "opacity-60 hover:opacity-20"}`} />
 
-                                <motion.video
-                                    src={video.src}
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    className="h-full w-full object-cover"
-                                    layout
-                                />
+                                {isNative ? (
+                                    <motion.img
+                                        src={media.img}
+                                        className="h-full w-full object-cover"
+                                        layout
+                                    />
+                                ) : (
+                                    <motion.video
+                                        src={media.src}
+                                        autoPlay
+                                        loop
+                                        muted
+                                        playsInline
+                                        className="h-full w-full object-cover"
+                                        layout
+                                    />
+                                )}
 
                                 <div className={`hidden md:flex absolute inset-0 flex-col items-center z-20 pointer-events-none transition-all duration-500
                                     ${isActive
@@ -159,7 +232,7 @@ export function Login({ onLogin }) {
                                         <h3 className={`font-black tracking-tighter uppercase text-white/90 drop-shadow-xl transition-all duration-500 text-center
                                             ${isActive ? 'text-4xl md:text-7xl mb-2' : 'text-xl md:text-2xl mb-0 rotate-0 md:rotate-0 md:-rotate-90 origin-center md:origin-bottom md:mb-12 opacity-80'}
                                         `}>
-                                            {video.label}
+                                            {media.label}
                                         </h3>
 
                                         {isActive && (
@@ -170,7 +243,7 @@ export function Login({ onLogin }) {
                                                 className="overflow-hidden"
                                             >
                                                 <p className="text-[10px] md:text-sm font-light tracking-[0.2em] text-blue-100 uppercase bg-black/40 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10 shadow-lg">
-                                                    {video.sub}
+                                                    {media.sub}
                                                 </p>
                                             </motion.div>
                                         )}
@@ -182,7 +255,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* HERO MAIN CONTENT */}
-                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-1 px-4 py-0 h-full pointer-events-none pt-1 md:pt-2 pb-16">
+                <div className="relative z-20 flex w-full max-w-4xl flex-col items-center justify-start gap-1 px-4 py-0 h-full pt-1 md:pt-2 pb-16">
 
                     {/* VISUAL HEADER: MARKETING COPY */}
                     <div className="w-full text-center bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/10 shadow-2xl md:bg-transparent md:backdrop-blur-none md:p-0 md:border-none md:shadow-none pointer-events-auto mt-0">
@@ -226,17 +299,17 @@ export function Login({ onLogin }) {
                                 className="flex flex-col items-center text-center px-4"
                             >
                                 <h2 className="text-5xl font-black tracking-tighter uppercase text-white drop-shadow-2xl mb-3">
-                                    {backgroundVideos[currentVideoIndex].label}
+                                    {backgroundMedia[currentVideoIndex].label}
                                 </h2>
                                 <p className="text-xs font-light tracking-[0.2em] text-blue-100 uppercase bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 shadow-lg">
-                                    {backgroundVideos[currentVideoIndex].sub}
+                                    {backgroundMedia[currentVideoIndex].sub}
                                 </p>
                             </motion.div>
                         </AnimatePresence>
                     </div>
 
                     {/* LOGIN CARD */}
-                    <div className="w-full max-w-md pointer-events-auto mx-auto mb-8 md:mb-0 z-40">
+                    <div className="relative w-full max-w-md pointer-events-auto mx-auto mb-8 md:mb-0 z-40">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -280,7 +353,11 @@ export function Login({ onLogin }) {
                                             <div>
                                                 <label className="mb-1 block text-xs font-medium text-gray-400">Email Address</label>
                                                 <input
-                                                    type="email"
+                                                    type="text"
+                                                    inputMode="email"
+                                                    autoCapitalize="none"
+                                                    autoCorrect="off"
+                                                    spellCheck="false"
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
@@ -329,7 +406,7 @@ export function Login({ onLogin }) {
                                             <div className="flex flex-col gap-3">
                                                 <button
                                                     type="button"
-                                                    onClick={() => loginWithGoogle()}
+                                                    onClick={isNative ? handleNativeGoogleLogin : () => loginWithGoogle()}
                                                     className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-white px-4 py-2 text-sm font-medium text-black transition-all hover:bg-gray-200 shadow-sm"
                                                 >
                                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20" height="20">
@@ -342,23 +419,36 @@ export function Login({ onLogin }) {
                                                     Google
                                                 </button>
 
-                                                <FacebookLogin
-                                                    appId={FACEBOOK_APP_ID}
-                                                    onSuccess={(response) => handleFacebookResponse({ accessToken: response.accessToken })}
-                                                    onFail={() => setError("Facebook Login failed.")}
-                                                    render={({ onClick }) => (
-                                                        <button
-                                                            type="button"
-                                                            onClick={onClick}
-                                                            className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-[#1877F2]/10 px-4 py-2 text-sm font-medium text-[#1877F2] transition-all hover:bg-[#1877F2]/20 shadow-sm"
-                                                        >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                                                                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
-                                                            </svg>
-                                                            Facebook
-                                                        </button>
-                                                    )}
-                                                />
+                                                {isNative ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleNativeFacebookLogin}
+                                                        className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-[#1877F2]/10 px-4 py-2 text-sm font-medium text-[#1877F2] transition-all hover:bg-[#1877F2]/20 shadow-sm"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+                                                        </svg>
+                                                        Facebook
+                                                    </button>
+                                                ) : (
+                                                    <FacebookLogin
+                                                        appId={FACEBOOK_APP_ID}
+                                                        onSuccess={(response) => handleFacebookResponse({ accessToken: response.accessToken })}
+                                                        onFail={() => setError("Facebook Login failed.")}
+                                                        render={({ onClick }) => (
+                                                            <button
+                                                                type="button"
+                                                                onClick={onClick}
+                                                                className="flex w-full items-center justify-center gap-3 rounded-full border border-white/10 bg-[#1877F2]/10 px-4 py-2 text-sm font-medium text-[#1877F2] transition-all hover:bg-[#1877F2]/20 shadow-sm"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                                                                    <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z" />
+                                                                </svg>
+                                                                Facebook
+                                                            </button>
+                                                        )}
+                                                    />
+                                                )}
                                             </div>
 
                                             <p className="mt-4 text-center text-sm text-gray-400">
@@ -380,7 +470,7 @@ export function Login({ onLogin }) {
                 </div>
 
                 {/* SCROLL DOWN INDICATOR */}
-                <div className="absolute bottom-32 md:bottom-40 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
+                <div className="hidden md:flex absolute bottom-32 md:bottom-40 left-1/2 -translate-x-1/2 z-30 pointer-events-auto cursor-pointer" onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
                     <motion.div
                         animate={{ y: [0, 10, 0] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}

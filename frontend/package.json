@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:android": "vite build && rm -rf ../../AI-Coach-android/www && cp -r dist ../../AI-Coach-android/www && cd ../../AI-Coach-android && npx cap sync android",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/core": "^8.3.4",
+    "@capgo/capacitor-social-login": "^8.3.22",
     "@greatsumini/react-facebook-login": "^3.4.0",
     "@react-oauth/google": "^0.13.4",
     "@stripe/stripe-js": "^8.8.0",
