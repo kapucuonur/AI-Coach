@@ -336,7 +336,7 @@ class CoachBrain:
            - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
            - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
-           - IF the athlete completed a race in the last 1-4 days, or if you prescribe a light post-race workout, you MUST add a LARGE COLORED recommendation in the text: <span style="color:red; font-size:1.2em; font-weight:bold;">Kendinizi yorgun hissediyorsanız dinlenin!</span> (translate to target language if not Turkish).
+           - IF the athlete completed a race in the last 1-4 days, or if you prescribe a light post-race workout, you MUST add a LARGE recommendation in the text: **🚨 DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin! 🚨** (translate to target language if not Turkish).
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.
         5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
 
