@@ -63,16 +63,17 @@ def generate_plan(
         # def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, user_settings):
         # usually activities_summary is passed as dict. 
         
-        activities_summary_dict = {}
-        if not weekly_summary.empty:
-            # If it's a dataframe/series, convert.
-             # In coach.py we did: weekly_summary.index = weekly_summary.index.astype(str) -> to_dict()
-             # Let's replicate that safety.
-             try:
-                 weekly_summary.index = weekly_summary.index.astype(str)
-                 activities_summary_dict = weekly_summary.to_dict()
-             except:
-                 activities_summary_dict = weekly_summary.to_dict()
+        activities_summary_dict = weekly_summary if isinstance(weekly_summary, dict) else {}
+        if not isinstance(weekly_summary, dict):
+            try:
+                if not weekly_summary.empty:
+                    try:
+                        weekly_summary.index = weekly_summary.index.astype(str)
+                        activities_summary_dict = weekly_summary.to_dict()
+                    except:
+                        activities_summary_dict = weekly_summary.to_dict()
+            except AttributeError:
+                pass
 
         plan_json_str = brain.generate_structured_plan(
             duration_str=payload.duration,
