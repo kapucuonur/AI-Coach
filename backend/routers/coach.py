@@ -193,17 +193,19 @@ async def get_daily_metrics(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
+from typing import Optional, List, Dict, Any
+
 class AIAdviceRequest(BaseModel):
-    todays_activities: list = []
     activities_summary_dict: dict = {}
     health_stats: dict = {}
     sleep_data: dict = {}
     profile: dict = {}
-    available_time_mins: int = None
+    available_time_mins: Optional[int] = None
+    todays_activities: list = []
     selected_sports: list = []  # e.g. ["cycling", "running"]
     sport_durations: dict = {}  # e.g. {"cycling": 15, "running": 105}
-    language: str = None  # Add explicit language parameter
-    client_local_time: str = None
+    language: Optional[str] = None  # Add explicit language parameter
+    client_local_time: Optional[str] = None
 
 @router.post("/generate-advice")
 async def generate_advice(
