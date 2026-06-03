@@ -679,6 +679,7 @@ function App() {
     try {
       const payload = {
         todays_activities: data.todays_activities || [],
+        recent_activities: data.metrics?.recent_activities || [],
         activities_summary_dict: data.metrics?.weekly_volume || {},
         health_stats: data.metrics?.health || {},
         sleep_data: data.metrics?.sleep || {},
