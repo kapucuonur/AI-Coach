@@ -284,9 +284,9 @@ class CoachBrain:
         1. **User Settings Constraints**: The athlete's primary sport, off days, and explicitly stated goals.
         2. **Recent Activities & Discipline Rotation**: What training load they have accumulated over the last few days, and what they have already done today. For Triathletes/Multi-sport athletes: You MUST strictly rotate disciplines. Look at the last 3 days of activities. If they ran yesterday, DO NOT prescribe running today unless requested. Instead, prescribe cycling (1-2 hours) or swimming.
         3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
-        4. **Race Proximity (Tapering Strategy)**: 
-           - **4-7 days before a race**: This is the final sharpening phase. DO NOT drop volume excessively (e.g., no 30-min easy swims). Prescribe a solid session (1-2 hours of cycling or running) with short, sharp race-pace intervals for activation. 
-           - **1-3 days before a race**: Apply a sharp taper. Volume drops drastically (rest, or 15-30 min easy activation sessions in swimming or cycling).
+        4. **Race Proximity & Distance (Dynamic Tapering)**: Tapering heavily depends on the RACE DISTANCE:
+           - **Short/Fast Races (Sprint/Olympic Triathlons, 5k/10k)**: These do not require massive volume drops 4-7 days out. Keep volume moderate (1-2 hours) with sharp race-pace intervals. Only drop volume heavily 1-3 days out.
+           - **Long/Demanding Races (Half/Full Ironman, Marathon, Ultra, Long Gran Fondo)**: These require a deep taper! The entire last week (4-7 days out) MUST have significantly reduced volume. Focus on short active recoveries, light spinning, or easy 30-45 min sessions. NO high-volume sessions in the last week.
            - **Post-Race**: If the athlete completed a major race in the last 1-4 days, prioritize pure rest, light mobility, or very light swimming.
 
         **1. Athlete Profile & Settings:**
