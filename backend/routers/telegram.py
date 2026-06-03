@@ -88,6 +88,7 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         
         settings_key = f"{user.email.lower()}_config"
         plan_key = f"{user.email.lower()}_latest_plan"
+        briefing_key = "cache_daily_briefing"
         
         user_settings = db.query(UserSetting).filter(
             UserSetting.key == settings_key,
@@ -99,10 +100,16 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
             UserSetting.user_id == user.id
         ).first()
         
+        daily_briefing = db.query(UserSetting).filter(
+            UserSetting.key == briefing_key,
+            UserSetting.user_id == user.id
+        ).first()
+        
         user_context = {
             "source": "telegram",
             "athlete_name": user.email.split("@")[0],
             "settings": user_settings.value if user_settings else "No settings found.",
+            "today_daily_briefing_and_workout": daily_briefing.value if daily_briefing else "No daily briefing found. Tell the user to open the Daily Briefing tab on the dashboard to generate today's advice.",
             "latest_training_plan": latest_plan.value if latest_plan else "No generated training plan found. Tell the user to open the Plan tab on the dashboard to generate one."
         }
         

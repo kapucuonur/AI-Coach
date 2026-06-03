@@ -251,6 +251,25 @@ async def generate_advice(
             advice_text = raw_advice
             workout = None
 
+        # Save the generated advice to DB for Telegram Bot to read
+        try:
+            from backend.models import UserSetting
+            db = next(get_db())
+            briefing_key = "cache_daily_briefing"
+            setting = db.query(UserSetting).filter(
+                UserSetting.user_id == current_user.id,
+                UserSetting.key == briefing_key
+            ).first()
+            
+            save_payload = {"advice": advice_text, "workout": workout}
+            if not setting:
+                setting = UserSetting(user_id=current_user.id, key=briefing_key)
+                db.add(setting)
+            setting.value = save_payload
+            db.commit()
+        except Exception as cache_err:
+            logger.error(f"Failed to save daily briefing cache: {cache_err}")
+
         return {
             "advice": advice_text,
             "workout": workout
