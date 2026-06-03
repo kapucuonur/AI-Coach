@@ -209,14 +209,17 @@ class CoachBrain:
                 for r in races:
                     try:
                         race_date = datetime.strptime(r['date'], "%Y-%m-%d")
-                        days_to_race = (race_date - today).days
-                        if days_to_race >= 0:
-                            race_list.append(f"- {r['name']} ({r['date']}): {days_to_race} days away")
+                        days_to_race = (race_date - today.replace(hour=0, minute=0, second=0, microsecond=0)).days
+                        if days_to_race >= -7:
+                            if days_to_race < 0:
+                                race_list.append(f"- COMPLETED RACE: {r['name']} ({r['date']}): {abs(days_to_race)} days ago")
+                            else:
+                                race_list.append(f"- UPCOMING RACE: {r['name']} ({r['date']}): {days_to_race} days away")
                     except:
                         race_list.append(f"- {r['name']} ({r['date']})")
                 
                 if race_list:
-                    race_context = "Upcoming Races:\n" + "\n".join(race_list)
+                    race_context = "Races Context:\n" + "\n".join(race_list)
 
             # Goals Context
             goals = user_settings.get("goals", {})
@@ -315,6 +318,7 @@ class CoachBrain:
            - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
            - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
+           - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: <span style="color:red; font-size:1.2em; font-weight:bold;">Kendinizi yorgun hissediyorsanız dinlenin!</span> (translate to target language, visually prominent).
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.
         5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
 
@@ -446,6 +450,28 @@ class CoachBrain:
         sport = user_settings.get("primary_sport", "Endurance Sports")
         language = user_settings.get("language", "en")
         
+        off_days = user_settings.get("off_days", [])
+        off_days_context = f"- Off Days (Rest): {', '.join(off_days)}" if off_days else "- Off Days: None"
+        
+        races = user_settings.get("races", [])
+        race_context = "No specific races."
+        if races:
+            race_list = []
+            today = datetime.now()
+            for r in races:
+                try:
+                    race_date = datetime.strptime(r['date'], "%Y-%m-%d")
+                    days_to_race = (race_date - today.replace(hour=0, minute=0, second=0, microsecond=0)).days
+                    if days_to_race >= -7:
+                        if days_to_race < 0:
+                            race_list.append(f"- COMPLETED RACE: {r['name']} ({r['date']}): {abs(days_to_race)} days ago")
+                        else:
+                            race_list.append(f"- UPCOMING RACE: {r['name']} ({r['date']}): {days_to_race} days away")
+                except:
+                    pass
+            if race_list:
+                race_context = "Races:\n" + "\n".join(race_list)
+        
         target_language = self._get_target_language(language)
         
         name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
@@ -481,6 +507,8 @@ class CoachBrain:
         - Name: {name}
         - Sport: {sport}
         - VO2max: {vo2max} ml/kg/min (Fitness age: {fitness_age})
+        {off_days_context}
+        {race_context}
         
         **2. Physical & Mental Condition (Readiness):**
         - Resting HR: {resting_hr}
@@ -495,6 +523,13 @@ class CoachBrain:
         Based on the readiness metrics above, determine if the first few days of the plan need to be recovery-focused or if the athlete is primed for high intensity.
         Generate a highly detailed, professional-grade training plan balancing progressive overload and recovery.
         For every workout, you MUST provide structured steps (Warmup, Main Set, Cooldown) and specific intensity targets.
+        
+        **CRITICAL SCHEDULING RULES:**
+        - You MUST strictly respect the Off Days ({off_days_context}). Set "Rest" for those days.
+        - If 'Time Constraint' is provided, strictly follow it! If 0 minutes, tell them to rest.
+        - Emphasize recovery if Stress is high or Body Battery is low.
+        - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: <span style=\"color:red; font-size:1.2em; font-weight:bold;\">Kendinizi yorgun hissediyorsanız dinlenin!</span> (translate to target language, visually prominent).
+        - If a recent race is present, include a visually prominent warning in the plan summary: **<span style=\"color:red; font-size:1.2em;\">Kendinizi yorgun hissediyorsanız dinlenin! / If you feel tired, rest!</span>**
         
         **Targets:**
         - Running: Prescribe Pace (min/km) or Heart Rate Zone.

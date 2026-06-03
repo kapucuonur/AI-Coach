@@ -683,7 +683,7 @@ function App() {
         health_stats: data.metrics?.health || {},
         sleep_data: data.metrics?.sleep || {},
         profile: data.metrics?.profile || {},
-        available_time_mins: forceMins !== null ? forceMins : (parseInt(trainingHours || 0) * 60) + parseInt(trainingMinutes || 0),
+        available_time_mins: forceMins !== null ? forceMins : (trainingHours || trainingMinutes ? (parseInt(trainingHours || 0) * 60) + parseInt(trainingMinutes || 0) : null),
         selected_sports: selectedSports,
         sport_durations: sportDurations,
         language: languageOverride || settingsData?.language || i18n.language || 'en',
