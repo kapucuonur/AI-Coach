@@ -5,7 +5,7 @@ import { Crown, Sparkles, X, Activity, Zap, ShieldCheck } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import client from '../api/client';
 
-export function PremiumPaywallModal({ isOpen, onClose }) {
+export function PremiumPaywallModal({ isOpen, onClose, onSuccess }) {
     const [loading, setLoading] = useState(false);
 
     const handleUpgrade = async () => {
@@ -133,6 +133,44 @@ export function PremiumPaywallModal({ isOpen, onClose }) {
                                     securely processed by Stripe
                                 </div>
                             )}
+
+                            {/* Promo Code Section */}
+                            <div className="mt-6 border-t border-white/10 pt-6">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Have an invite code?"
+                                        className="w-full rounded-xl bg-white/5 px-4 py-3 text-sm text-white placeholder-gray-500 outline-none focus:ring-2 focus:ring-blue-500 transition-all border border-white/10"
+                                        id="promoCodeInput"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                document.getElementById('redeemPromoBtn').click();
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        id="redeemPromoBtn"
+                                        onClick={async () => {
+                                            const code = document.getElementById('promoCodeInput').value;
+                                            if (!code) return;
+                                            setLoading(true);
+                                            try {
+                                                const res = await client.post('/promo/redeem', { code });
+                                                alert(res.data.message);
+                                                if (onSuccess) onSuccess();
+                                            } catch (err) {
+                                                alert(err.response?.data?.detail || "Invalid code or error occurred.");
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }}
+                                        disabled={loading}
+                                        className="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white hover:bg-white/20 transition-all disabled:opacity-50"
+                                    >
+                                        Redeem
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </div>

@@ -596,6 +596,11 @@ function Dashboard({
       <PremiumPaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
+        onSuccess={() => {
+            setIsPremium(true);
+            setShowPaywall(false);
+            window.location.reload();
+        }}
       />
 
       {showGarminConnectModal && (

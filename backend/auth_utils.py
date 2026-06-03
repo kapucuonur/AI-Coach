@@ -105,6 +105,11 @@ def is_user_premium(user) -> bool:
     if getattr(user, 'is_premium', False):
         return True
     
+    # Check if they have an active promo code / temporary premium
+    if hasattr(user, 'premium_valid_until') and user.premium_valid_until:
+        if datetime.utcnow() < user.premium_valid_until:
+            return True
+            
     # 7-day free trial logic
     if user.created_at:
         trial_end = user.created_at + timedelta(days=7)
