@@ -106,7 +106,7 @@ async def get_daily_metrics(
         
         # 1. Fetch Data Concurrently
         # Reduced from 30 down to 10 activities to drastically improve login speed.
-        activities_task = asyncio.to_thread(client.get_activities, 10)
+        activities_task = asyncio.to_thread(client.get_activities, 60)
         health_stats_task = asyncio.to_thread(client.get_health_stats)
         sleep_data_task = asyncio.to_thread(client.get_sleep_data)
         profile_task = asyncio.to_thread(client.get_profile)
@@ -202,6 +202,7 @@ class AIAdviceRequest(BaseModel):
     profile: dict = {}
     available_time_mins: Optional[int] = None
     todays_activities: list = []
+    recent_activities: list = []
     selected_sports: list = []  # e.g. ["cycling", "running"]
     sport_durations: dict = {}  # e.g. {"cycling": 15, "running": 105}
     language: Optional[str] = None  # Add explicit language parameter
@@ -233,6 +234,7 @@ async def generate_advice(
             payload.sleep_data, 
             user_settings_dict, 
             payload.todays_activities,
+            payload.recent_activities,
             client_local_time=payload.client_local_time,
             available_time_mins=payload.available_time_mins,
             selected_sports=payload.selected_sports,

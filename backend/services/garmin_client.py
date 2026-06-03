@@ -493,7 +493,7 @@ class GarminClient:
             logger.error(f"Error fetching profile: {e}")
             return None
 
-    def get_activities(self, limit=30):
+    def get_activities(self, limit=60):
         """Fetch recent activities."""
         if not self.client:
             logger.error("Client not authenticated.")

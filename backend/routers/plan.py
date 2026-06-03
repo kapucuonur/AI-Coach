@@ -39,7 +39,7 @@ def generate_plan(
             user_settings_dict["language"] = payload.language
         
         # Fetch necessary context
-        activities = client.get_activities(30)
+        activities = client.get_activities(60)
         health_stats = client.get_health_stats()
         sleep_data = client.get_sleep_data() 
         

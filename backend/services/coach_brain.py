@@ -72,7 +72,7 @@ class CoachBrain:
         )
 
     @rate_limit(max_calls=20, period=60)
-    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, client_local_time=None, available_time_mins=None, selected_sports=None, sport_durations=None):
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, recent_activities=None, client_local_time=None, available_time_mins=None, selected_sports=None, sport_durations=None):
         """
         Generate daily coaching advice based on the user's data and settings.
         """
@@ -134,6 +134,18 @@ class CoachBrain:
                 today_details.append(f"- {a_name} ({a_type}): {a_dist}, {a_dur}")
             
             today_context = "\n".join(today_details)
+
+        recent_context = "No recent activities found."
+        if recent_activities and len(recent_activities) > 0:
+            recent_details = []
+            for act in recent_activities[:15]: # Limit to last 15 for prompt size
+                a_name = act.get('activityName', 'Unknown')
+                a_type = act.get('activityType', {}).get('typeKey', 'exercise') if isinstance(act.get('activityType'), dict) else 'exercise'
+                dur_mins = float(act.get('duration', 0) or 0) / 60
+                dist_km = float(act.get('distance', 0) or 0) / 1000
+                date_str = act.get('startTimeLocal', '')[:10]
+                recent_details.append(f"- {date_str} | {a_name} ({a_type}): {dist_km:.2f} km, {dur_mins:.0f} min")
+            recent_context = "\n".join(recent_details)
 
         training_completed_today = (total_duration_today_mins >= MAX_DAILY_TRAINING_MINUTES) or (session_count_today >= 2)
 
@@ -270,7 +282,7 @@ class CoachBrain:
         **CRITICAL INSTRUCTION: Analyze Context FIRST**
         Before generating any advice or workout, you MUST formulate your response based heavily on these pillars:
         1. **User Settings Constraints**: The athlete's primary sport, off days, and explicitly stated goals.
-        2. **Recent Activities & Today's Load**: What training load they have accumulated recently, and what they have already done today.
+        2. **Recent Activities & Today's Load**: What training load they have accumulated over the last few days, and what they have already done today. Make absolutely sure you do NOT blindly prescribe the same sport they did yesterday if they did a long/hard session (e.g. running). If they ran yesterday, recommend recovery, swimming, or cycling instead, unless they explicitly requested running today.
         3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
 
         **1. Athlete Profile & Settings:**
@@ -295,7 +307,9 @@ class CoachBrain:
         - Body Battery: {body_battery}/100 (Higher means more energy)
         
         **4. Recent Load (Activities):**
-        - Past Week Load: {activities_str}
+        - Past Week Load Summary: {activities_str}
+        - Recent Individual Activities (Last 15):
+{recent_context}
         - Completed Today: {today_context}
         - Total Today Duration: {total_duration_today_mins:.0f} minutes
         - Session Count Today: {session_count_today}
@@ -318,7 +332,7 @@ class CoachBrain:
            - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
            - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
-           - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: <span style="color:red; font-size:1.2em; font-weight:bold;">Kendinizi yorgun hissediyorsanız dinlenin!</span> (translate to target language, visually prominent).
+           - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: 🚨 **DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin!** 🚨 (translate to target language, visually prominent).
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.
         5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
 
