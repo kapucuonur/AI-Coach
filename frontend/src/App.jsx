@@ -124,7 +124,7 @@ function Dashboard({
                   // Clear cached advice so it re-generates in the new language
                   setData(prev => prev ? { ...prev, advice: null, workout: null } : prev);
                   try {
-                    await client.post('/settings', { language: newLang });
+                    await client.post('/settings/', { language: newLang });
                   } catch (err) {
                     console.error("Failed to update language", err);
                   }
@@ -730,7 +730,7 @@ function App() {
       let enrichedData = response.data;
 
       try {
-        const settingsRes = await client.get('/settings');
+        const settingsRes = await client.get('/settings/');
         setSettingsData(settingsRes.data);
         if (settingsRes.data.language) {
           i18n.changeLanguage(settingsRes.data.language);
