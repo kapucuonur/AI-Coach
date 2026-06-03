@@ -284,6 +284,7 @@ class CoachBrain:
         1. **User Settings Constraints**: The athlete's primary sport, off days, and explicitly stated goals.
         2. **Recent Activities & Today's Load**: What training load they have accumulated over the last few days, and what they have already done today. Make absolutely sure you do NOT blindly prescribe the same sport they did yesterday if they did a long/hard session (e.g. running). If they ran yesterday, recommend recovery, swimming, or cycling instead, unless they explicitly requested running today.
         3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
+        4. **Race Proximity (Tapering)**: Triathletes/endurance athletes should NOT have extreme low volume (e.g., 30 mins) 4-7 days before a race. Maintain moderate volume (1-2 hrs) and activation intervals. Extreme tapers (< 45 mins) should only happen 1-3 days out.
 
         **1. Athlete Profile & Settings:**
         - Name: {name}
@@ -332,6 +333,7 @@ class CoachBrain:
            - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
            - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
            - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
+           - **UPCOMING RACE TAPER**: If a race is 4-7 days away, DO NOT drop volume excessively (e.g., don't prescribe just 30 mins). Prescribe moderate volume (1-2 hours of cycling or moderate running) with short race-pace intervals (activation). If a race is 1-3 days away, apply a sharp taper (rest or 15-30 min easy sessions).
            - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: 🚨 **DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin!** 🚨 (translate to target language, visually prominent).
         4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.
         5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
@@ -516,6 +518,7 @@ class CoachBrain:
         1. **User Settings & Profile**: The athlete's primary sport, performance limits, and explicitly stated goals.
         2. **Recent Activities**: What training load they have accumulated recently (prevent overtraining if load is high).
         3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
+        4. **Race Proximity (Tapering)**: Triathletes/endurance athletes should NOT have extreme low volume (e.g., 30 mins) 4-7 days before a race. Maintain moderate volume (1-2 hrs) and activation intervals. Extreme tapers (< 45 mins) should only happen 1-3 days out.
 
         **1. Athlete Profile & Settings:**
         - Name: {name}
@@ -542,8 +545,9 @@ class CoachBrain:
         - You MUST strictly respect the Off Days ({off_days_context}). Set "Rest" for those days.
         - If 'Time Constraint' is provided, strictly follow it! If 0 minutes, tell them to rest.
         - Emphasize recovery if Stress is high or Body Battery is low.
-        - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: <span style=\"color:red; font-size:1.2em; font-weight:bold;\">Kendinizi yorgun hissediyorsanız dinlenin!</span> (translate to target language, visually prominent).
-        - If a recent race is present, include a visually prominent warning in the plan summary: **<span style=\"color:red; font-size:1.2em;\">Kendinizi yorgun hissediyorsanız dinlenin! / If you feel tired, rest!</span>**
+        - **UPCOMING RACE TAPER**: If a race is 4-7 days away, DO NOT drop volume excessively (e.g., don't prescribe just 30 mins). Prescribe moderate volume (1-2 hours of cycling or moderate running) with short race-pace intervals (activation). If a race is 1-3 days away, apply a sharp taper (rest or 15-30 min easy sessions).
+        - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: 🚨 **DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin!** 🚨 (translate to target language, visually prominent).
+        - If a recent race is present, include a visually prominent warning in the plan summary: **🚨 DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin! / If you feel tired, rest! 🚨**
         
         **Targets:**
         - Running: Prescribe Pace (min/km) or Heart Rate Zone.
