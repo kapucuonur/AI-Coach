@@ -55,6 +55,9 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         code = text.split("/link ")[1].strip()
         user = db.query(User).filter(User.telegram_link_code == code).first()
         if user:
+            # First, clear this chat_id from any OTHER user to enforce uniqueness manually
+            db.query(User).filter(User.telegram_chat_id == str(chat_id)).update({"telegram_chat_id": None})
+            
             user.telegram_chat_id = str(chat_id)
             user.telegram_link_code = None # Consume the code
             db.commit()
