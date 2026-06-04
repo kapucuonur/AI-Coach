@@ -24,7 +24,7 @@ async def chat_with_coach(request: ChatRequest):
         if not gemini_key:
             raise HTTPException(status_code=500, detail="Gemini API Key not configured.")
         
-        brain = CoachBrain(gemini_key)
+        brain = CoachBrain()
         
         # Convert Pydantic models to dicts for the brain service
         messages_dicts = [msg.model_dump() for msg in request.messages]
