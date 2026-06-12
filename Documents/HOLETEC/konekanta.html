@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Konekanta – Holetec Industrial Oy</title>
+  <meta name="description" content="Holetec Industrial Oy konekanta: Pitkäjyrsinkoneet, aarporat ja hitsauskalusto raskaaseen teollisuuteen.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── HEADER ───────────────────────────────────────── -->
+<header class="header" id="header">
+  <nav class="nav">
+    <a href="index.html" class="nav__logo">
+      <img src="images/logo.png" alt="Holetec Industrial Oy" class="nav__logo-img">
+    </a>
+
+    <ul class="nav__menu" id="navMenu">
+      <li><a href="index.html"       class="nav__link"                   data-i18n="nav.home">Etusivu</a></li>
+      <li><a href="konekanta.html"   class="nav__link nav__link--active" data-i18n="nav.machines">Konekanta</a></li>
+      <li><a href="yhteystiedot.html" class="nav__link"                  data-i18n="nav.contact">Yhteystiedot</a></li>
+      <li><a href="yhteystiedot.html" class="nav__cta"                   data-i18n="nav.cta">Pyydä tarjous</a></li>
+    </ul>
+
+    <div class="nav__controls">
+      <!-- Language Switcher -->
+      <div class="lang-switcher" id="langSwitcher">
+        <button class="lang-btn" id="langBtn" aria-expanded="false" aria-label="Change language">
+          <span id="langFlag">🇫🇮</span>
+          <span id="langCode">FI</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="lang-dropdown" id="langDropdown">
+          <button class="lang-option" data-lang="fi">🇫🇮 Suomi</button>
+          <button class="lang-option" data-lang="en">🇬🇧 English</button>
+          <button class="lang-option" data-lang="de">🇩🇪 Deutsch</button>
+          <button class="lang-option" data-lang="se">🇸🇪 Svenska</button>
+          <button class="lang-option" data-lang="no">🇳🇴 Norsk</button>
+          <button class="lang-option" data-lang="dk">🇩🇰 Dansk</button>
+        </div>
+      </div>
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+
+    <button class="nav__hamburger" id="hamburger" aria-label="Valikko">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+</header>
+
+<!-- ── PAGE HERO ────────────────────────────────────── -->
+<section class="page-hero">
+  <div class="container fade-up">
+    <div class="section-label page-hero__label" data-i18n="kone.label">Konekanta</div>
+    <h1 data-i18n="kone.title">Moderni konekanta vaativaan teollisuuteen</h1>
+    <p data-i18n="kone.sub">Konekantamme mahdollistaa tehokkaan palvelun etenkin suurten kappaleiden koneistuksessa, aarporauksessa ja hitsauksessa.</p>
+  </div>
+</section>
+
+<!-- ── MACHINES LIST ────────────────────────────────── -->
+<section class="machines-section">
+  <div class="container">
+    
+    <div class="machine-detail-card fade-up">
+      <img src="images/machine4.jpg" alt="Zayer KCU 10000" class="machine-detail-card__img">
+      <div class="machine-detail-card__content">
+        <span class="machine-detail-card__tag">Pitkäjyrsinkone</span>
+        <h2>Zayer KCU 10000</h2>
+        <div class="machine-specs">
+          <div class="machine-spec"><strong>Liikkeet (X):</strong> <span>10 000 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Z):</strong> <span>3 065 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Y):</strong> <span>1 500 mm</span></div>
+          <div class="machine-spec"><strong>Kiinnitystaso:</strong> <span>2 000 × 10 000 mm</span></div>
+          <div class="machine-spec"><strong>Pöydän kantavuus:</strong> <span>8 000 kg / m</span></div>
+          <div class="machine-spec"><strong>Teho:</strong> <span>40 kW / 3 000 rpm</span></div>
+          <div class="machine-spec"><strong>Ohjaus:</strong> <span>Heidenhain TNC-426 M</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="machine-detail-card fade-up">
+      <img src="images/machine5.jpg" alt="Zayer KCU 8000" class="machine-detail-card__img">
+      <div class="machine-detail-card__content">
+        <span class="machine-detail-card__tag">Pitkäjyrsinkone</span>
+        <h2>Zayer KCU 8000</h2>
+        <div class="machine-specs">
+          <div class="machine-spec"><strong>Liikkeet (X):</strong> <span>8 000 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Z):</strong> <span>3 065 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Y):</strong> <span>1 500 mm</span></div>
+          <div class="machine-spec"><strong>Kiinnitystaso:</strong> <span>2 000 × 10 000 mm</span></div>
+          <div class="machine-spec"><strong>Pöydän kantavuus:</strong> <span>8 000 kg / m</span></div>
+          <div class="machine-spec"><strong>Teho:</strong> <span>40 kW / 3 000 rpm</span></div>
+          <div class="machine-spec"><strong>Ohjaus:</strong> <span>Heidenhain iTNC 530</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="machine-detail-card fade-up">
+      <img src="images/machine1.jpg" alt="Union KC130" class="machine-detail-card__img">
+      <div class="machine-detail-card__content">
+        <span class="machine-detail-card__tag">Aarpora</span>
+        <h2>Aarpora Union KC130</h2>
+        <div class="machine-specs">
+          <div class="machine-spec"><strong>Liikkeet (X):</strong> <span>3 200 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Y):</strong> <span>2 500 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Z):</strong> <span>1 500 mm</span></div>
+          <div class="machine-spec"><strong>Pyöröpöytä:</strong> <span>1 600 × 2 000 mm</span></div>
+          <div class="machine-spec"><strong>Pöydän kantavuus:</strong> <span>15 tn</span></div>
+          <div class="machine-spec"><strong>Teho:</strong> <span>40 kW</span></div>
+          <div class="machine-spec"><strong>Ohjaus:</strong> <span>Heidenhain TNC 430</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="machine-detail-card fade-up">
+      <img src="images/machine2.jpg" alt="Union BFK 130" class="machine-detail-card__img">
+      <div class="machine-detail-card__content">
+        <span class="machine-detail-card__tag">Aarpora</span>
+        <h2>Aarpora Union BFK 130</h2>
+        <div class="machine-specs">
+          <div class="machine-spec"><strong>Liikkeet (X):</strong> <span>2 800 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Y):</strong> <span>2 500 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Z):</strong> <span>1 500 mm</span></div>
+          <div class="machine-spec"><strong>Pyöröpöytä:</strong> <span>1 600 × 2 000 mm</span></div>
+          <div class="machine-spec"><strong>Pöydän kantavuus:</strong> <span>15 tn</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="machine-detail-card fade-up">
+      <img src="images/machine3.jpg" alt="Pegard TR 130" class="machine-detail-card__img">
+      <div class="machine-detail-card__content">
+        <span class="machine-detail-card__tag">Aarpora</span>
+        <h2>Aarpora Pegard TR 130</h2>
+        <div class="machine-specs">
+          <div class="machine-spec"><strong>Liikkeet (X):</strong> <span>3 800 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Y):</strong> <span>2 300 mm</span></div>
+          <div class="machine-spec"><strong>Liikkeet (Z):</strong> <span>1 400 mm</span></div>
+          <div class="machine-spec"><strong>Pyöröpöytä:</strong> <span>1 800 × 2 200 mm</span></div>
+          <div class="machine-spec"><strong>Pöydän kantavuus:</strong> <span>20 tn</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── OTHER EQUIPMENT ──────────────────────────────── -->
+<section class="other-equipment">
+  <div class="container fade-up">
+    <div class="section-label" data-i18n="kone.other.label">Muu kalusto</div>
+    <h2 class="section-title" style="margin-bottom: 2rem;" data-i18n="kone.other.title">Muut kalusto ja tilat</h2>
+    <div class="equipment-grid">
+      <div class="equipment-item">Tuotantotilat: n. 2500 m²</div>
+      <div class="equipment-item">Siltanosturit: 1kpl 10 tn</div>
+      <div class="equipment-item">Siltanosturit: 5kpl 5 tn</div>
+      <div class="equipment-item">MIG/MAG Hitsauskoneita (n. 15 kpl)</div>
+      <div class="equipment-item">TIG-Hitsauskoneita</div>
+      <div class="equipment-item">Säteisporakone Sajo</div>
+      <div class="equipment-item">Sorvi TOS SU-63 A</div>
+      <div class="equipment-item">Vannesaha Kasto</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BANNER ───────────────────────────────────── -->
+<section class="cta-banner">
+  <div class="container cta-banner__inner">
+    <div class="cta-banner__content">
+      <h2 data-i18n="kone.cta.title">Onko sinulla vaativa koneistustyö?</h2>
+      <p data-i18n="kone.cta.sub">Ota yhteyttä – kerromme mielellämme toteutusmahdollisuuksista ja aikataulusta.</p>
+    </div>
+    <div class="cta-banner__actions">
+      <a href="yhteystiedot.html" class="btn btn--primary btn--lg" data-i18n="kone.cta.btn">Ota yhteyttä →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__brand">
+      <img src="images/logo-footer.png" alt="Holetec Industrial Oy" class="footer__logo">
+      <p class="footer__tagline" data-i18n="footer.tagline">Tilauskonepaja Orivedellä</p>
+      <p class="footer__address">Lehmilaidantie 7<br>35300 Orivesi</p>
+    </div>
+    <div class="footer__links">
+      <h4 data-i18n="footer.pages">Sivut</h4>
+      <ul>
+        <li><a href="index.html"        data-i18n="nav.home">Etusivu</a></li>
+        <li><a href="konekanta.html"    data-i18n="nav.machines">Konekanta</a></li>
+        <li><a href="yhteystiedot.html" data-i18n="nav.contact">Yhteystiedot</a></li>
+        <li><a href="yhteystiedot.html" data-i18n="nav.cta">Pyydä tarjous</a></li>
+      </ul>
+    </div>
+    <div class="footer__contact">
+      <h4 data-i18n="footer.contact.h">Yhteystiedot</h4>
+      <ul>
+        <li><a href="tel:+358400915554">+358 400 915 554</a></li>
+        <li><a href="mailto:kari.kauppinen@holetecindustrial.fi">kari.kauppinen@holetecindustrial.fi</a></li>
+        <li>Y-tunnus: 2155324-5</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container">
+      <span>© 2026 Holetec Industrial Oy</span>
+      <a href="#" data-i18n="footer.privacy">Tietosuojaseloste</a>
+    </div>
+  </div>
+</footer>
+
+<script src="translations.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

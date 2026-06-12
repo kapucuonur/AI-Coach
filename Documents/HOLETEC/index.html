@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Holetec Industrial Oy – Tilauskonepaja Orivedellä</title>
+  <meta name="description" content="Holetec Industrial Oy on luotettava tilauskonepaja Orivedellä vuodesta 1989. Koneistus, aarporaus, hitsaus ja pintakäsittely.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── HEADER ───────────────────────────────────────── -->
+<header class="header" id="header">
+  <nav class="nav">
+    <a href="index.html" class="nav__logo">
+      <img src="images/logo.png" alt="Holetec Industrial Oy" class="nav__logo-img">
+    </a>
+
+    <ul class="nav__menu" id="navMenu">
+      <li><a href="index.html"       class="nav__link nav__link--active" data-i18n="nav.home">Etusivu</a></li>
+      <li><a href="konekanta.html"   class="nav__link"                   data-i18n="nav.machines">Konekanta</a></li>
+      <li><a href="yhteystiedot.html" class="nav__link"                  data-i18n="nav.contact">Yhteystiedot</a></li>
+      <li><a href="yhteystiedot.html" class="nav__cta"                   data-i18n="nav.cta">Pyydä tarjous</a></li>
+    </ul>
+
+    <div class="nav__controls">
+      <!-- Language Switcher -->
+      <div class="lang-switcher" id="langSwitcher">
+        <button class="lang-btn" id="langBtn" aria-expanded="false" aria-label="Change language">
+          <span id="langFlag">🇫🇮</span>
+          <span id="langCode">FI</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="lang-dropdown" id="langDropdown">
+          <button class="lang-option" data-lang="fi">🇫🇮 Suomi</button>
+          <button class="lang-option" data-lang="en">🇬🇧 English</button>
+          <button class="lang-option" data-lang="de">🇩🇪 Deutsch</button>
+          <button class="lang-option" data-lang="se">🇸🇪 Svenska</button>
+          <button class="lang-option" data-lang="no">🇳🇴 Norsk</button>
+          <button class="lang-option" data-lang="dk">🇩🇰 Dansk</button>
+        </div>
+      </div>
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+
+    <button class="nav__hamburger" id="hamburger" aria-label="Valikko">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+</header>
+
+<!-- ── HERO ─────────────────────────────────────────── -->
+<section class="hero" id="hero">
+  <div class="hero__bg">
+    <img src="images/banner.jpg" alt="" class="hero__bg-img">
+    <div class="hero__overlay"></div>
+    <div class="hero__grid"></div>
+  </div>
+  <div class="hero__content">
+    <div class="hero__badge">
+      <span class="badge-dot"></span>
+      <span data-i18n="hero.badge">Perustettu 1989 · Orivesi, Suomi</span>
+    </div>
+    <h1 class="hero__headline">
+      <span data-i18n="hero.h1">Tilauskonepaja</span><br>
+      <span class="gradient-text" data-i18n="hero.h2">Orivedellä</span>
+    </h1>
+    <p class="hero__sub" data-i18n-html="hero.sub">Koneistus · Aarporaus · Hitsaus · Pintakäsittely<br>Palvelemme metalliteollisuutta joustavasti ja aikataulussa.</p>
+    <div class="hero__actions">
+      <a href="yhteystiedot.html" class="btn btn--primary" data-i18n="hero.cta1">Pyydä tarjous →</a>
+      <a href="konekanta.html"    class="btn btn--ghost"   data-i18n="hero.cta2">Konekanta</a>
+    </div>
+    <div class="hero__stats">
+      <div class="hero__stat">
+        <span class="hero__stat-num">35+</span>
+        <span class="hero__stat-label" data-i18n="hero.stat1">Vuotta kokemusta</span>
+      </div>
+      <div class="hero__stat-divider"></div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">~20</span>
+        <span class="hero__stat-label" data-i18n="hero.stat2">Ammattilaista</span>
+      </div>
+      <div class="hero__stat-divider"></div>
+      <div class="hero__stat">
+        <span class="hero__stat-num">100%</span>
+        <span class="hero__stat-label" data-i18n="hero.stat3">Aikataulussa</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero__scroll-hint">
+    <span data-i18n="hero.scroll">Vieritä alas</span>
+    <div class="hero__scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ── SERVICES ──────────────────────────────────────── -->
+<section class="services" id="palvelut">
+  <div class="container">
+    <div class="section-label" data-i18n="services.label">Palvelumme</div>
+    <h2 class="section-title" data-i18n="services.title">Alinhankintapalvelut metalliteollisuudelle</h2>
+    <p class="section-sub" data-i18n="services.sub">Monipuolinen konekantatamme mahdollistaa suurtenkin kappaleiden käsittelyn joustavasti.</p>
+
+    <div class="svc-bento">
+
+      <!-- 01 Koneistus -->
+      <div class="svc-card fade-up" id="svc-koneistus">
+        <span class="svc-num">01</span>
+        <div class="svc-icon">
+          <img src="images/icon-koneistus.png" alt="Koneistus ikoni" class="animated-icon">
+        </div>
+        <h3 class="svc-title" data-i18n="svc1.title">Koneistus</h3>
+        <p class="svc-text" data-i18n="svc1.text">Tarkkuuskoneistus vaativiin teollisuuden tarpeisiin. Pitkäjyrsintä ja aarporaus suurille kappaleille.</p>
+        <div class="svc-accent"></div>
+      </div>
+
+      <!-- 02 Aarporaus -->
+      <div class="svc-card fade-up" id="svc-aarporaus">
+        <span class="svc-num">02</span>
+        <div class="svc-icon">
+          <img src="images/icon-aarporaus.png" alt="Aarporaus ikoni" class="animated-icon">
+        </div>
+        <h3 class="svc-title" data-i18n="svc2.title">Aarporaus</h3>
+        <p class="svc-text" data-i18n="svc2.text">Modernit aarporat mahdollistavat tarkan porauksen suuriinkin kappaleisiin. Heidenhain-ohjaus.</p>
+        <div class="svc-accent"></div>
+      </div>
+
+      <!-- 03 Hitsaus -->
+      <div class="svc-card fade-up" id="svc-hitsaus">
+        <span class="svc-num">03</span>
+        <div class="svc-icon">
+          <img src="images/icon-hitsaus.png" alt="Hitsaus ikoni" class="animated-icon">
+        </div>
+        <h3 class="svc-title" data-i18n="svc3.title">Hitsaus</h3>
+        <p class="svc-text" data-i18n="svc3.text">Ammattitaitoinen hitsaustyö metallirakenteille. Siltanosturilla siirto jopa 10 tonnin kappaleille.</p>
+        <div class="svc-accent"></div>
+      </div>
+
+      <!-- 04 Pintakäsittely -->
+      <div class="svc-card fade-up" id="svc-pinta">
+        <span class="svc-num">04</span>
+        <div class="svc-icon">
+          <img src="images/icon-pintakasittely.png" alt="Pintakäsittely ikoni" class="animated-icon">
+        </div>
+        <h3 class="svc-title" data-i18n="svc4.title">Pintakäsittely</h3>
+        <p class="svc-text" data-i18n="svc4.text">Laadukas pintakäsittely metallipinnoille. Suojaa ja viimeistelee tuotteen vaatimusten mukaan.</p>
+        <div class="svc-accent"></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── ABOUT ─────────────────────────────────────────── -->
+<section class="about" id="about">
+  <div class="container about__inner">
+    <div class="about__image-wrap fade-up">
+      <img src="images/etusivu.jpg" alt="Holetec Industrial tehdas" class="about__image">
+      <div class="about__image-badge">
+        <span class="about__image-badge-year">1989</span>
+        <span class="about__image-badge-text">Perustettu</span>
+      </div>
+    </div>
+    <div class="about__content fade-up">
+      <div class="section-label" data-i18n="about.label">Luotettava kumppani</div>
+      <h2 class="section-title" data-i18n="about.title">Vuodesta 1989 metalliteollisuuden palveluksessa</h2>
+      <p class="about__text" data-i18n="about.text">Holetec Industrial Oy on Orivedellä toimiva tilauskonepaja, joka on palvellut metalliteollisuutta yli 35 vuoden ajan. Ammattitaitomme ja modernin konekantatamme avulla pystymme ottamaan vastaan myös vaativimmat tilaustyöt.</p>
+      <div class="about__features">
+        <div class="about__feature">
+          <div class="about__feature-icon">✓</div>
+          <div>
+            <strong data-i18n="about.f1t">Noin 20 ammattilaista</strong>
+            <p data-i18n="about.f1d">Kokenut ja sitoutunut henkilökunta</p>
+          </div>
+        </div>
+        <div class="about__feature">
+          <div class="about__feature-icon">✓</div>
+          <div>
+            <strong data-i18n="about.f2t">Toimitukset sovitussa aikataulussa</strong>
+            <p data-i18n="about.f2d">Luotettava kumppani teollisuudelle</p>
+          </div>
+        </div>
+        <div class="about__feature">
+          <div class="about__feature-icon">✓</div>
+          <div>
+            <strong data-i18n="about.f3t">Sijainti Orivedellä</strong>
+            <p data-i18n="about.f3d">Palvelemme koko Suomea</p>
+          </div>
+        </div>
+      </div>
+      <a href="yhteystiedot.html" class="btn btn--primary" data-i18n="about.cta">Ota yhteyttä →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── MACHINES PREVIEW ─────────────────────────────── -->
+<section class="machines-preview" id="koneet">
+  <div class="container">
+    <div class="section-label" data-i18n="mach.label">Konekanta</div>
+    <h2 class="section-title" data-i18n="mach.title">Konekanta vaativaan käyttöön</h2>
+    <p class="section-sub" data-i18n="mach.sub">Moderni konekantamme palvelee etenkin suurten kappaleiden koneistuksessa ja aarporauksessa.</p>
+    <div class="machines__grid">
+      <div class="machine-card fade-up">
+        <div class="machine-card__img-wrap"><img src="images/machine4.jpg" alt="Zayer KCU 10000" class="machine-card__img"></div>
+        <div class="machine-card__info">
+          <h3>Pitkäjyrsinkone Zayer KCU 10000</h3>
+          <ul><li>X = 10 000 mm · Z = 3 065 · Y = 1 500 mm</li><li>Kiinnitystaso 2 000 × 10 000 mm</li><li>Teho 40 kW</li></ul>
+        </div>
+      </div>
+      <div class="machine-card fade-up">
+        <div class="machine-card__img-wrap"><img src="images/machine5.jpg" alt="Zayer KCU 8000" class="machine-card__img"></div>
+        <div class="machine-card__info">
+          <h3>Pitkäjyrsinkone Zayer KCU 8000</h3>
+          <ul><li>X = 8 000 mm · Heidenhain-ohjaus</li><li>Kiinnitystaso 2 000 × 10 000 mm</li><li>Teho 40 kW</li></ul>
+        </div>
+      </div>
+      <div class="machine-card fade-up">
+        <div class="machine-card__img-wrap"><img src="images/machine1.jpg" alt="Aarpora Union KC130" class="machine-card__img"></div>
+        <div class="machine-card__info">
+          <h3>Aarpora Union KC130</h3>
+          <ul><li>X = 3 200 · Y = 2 500 · Z = 1 500 mm</li><li>Pöytä 1 600 × 2 000 · 15 tn</li><li>Teho 40 kW</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="machines__cta">
+      <a href="konekanta.html" class="btn btn--secondary" data-i18n="mach.cta">Katso koko konekanta →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── PARTNERS ──────────────────────────────────────── -->
+<section class="partners" id="kumppanit">
+  <div class="container">
+    <div class="section-label" data-i18n="partners.label">Yhteistyökumppanit</div>
+    <h2 class="partners__title section-title" data-i18n="partners.title">Luotetut kumppanit</h2>
+    <div class="partners__logos">
+      <div class="partner-logo"><img src="images/partner-samesor.png" alt="Samesor"></div>
+      <div class="partner-logo"><img src="images/partner-metso.png"   alt="Metso"></div>
+      <div class="partner-logo"><img src="images/partner-pivatic.png" alt="Pivatic"></div>
+      <div class="partner-logo"><img src="images/partner-prima.png"   alt="Prima Power"></div>
+      <div class="partner-logo"><img src="images/partner-tdrill.png"  alt="T-Drill"></div>
+      <div class="partner-logo"><img src="images/partner-pema.png"    alt="Pema Welding"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA BANNER ───────────────────────────────────── -->
+<section class="cta-banner">
+  <div class="container cta-banner__inner">
+    <div class="cta-banner__content">
+      <h2 data-i18n="cta.title">Tarvitsetko luotettavan alihankintakumppanin?</h2>
+      <p data-i18n="cta.sub">Otamme vastaan myös kiireelliset tilaukset. Kerromme mielellämme toteutusmahdollisuuksista ja aikataulusta.</p>
+    </div>
+    <div class="cta-banner__actions">
+      <a href="yhteystiedot.html" class="btn btn--primary btn--lg" data-i18n="cta.btn1">Pyydä tarjous →</a>
+      <a href="tel:+358400915554" class="btn btn--ghost   btn--lg">📞 +358 400 915 554</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__brand">
+      <img src="images/logo-footer.png" alt="Holetec Industrial Oy" class="footer__logo">
+      <p class="footer__tagline" data-i18n="footer.tagline">Tilauskonepaja Orivedellä</p>
+      <p class="footer__address">Lehmilaidantie 7<br>35300 Orivesi</p>
+    </div>
+    <div class="footer__links">
+      <h4 data-i18n="footer.pages">Sivut</h4>
+      <ul>
+        <li><a href="index.html"        data-i18n="nav.home">Etusivu</a></li>
+        <li><a href="konekanta.html"    data-i18n="nav.machines">Konekanta</a></li>
+        <li><a href="yhteystiedot.html" data-i18n="nav.contact">Yhteystiedot</a></li>
+        <li><a href="yhteystiedot.html" data-i18n="nav.cta">Pyydä tarjous</a></li>
+      </ul>
+    </div>
+    <div class="footer__contact">
+      <h4 data-i18n="footer.contact.h">Yhteystiedot</h4>
+      <ul>
+        <li><a href="tel:+358400915554">+358 400 915 554</a></li>
+        <li><a href="mailto:kari.kauppinen@holetecindustrial.fi">kari.kauppinen@holetecindustrial.fi</a></li>
+        <li>Y-tunnus: 2155324-5</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container">
+      <span>© 2026 Holetec Industrial Oy</span>
+      <a href="#" data-i18n="footer.privacy">Tietosuojaseloste</a>
+    </div>
+  </div>
+</footer>
+
+<script src="translations.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

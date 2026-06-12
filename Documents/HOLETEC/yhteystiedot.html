@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fi" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yhteystiedot – Holetec Industrial Oy</title>
+  <meta name="description" content="Ota yhteyttä Holetec Industrial Oy -tilauskonepajaan Orivedellä. Katso yhteystiedot ja lähetä tarjouspyyntö.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── HEADER ───────────────────────────────────────── -->
+<header class="header" id="header">
+  <nav class="nav">
+    <a href="index.html" class="nav__logo">
+      <img src="images/logo.png" alt="Holetec Industrial Oy" class="nav__logo-img">
+    </a>
+
+    <ul class="nav__menu" id="navMenu">
+      <li><a href="index.html"       class="nav__link"                   data-i18n="nav.home">Etusivu</a></li>
+      <li><a href="konekanta.html"   class="nav__link"                   data-i18n="nav.machines">Konekanta</a></li>
+      <li><a href="yhteystiedot.html" class="nav__link nav__link--active" data-i18n="nav.contact">Yhteystiedot</a></li>
+      <li><a href="yhteystiedot.html" class="nav__cta"                   data-i18n="nav.cta">Pyydä tarjous</a></li>
+    </ul>
+
+    <div class="nav__controls">
+      <!-- Language Switcher -->
+      <div class="lang-switcher" id="langSwitcher">
+        <button class="lang-btn" id="langBtn" aria-expanded="false" aria-label="Change language">
+          <span id="langFlag">🇫🇮</span>
+          <span id="langCode">FI</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="lang-dropdown" id="langDropdown">
+          <button class="lang-option" data-lang="fi">🇫🇮 Suomi</button>
+          <button class="lang-option" data-lang="en">🇬🇧 English</button>
+          <button class="lang-option" data-lang="de">🇩🇪 Deutsch</button>
+          <button class="lang-option" data-lang="se">🇸🇪 Svenska</button>
+          <button class="lang-option" data-lang="no">🇳🇴 Norsk</button>
+          <button class="lang-option" data-lang="dk">🇩🇰 Dansk</button>
+        </div>
+      </div>
+      <!-- Theme Toggle -->
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+
+    <button class="nav__hamburger" id="hamburger" aria-label="Valikko">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+</header>
+
+<!-- ── PAGE HERO ────────────────────────────────────── -->
+<section class="page-hero">
+  <div class="container fade-up">
+    <div class="section-label page-hero__label" data-i18n="contact.label">Yhteystiedot</div>
+    <h1 data-i18n="contact.title">Ota yhteyttä – olemme täällä</h1>
+    <p data-i18n="contact.sub">Ota yhteyttä, kun etsit luotettavaa kumppania koneistukseen, aarporaus- tai hitsaustöihin. Kerromme mielellämme toteutusmahdollisuuksista ja aikataulusta.</p>
+  </div>
+</section>
+
+<!-- ── CONTACT SECTION ──────────────────────────────── -->
+<section class="contact-section">
+  <div class="container contact-section__inner">
+    
+    <!-- Left: Info & Map -->
+    <div class="contact-info-col fade-up">
+      <div class="section-label" data-i18n="contact.p.label">Henkilöstö</div>
+      <h2 class="section-title" style="margin-bottom: 2rem; font-size: 2rem;" data-i18n="contact.p.title">Yhteyshenkilöt</h2>
+      
+      <div class="contact-persons">
+        <!-- Kari -->
+        <div class="contact-person">
+          <div class="contact-person__name">Kari Kauppinen</div>
+          <div class="contact-person__role" data-i18n="role.ceo">Toimitusjohtaja</div>
+          <div class="contact-person__links">
+            <a href="tel:+358400915554" class="contact-person__link">📞 +358 400 915 554</a>
+            <a href="mailto:kari.kauppinen@holetecindustrial.fi" class="contact-person__link">✉️ kari.kauppinen@holetecindustrial.fi</a>
+          </div>
+        </div>
+        <!-- Vesa-Matti -->
+        <div class="contact-person">
+          <div class="contact-person__name">Vesa-Matti Viitanen</div>
+          <div class="contact-person__role" data-i18n="role.sales">Myynti</div>
+          <div class="contact-person__links">
+            <a href="tel:+358500234720" class="contact-person__link">📞 +358 500 234 720</a>
+            <a href="mailto:vesa-matti.viitanen@holetecindustrial.fi" class="contact-person__link">✉️ vesa-matti.viitanen@holetecindustrial.fi</a>
+          </div>
+        </div>
+        <!-- Mikko -->
+        <div class="contact-person">
+          <div class="contact-person__name">Mikko Hänninen</div>
+          <div class="contact-person__role" data-i18n="role.prod">Tuotannon esihenkilö</div>
+          <div class="contact-person__links">
+            <a href="tel:+358504066060" class="contact-person__link">📞 +358 50 406 6060</a>
+            <a href="mailto:mikko.hanninen@holetecindustrial.fi" class="contact-person__link">✉️ mikko.hanninen@holetecindustrial.fi</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="company-details">
+        <h4 data-i18n="contact.co.label">Yritystiedot</h4>
+        <p>
+          <strong>Holetec Industrial Oy</strong><br>
+          Lehmilaidantie 7<br>
+          35300 Orivesi<br>
+          Y-tunnus: 2155324-5<br>
+          <a href="mailto:info@holetecindustrial.fi" style="color: var(--accent); margin-top: 0.5rem; display: block;">info@holetecindustrial.fi</a>
+        </p>
+      </div>
+      
+      <div class="map-wrap" style="margin-top: 2rem;">
+        <iframe 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1887.4967396658097!2d24.363952!3d61.666672!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x468f30b91d25c48b%3A0xe54d6d34190209ab!2sLehmilaidantie%207%2C%2035300%20Orivesi!5e0!3m2!1sfi!2sfi!4v1718000000000!5m2!1sfi!2sfi" 
+          loading="lazy" referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- Right: Contact Form -->
+    <div class="contact-form-col fade-up">
+      <div class="contact-form-wrap">
+        <h3 data-i18n="form.title">Pyydä tarjous</h3>
+        <p data-i18n="form.sub">Täytä lomake ja otamme yhteyttä mahdollisimman pian.</p>
+        
+        <form id="contactForm" class="contact-form">
+          <div class="form-group">
+            <label for="name" data-i18n="form.name.l">Nimi *</label>
+            <input type="text" id="name" required data-i18n="form.name.p" placeholder="Etunimi Sukunimi">
+          </div>
+          <div class="form-group">
+            <label for="company" data-i18n="form.co.l">Yritys</label>
+            <input type="text" id="company" data-i18n="form.co.p" placeholder="Yritys Oy">
+          </div>
+          <div class="form-group">
+            <label for="email" data-i18n="form.email.l">Sähköposti *</label>
+            <input type="email" id="email" required data-i18n="form.email.p" placeholder="etunimi@yritys.fi">
+          </div>
+          <div class="form-group">
+            <label for="phone" data-i18n="form.phone.l">Puhelinnumero</label>
+            <input type="tel" id="phone" data-i18n="form.phone.p" placeholder="+358 40 123 4567">
+          </div>
+          <div class="form-group">
+            <label for="service" data-i18n="form.svc.l">Palvelu</label>
+            <select id="service">
+              <option value="" disabled selected data-i18n="form.svc.def">Valitse palvelu...</option>
+              <option value="koneistus" data-i18n="form.svc.1">Koneistus</option>
+              <option value="aarporaus" data-i18n="form.svc.2">Aarporaus</option>
+              <option value="hitsaus" data-i18n="form.svc.3">Hitsaus</option>
+              <option value="pintakasittely" data-i18n="form.svc.4">Pintakäsittely</option>
+              <option value="muu" data-i18n="form.svc.5">Muu</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message" data-i18n="form.msg.l">Viesti *</label>
+            <textarea id="message" required data-i18n="form.msg.p" placeholder="Kerro työn yksityiskohdista: materiaali, kappalekoko, aikataulu..."></textarea>
+          </div>
+          <button type="submit" class="btn btn--primary form-submit" data-i18n="form.submit">Lähetä pyyntö →</button>
+        </form>
+        <div id="formSuccess" class="form-success" data-i18n="form.success">✅ Kiitos yhteydenotostasi! Otamme yhteyttä pian.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── FOOTER ────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container footer__inner">
+    <div class="footer__brand">
+      <img src="images/logo-footer.png" alt="Holetec Industrial Oy" class="footer__logo">
+      <p class="footer__tagline" data-i18n="footer.tagline">Tilauskonepaja Orivedellä</p>
+      <p class="footer__address">Lehmilaidantie 7<br>35300 Orivesi</p>
+    </div>
+    <div class="footer__links">
+      <h4 data-i18n="footer.pages">Sivut</h4>
+      <ul>
+        <li><a href="index.html"        data-i18n="nav.home">Etusivu</a></li>
+        <li><a href="konekanta.html"    data-i18n="nav.machines">Konekanta</a></li>
+        <li><a href="yhteystiedot.html" data-i18n="nav.contact">Yhteystiedot</a></li>
+        <li><a href="yhteystiedot.html" data-i18n="nav.cta">Pyydä tarjous</a></li>
+      </ul>
+    </div>
+    <div class="footer__contact">
+      <h4 data-i18n="footer.contact.h">Yhteystiedot</h4>
+      <ul>
+        <li><a href="tel:+358400915554">+358 400 915 554</a></li>
+        <li><a href="mailto:kari.kauppinen@holetecindustrial.fi">kari.kauppinen@holetecindustrial.fi</a></li>
+        <li>Y-tunnus: 2155324-5</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <div class="container">
+      <span>© 2026 Holetec Industrial Oy</span>
+      <a href="#" data-i18n="footer.privacy">Tietosuojaseloste</a>
+    </div>
+  </div>
+</footer>
+
+<script src="translations.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
