@@ -30,6 +30,7 @@ export function Login({ onLogin }) {
     const [error, setError] = useState('');
 
     const isNative = Capacitor.isNativePlatform();
+    const appName = isNative ? "AI Coach" : "CoachOnur - AI Training";
 
     const backgroundMedia = [
         {
@@ -325,7 +326,7 @@ export function Login({ onLogin }) {
                                         {isRegistering ? "Create Account" : "Login"}
                                     </h2>
                                     <p className="text-xs text-gray-400">
-                                        {isRegistering ? "Join CoachOnur - AI Training today" : "Enter your CoachOnur credentials"}
+                                        {isRegistering ? `Join ${appName} today` : (isNative ? "Enter your credentials" : "Enter your CoachOnur credentials")}
                                     </p>
                                 </div>
 
@@ -633,7 +634,7 @@ export function Login({ onLogin }) {
             <footer className="w-full bg-black py-8 border-t border-white/5 z-20 relative">
                 <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs md:text-sm text-gray-500">
                     <div className="font-semibold text-gray-300 flex items-center gap-4">
-                        <span>CoachOnur AI &copy; {new Date().getFullYear()}</span>
+                        <span>{appName} &copy; {new Date().getFullYear()}</span>
                         <button
                             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-colors text-gray-400 hover:text-white"

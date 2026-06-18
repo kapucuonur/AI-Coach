@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Capacitor } from '@capacitor/core';
 import client from './api/client';
 import { StatsCard } from './components/StatsCard';
 import { ActivityList } from './components/ActivityList';
@@ -43,6 +44,7 @@ function Dashboard({
   const { t, i18n } = useTranslation();
   const ADMIN_EMAILS = ['kapucuonur@hotmail.com', 'onurbenn@gmail.com'];
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const appName = Capacitor.isNativePlatform() ? "AI Coach" : "CoachOnur - AI Training";
 
   // Props fetchAIAdvice, requirePremium, fetchDashboardData passed in!
 
@@ -87,7 +89,7 @@ function Dashboard({
               </div>
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-garmin-blue transition-colors leading-tight whitespace-nowrap">
-                  CoachOnur AI
+                  {appName}
                 </h1>
                 <p className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
                   {t('daily_intelligence')}
@@ -588,7 +590,7 @@ function Dashboard({
             <Link to="/terms" className="hover:text-garmin-blue transition-colors">Terms of Service</Link>
           </div>
           <p className="mt-2 text-xs text-gray-400 dark:text-gray-600">
-            &copy; {new Date().getFullYear()} CoachOnur AI. All rights reserved.
+            &copy; {new Date().getFullYear()} {appName}. All rights reserved.
           </p>
         </footer>
       </div>
