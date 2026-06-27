@@ -1,0 +1,771 @@
+import os
+import logging
+import json
+import time
+import threading
+from functools import lru_cache, wraps
+from tenacity import retry, stop_after_attempt, wait_exponential
+from datetime import datetime
+
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+load_dotenv()
+
+def rate_limit(max_calls=10, period=60):
+    """Thread-safe rate limiter decorator"""
+    calls = []
+    lock = threading.Lock()
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            now = time.time()
+            with lock:
+                calls[:] = [c for c in calls if c > now - period]
+                if len(calls) >= max_calls:
+                    wait_time = period - (now - calls[0])
+                    time.sleep(wait_time)
+                calls.append(time.time())
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+class CoachBrain:
+    SUPPORTED_LANGUAGES = {
+        "en": "English", "tr": "Turkish", "de": "German", 
+        "ru": "Russian", "fr": "French", "it": "Italian", "es": "Spanish",
+        "fi": "Finnish"
+    }
+
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
+            logger.error("GEMINI_API_KEY not found in environment variables.")
+            raise ValueError("GEMINI_API_KEY is missing.")
+        
+        self.client = genai.Client(api_key=self.api_key)
+        self.model_name = 'gemini-2.5-flash'
+
+    @lru_cache(maxsize=32)
+    def _get_target_language(self, language_code):
+        """Centralized language validation"""
+        return self.SUPPORTED_LANGUAGES.get(
+            language_code.lower(), 
+            "English"  # Safe default
+        )
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    def _call_gemini_with_retry(self, prompt, generation_config=None):
+        """Robust API call with retries"""
+        config = None
+        if generation_config:
+            config = types.GenerateContentConfig(**generation_config)
+        return self.client.models.generate_content(
+            model=self.model_name,
+            contents=prompt,
+            config=config
+        )
+
+    @rate_limit(max_calls=20, period=60)
+    def generate_daily_advice(self, user_profile, activities_summary, health_stats, sleep_data, user_settings=None, todays_activities=None, recent_activities=None, client_local_time=None, available_time_mins=None, selected_sports=None, sport_durations=None):
+        """
+        Generate daily coaching advice based on the user's data and settings.
+        """
+        
+        # Calculate time context
+        current_hour = datetime.now().hour
+        time_context_str = "Unknown time of day"
+        if client_local_time:
+            try:
+                # Basic ISO parsing (e.g., 2026-02-12T19:47:28.000Z)
+                # Handle potential trailing Z or offsets rudimentarily if needed
+                cleaned_time = client_local_time.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(cleaned_time)
+                current_hour = dt.hour
+                time_context_str = f"{current_hour:02d}:{dt.minute:02d}"
+            except Exception as e:
+                logger.warning(f"Could not parse client time {client_local_time}: {e}")
+                pass
+
+        EVENING_HOUR_THRESHOLD = 18
+        is_evening = current_hour >= EVENING_HOUR_THRESHOLD
+        MAX_DAILY_TRAINING_MINUTES = 90
+        
+        is_rest_day = False
+        today_name = "Unknown"
+        if client_local_time:
+            try:
+                cleaned_time = client_local_time.replace('Z', '+00:00')
+                dt = datetime.fromisoformat(cleaned_time)
+                today_name = dt.strftime('%A')
+                off_days = user_settings.get("off_days", []) if user_settings else []
+                if today_name in off_days:
+                    is_rest_day = True
+            except:
+                pass
+        
+        # Prepare context strings
+        activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
+        
+        # Format Today's Activities
+        today_context = "No activities recorded today yet."
+        total_duration_today_mins = 0
+        session_count_today = 0
+        
+        if todays_activities and len(todays_activities) > 0:
+            today_details = []
+            session_count_today = len(todays_activities)
+            for act in todays_activities:
+                # Safely access dict keys or object attributes
+                a_name = act.get('activityName', 'Unknown Activity')
+                a_type = act.get('activityType', {}).get('typeKey', 'exercise') if isinstance(act.get('activityType'), dict) else 'exercise'
+                
+                # Check for duration (seconds) and convert to minutes for accumulation
+                dur_secs = float(act.get('duration', 0) or 0)
+                total_duration_today_mins += dur_secs / 60
+                
+                a_dist = f"{float(act.get('distance', 0) or 0) / 1000:.2f} km"
+                a_dur = f"{dur_secs / 60:.0f} min"
+                today_details.append(f"- {a_name} ({a_type}): {a_dist}, {a_dur}")
+            
+            today_context = "\n".join(today_details)
+
+        recent_context = "No recent activities found."
+        if recent_activities and len(recent_activities) > 0:
+            recent_details = []
+            for act in recent_activities[:15]: # Limit to last 15 for prompt size
+                a_name = act.get('activityName', 'Unknown')
+                a_type = act.get('activityType', {}).get('typeKey', 'exercise') if isinstance(act.get('activityType'), dict) else 'exercise'
+                dur_mins = float(act.get('duration', 0) or 0) / 60
+                dist_km = float(act.get('distance', 0) or 0) / 1000
+                date_str = act.get('startTimeLocal', '')[:10]
+                recent_details.append(f"- {date_str} | {a_name} ({a_type}): {dist_km:.2f} km, {dur_mins:.0f} min")
+            recent_context = "\n".join(recent_details)
+
+        training_completed_today = (total_duration_today_mins >= MAX_DAILY_TRAINING_MINUTES) or (session_count_today >= 2)
+
+        # Extract specific data points safely
+        name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
+        vo2max = user_profile.get('vo2MaxRunning', 'N/A') if user_profile else 'N/A'
+        fitness_age = user_profile.get('fitnessAge', 'N/A') if user_profile else 'N/A'
+        
+        resting_hr = health_stats.get('restingHeartRate', 'N/A') if health_stats else 'N/A'
+        
+        sleep_quality = 'N/A'
+        sleep_score = 'N/A'
+        sleep_duration = 'N/A'
+        if sleep_data and 'dailySleepDTO' in sleep_data:
+            sleep_quality = sleep_data['dailySleepDTO'].get('sleepQualityType', 'N/A')
+            sleep_score = sleep_data['dailySleepDTO'].get('sleepScore', 'N/A')
+            sleep_secs = sleep_data['dailySleepDTO'].get('sleepTimeSeconds')
+            if sleep_secs:
+                sleep_duration = f"{sleep_secs / 3600:.1f} hrs"
+            
+        stress = health_stats.get('averageStressLevel', 'N/A') if health_stats else 'N/A'
+        body_battery = health_stats.get('bodyBatteryHighestValue', 'N/A') if health_stats else 'N/A'
+
+        # Settings Context
+        sport_context = "Endurance Sports"
+        race_context = "No specific upcoming races."
+        goals_context = ""
+        language_code = "en"
+        # Advanced Metrics defaults
+        profile_context = ""
+        metrics_context = ""
+        strength_context = ""
+
+        if user_settings:
+            sport_context = user_settings.get("primary_sport", "Endurance Sports")
+            also_runs = user_settings.get("also_runs", True)
+            language_code = user_settings.get("language", "en")
+            
+            # Profile Stats
+            age = user_settings.get("age")
+            gender = user_settings.get("gender")
+            if age or gender:
+                profile_context = f"- Age: {age or 'N/A'}\n        - Gender: {gender or 'N/A'}"
+
+            # Strength Training
+            s_days = user_settings.get("strength_days", 0)
+            if s_days > 0:
+                strength_context = f"Include {s_days} days of Strength/Gym training per week. Balance with endurance."
+
+            # Sport Metrics
+            metrics = user_settings.get("metrics", {})
+            m_list = []
+            if metrics.get("threshold_pace"):
+                m_list.append(f"- Threshold Running Pace: {metrics['threshold_pace']} min/km")
+            if metrics.get("ftp"):
+                m_list.append(f"- Cycling FTP: {metrics['ftp']} Watts")
+            if metrics.get("bike_max_power"):
+                m_list.append(f"- Max Cycling Power: {metrics['bike_max_power']} Watts")
+            if metrics.get("swim_pace_100m"):
+                m_list.append(f"- Swim Pace: {metrics['swim_pace_100m']} /100m")
+            if metrics.get("max_hr"):
+                m_list.append(f"- Max Heart Rate: {metrics['max_hr']} bpm")
+            
+            if m_list:
+                metrics_context = "**Performance Metrics:**\n        " + "\n        ".join(m_list)
+
+            races = user_settings.get("races", [])
+            if races:
+                # Format races
+                race_list = []
+                today = datetime.now()
+                
+                for r in races:
+                    try:
+                        race_date = datetime.strptime(r['date'], "%Y-%m-%d")
+                        days_to_race = (race_date - today.replace(hour=0, minute=0, second=0, microsecond=0)).days
+                        if days_to_race >= -7:
+                            if days_to_race < 0:
+                                race_list.append(f"- COMPLETED RACE: {r['name']} ({r['date']}): {abs(days_to_race)} days ago")
+                            else:
+                                race_list.append(f"- UPCOMING RACE: {r['name']} ({r['date']}): {days_to_race} days away")
+                    except:
+                        race_list.append(f"- {r['name']} ({r['date']})")
+                
+                if race_list:
+                    race_context = "Races Context:\n" + "\n".join(race_list)
+
+            # Goals Context
+            goals = user_settings.get("goals", {})
+            if goals:
+                g_list = []
+                for sport_key, goal_val in goals.items():
+                    if goal_val:
+                        g_list.append(f"- {sport_key.capitalize()} Goal: {goal_val}")
+                
+                if g_list:
+                    goals_context = "**Current Training Targets:**\n        " + "\n        ".join(g_list)
+
+        target_language = self._get_target_language(language_code)
+
+        time_limit_str = f"- **Time Constraint**: The athlete has specified they only have {available_time_mins} minutes to train today. YOU MUST fit the overall recommended workout duration strictly within this time limit." if available_time_mins is not None else ""
+        
+        # Sport modality instruction
+        sport_modality_str = ""
+        if selected_sports and len(selected_sports) > 0:
+            sport_labels = ", ".join(s.capitalize() for s in selected_sports)
+            if len(selected_sports) == 1:
+                sport_modality_str = f"- **Requested Sport**: The athlete wants to train **{sport_labels}** today. Design the workout specifically for this discipline."
+            else:
+                sport_modality_str = f"- **Combined Session Request**: The athlete wants a combined session today: **{sport_labels}**. Design a multi-sport session that includes each of these disciplines. For example, if cycling and running are selected, structure a brick/transition workout or warm-up + main set combo."
+            
+            # Add specific durations if provided
+            if sport_durations:
+                duration_notes = []
+                for sport, mins in sport_durations.items():
+                    if mins:
+                        duration_notes.append(f"{sport.capitalize()}: {mins} minutes")
+                if duration_notes:
+                    sport_modality_str += (
+                        f"\n        - **Specific Duration Requests**: The athlete specifically requested the following time for each segment: {', '.join(duration_notes)}. "
+                        f"\n        - **HARD CONSTRAINT**: The total duration of the workout MUST reach exactly {available_time_mins or sum(int(m) for m in sport_durations.values() if m)} minutes. "
+                        f"\n        - **MULTI-SPORT STRUCTURE**: Since multiple sport durations are provided, you MUST create separate `workoutSegments` in the JSON structure for each sport discipline. For example, a 15-minute Cycling segment followed by a 105-minute Running segment."
+                    )
+
+        
+        rest_day_instruction = ""
+        if is_rest_day:
+            rest_day_instruction = f"\\n        - **CRITICAL**: Today ({today_name}) is explicitly marked as an OFF DAY (Rest Day) in the athlete's settings. You MUST NOT prescribe any active workout. Your workout recommendation must be strictly rest, light stretching, or recovery. Provide `null` for the workout JSON or a pure rest day JSON."
+
+        prompt = f"""
+        You are an elite, world-class Performance Coach and Sports Scientist.
+        Your athlete relies on you for deep, data-driven insights and rigorous training protocols.
+        
+        **CRITICAL INSTRUCTION: Analyze Context FIRST**
+        Before generating any advice or workout, you MUST formulate your response based heavily on these pillars:
+        1. **User Settings Constraints**: The athlete's primary sport, off days, and explicitly stated goals.
+        2. **Recent Activities & Discipline Rotation**: What training load they have accumulated over the last few days, and what they have already done today. For Triathletes/Multi-sport athletes: You MUST strictly rotate disciplines. Look at the last 3 days of activities. If they ran yesterday, DO NOT prescribe running today unless requested. Instead, prescribe cycling (1-2 hours) or swimming.
+        3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
+        4. **Race Proximity & Distance (Dynamic Tapering)**: Tapering heavily depends on the RACE DISTANCE:
+           - **Short/Fast Races (Sprint/Olympic Triathlons, 5k/10k)**: These do not require massive volume drops 4-7 days out. Keep volume moderate (1-2 hours) with sharp race-pace intervals. Only drop volume heavily 1-3 days out.
+           - **Long/Demanding Races (Half/Full Ironman, Marathon, Ultra, Long Gran Fondo)**: These require a deep taper! The entire last week (4-7 days out) MUST have significantly reduced volume. Focus on short active recoveries, light spinning, or easy 30-45 min sessions. NO high-volume sessions in the last week.
+           - **Post-Race**: If the athlete completed a major race in the last 1-4 days, prioritize pure rest, light mobility, or very light swimming.
+
+        **1. Athlete Profile & Settings:**
+        - Name: {name}
+        - Sport: {sport_context}
+        - VO2max: {vo2max} ml/kg/min (Fitness age: {fitness_age})
+        - Runs: {"Yes" if also_runs else "No"}
+        {profile_context}
+        {metrics_context}
+        {goals_context}
+
+        **2. Current Context & Time Constraints:**
+        - Local Time: {time_context_str}
+        - Race Schedule: {race_context}
+        {time_limit_str}
+        {sport_modality_str}{rest_day_instruction}
+        
+        **3. Physical & Mental Condition (Readiness):**
+        - Resting HR: {resting_hr} bpm
+        - Sleep: {sleep_duration} (Score: {sleep_score}/100, Quality: {sleep_quality})
+        - Stress Level: {stress}/100 (Lower is better)
+        - Body Battery: {body_battery}/100 (Higher means more energy)
+        
+        **4. Recent Load (Activities):**
+        - Past Week Load Summary: {activities_str}
+        - Recent Individual Activities (Last 15):
+{recent_context}
+        - Completed Today: {today_context}
+        - Total Today Duration: {total_duration_today_mins:.0f} minutes
+        - Session Count Today: {session_count_today}
+        - Training Goal Reached: {"YES" if training_completed_today else "NO"}
+
+        **Task:**
+        Generate a highly rigorous, professional Daily Briefing. 
+        
+        **CRITICAL LANGUAGE INSTRUCTION: YOU MUST WRITE THE ENTIRE BRIEFING IN {target_language.upper()}!** 
+        ALL text, sentences, guidance, and markdown headers MUST be translated into {target_language}. DO NOT output English text if {target_language} is not English!
+
+        **Structure Details (Format this structure into {target_language}, applying rich markdown like bolding and lists):**
+        1. **Physiological Analytics & Readiness**: Start with an emoji status (🟢 Optimal / 🟡 Marginal / 🔴 Suppressed). Provide a deep, 2-3 sentence analysis of their readiness based on their Sleep, HRV/Resting HR, and Body Battery. Explaining what these mean for their central nervous system and capacity for strain today.
+        2. **Training Directive**: A concise paragraph analyzing their recent load AND checking if it is an OFF DAY, defining the precise objective for today's session. If specific sport durations were requested (like 15m Bike + 105m Run), explicitly mention this plan here. Explain WHY this sport was chosen based on recent activities (e.g. "Since you ran yesterday, today we focus on cycling").
+        3. **Protocol (Workout of the Day)**: Provide your specific workout recommendation based on the current context. THIS SECTION MUST NEVER BE EMPTY IN THE TEXT.
+           - **TIME ACCURACY**: The sum of all workout steps MUST equal the requested available time ({available_time_mins} mins) if provided.
+           - **BRICK/TRANSITION LOGIC**: If multiple sports with different durations are requested, you MUST describe them as distinct phases (e.g. Phase 1: Cycling warm-up, Phase 2: Main Running set).
+           - **OVERTRAINING PROTECTION (CRITICAL)**: If Training Goal Reached is YES (athlete has already completed {total_duration_today_mins:.0f} mins across {session_count_today} sessions), YOU MUST NOT prescribe any additional active workout today.
+           - IF OFF DAY (Rest Day) triggers: You MUST explicitly narrate the physical recovery protocol here (e.g., "Full rest today", "10-minute light stretching focused on hips"). Describe the instructions in text, and prescribe `null` for the workout JSON.
+           - IF trained today already (but Training Goal Reached is NO): Write a complementary active recovery, mobility, or light session text protocol here IF it fits within the remaining capacity.
+           - PRO METRICS: Must include target metric: Pace, HR Zone, Power (Watts), etc. based on sport if an active workout.
+           - ALWAYS write the exact instructions as plain markdown text so the athlete knows what to do directly from the briefing text.
+           - IF the athlete completed a race in the last 1-4 days, or if you prescribe a light post-race workout, you MUST add a LARGE recommendation in the text: **🚨 DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin! 🚨** (translate to target language if not Turkish).
+        4. **Fueling Strategy (Nutrition)**: Actionable, precise bullet points for Pre-workout, Intra-workout, and Post-workout focus.
+        5. **Coach's Note (Mindset)**: One punchy, highly professional psychological framing for the day.
+
+        **Output Format:**
+        JSON object:
+        {{
+            "advice_text": "Markdown string with physiological analysis and training protocol...",
+            "workout": {{
+                "workoutName": "CoachOnur - Duration/Type",
+                "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
+                "description": "Short summary",
+                "instructions": "Detailed instructions...",
+                "workoutSegments": [
+                    {{
+                        "sportType": {{ "sportTypeId": 2, "sportTypeKey": "cycling" }},
+                        "workoutSteps": [
+                            {{
+                                "type": "ExecutableStepDTO",
+                                "description": "Warm-up / Initial set",
+                                "stepType": {{ "stepTypeId": 1, "stepTypeKey": "warmup" }},
+                                "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
+                                "endConditionValue": 900,
+                                "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
+                                "targetValueOne": 1, 
+                                "targetValueTwo": 2
+                            }}
+                        ]
+                    }},
+                    {{
+                        "sportType": {{ "sportTypeId": 1, "sportTypeKey": "running" }},
+                        "workoutSteps": [
+                            {{
+                                "type": "ExecutableStepDTO",
+                                "description": "Main set / Phase 2",
+                                "stepType": {{ "stepTypeId": 3, "stepTypeKey": "active" }},
+                                "endCondition": {{ "conditionTypeId": 2, "conditionTypeKey": "time" }},
+                                "endConditionValue": 6300,
+                                "targetType": {{ "workoutTargetTypeId": 4, "workoutTargetTypeKey": "heart.rate.zone" }},
+                                "targetValueOne": 2, 
+                                "targetValueTwo": 3
+                            }}
+                        ]
+                    }}
+                ]
+            }}
+        }}
+
+        **MULTI-SPORT JSON RULE**: If the athlete requested a multi-sport set (e.g. Bike + Run), you MUST provide a separate entry in the `workoutSegments` array for each sport. The `workoutSteps` for each segment should reflect its specific sport.
+        
+        **CRITICAL GARMIN WORKOUT JSON RULES:**
+        You must strictly adhere to the specific Garmin ID and Key mappings for workouts:
+        - `sportType`: running (1), cycling (2), swimming (5), strength_training (9)
+        - `stepType`: warmup (1), cooldown (2), active (3), rest (4), recovery (5)
+        - `endCondition`: lap.button (1), time (2) [value in seconds], distance (3) [value in meters]
+        - `targetType` for Running: heart.rate.zone (4), pace.zone (2) 
+        - `targetType` for Cycling: power.zone (6), heart.rate.zone (4), cadence.zone (5)
+        - Do not output target values as strings, they MUST be numeric/integers (e.g. `targetValueOne`: 1).
+        - IF NO TARGET: use `no.target` (1). CRITICAL: If using no.target, you MUST OMIT the `targetValueOne`, `targetValueTwo`, and `zoneNumber` fields completely from that step's JSON. Sending them as null causes a server crash.
+        - CRITICAL: DO NOT include `segmentOrder` or `stepOrder` anywhere in the JSON. Garmin will reject the upload if you do.
+        - CRITICAL: For standard single-sport workouts, the `workoutSegments` array should usually contain exactly ONE item. However, for **MULTI-SPORT** (Brick/Transition) sessions, you MUST provide a separate segment for each sport discipline to ensure the timings add up correctly.
+        (Set "workout": null if it's a rest day/evening. Workout steps should be valid Garmin JSON structure.)
+        Output ONLY valid JSON.
+        """
+        
+        try:
+            logger.info("Sending request to Gemini...")
+            response = self._call_gemini_with_retry(prompt, generation_config={"response_mime_type": "application/json"})
+            return self._clean_json_response(response.text)
+        except Exception as e:
+            logger.error(f"Failed to generate advice with Gemini: {e}")
+            return '{"advice_text": "Sorry, I could not generate advice today.", "workout": null}'
+
+    @rate_limit(max_calls=20, period=60)
+    def generate_chat_response(self, messages, user_context=None, language="en"):
+        """
+        Generate a conversational response based on chat history and user context.
+        """
+        # Context building
+        context_str = ""
+        if user_context:
+            context_str = f"User Context: {user_context}"
+            
+        target_language = self._get_target_language(language)
+
+        system_instruction = f"""
+        You are an elite, empathetic, and data-driven sports coach.
+        Your goal is to support the athlete's training, recovery, and mental state.
+        
+        {context_str}
+        
+        **Your Personality:**
+        - Professional yet approachable.
+        - Encouraging but realistic.
+        - Data-informed (if data is provided).
+        
+        **Capabilities:**
+        - You can answer questions about training, nutrition, and recovery.
+        
+        **Current Interaction:**
+        The user has just logged in or is engaging with you. 
+        If this is the start of the conversation, they might be answering your check-in question ("How are you feeling?").
+        
+        **CRITICAL RULE:**
+        Respond ONLY in {target_language}. Do NOT use English unless the user's language is English.
+        
+        Respond naturally to the last message in the history. Keep responses concise.
+        """
+        
+        try:
+            conversation_history = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+            full_prompt = f"{system_instruction}\n\nChat History:\n{conversation_history}\n\nCoach:"
+            logger.info(f"Sending chat request to Gemini (Language: {target_language})...")
+            response = self._call_gemini_with_retry(full_prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to generate chat response: {e}")
+            return "Connection error. Please try again."
+
+    @rate_limit(max_calls=20, period=60)
+    def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, sleep_data=None, user_settings=None):
+        """
+        Generate a structured training plan (JSON) for the dashboard.
+        """
+        # Prepare context
+        activities_str = activities_summary.to_string() if hasattr(activities_summary, 'to_string') else str(activities_summary)
+        
+        # Safe extract
+        user_settings = user_settings or {}
+        sport = user_settings.get("primary_sport", "Endurance Sports")
+        language = user_settings.get("language", "en")
+        
+        off_days = user_settings.get("off_days", [])
+        off_days_context = f"- Off Days (Rest): {', '.join(off_days)}" if off_days else "- Off Days: None"
+        
+        races = user_settings.get("races", [])
+        race_context = "No specific races."
+        if races:
+            race_list = []
+            today = datetime.now()
+            for r in races:
+                try:
+                    race_date = datetime.strptime(r['date'], "%Y-%m-%d")
+                    days_to_race = (race_date - today.replace(hour=0, minute=0, second=0, microsecond=0)).days
+                    if days_to_race >= -7:
+                        if days_to_race < 0:
+                            race_list.append(f"- COMPLETED RACE: {r['name']} ({r['date']}): {abs(days_to_race)} days ago")
+                        else:
+                            race_list.append(f"- UPCOMING RACE: {r['name']} ({r['date']}): {days_to_race} days away")
+                except:
+                    pass
+            if race_list:
+                race_context = "Races:\n" + "\n".join(race_list)
+        
+        target_language = self._get_target_language(language)
+        
+        name = user_profile.get('fullName', 'Athlete') if user_profile else 'Athlete'
+        vo2max = user_profile.get('vo2MaxRunning', 'N/A') if user_profile else 'N/A'
+        fitness_age = user_profile.get('fitnessAge', 'N/A') if user_profile else 'N/A'
+        
+        resting_hr = health_stats.get('restingHeartRate', 'N/A') if health_stats else 'N/A'
+        stress = health_stats.get('averageStressLevel', 'N/A') if health_stats else 'N/A'
+        body_battery = health_stats.get('bodyBatteryHighestValue', 'N/A') if health_stats else 'N/A'
+        
+        sleep_quality = 'N/A'
+        sleep_score = 'N/A'
+        sleep_duration = 'N/A'
+        if sleep_data and 'dailySleepDTO' in sleep_data:
+            sleep_quality = sleep_data['dailySleepDTO'].get('sleepQualityType', 'N/A')
+            sleep_score = sleep_data['dailySleepDTO'].get('sleepScore', 'N/A')
+            sleep_secs = sleep_data['dailySleepDTO'].get('sleepTimeSeconds')
+            if sleep_secs:
+                sleep_duration = f"{sleep_secs / 3600:.1f} hrs"
+        
+        # Build prompt
+        prompt = f"""
+        Act as an elite {sport} coach.
+        Create a **{duration_str}** professional structured training plan for this athlete.
+        
+        **CRITICAL INSTRUCTION: Analyze Context FIRST**
+        Before generating any activities, you MUST formulate your plan based heavily on these three pillars:
+        1. **User Settings & Profile**: The athlete's primary sport, performance limits, and explicitly stated goals.
+        2. **Recent Activities**: What training load they have accumulated recently (prevent overtraining if load is high).
+        3. **Physical & Mental Readiness**: Current recovery status (Sleep, Stress, Body Battery).
+        4. **Race Proximity (Tapering)**: Triathletes/endurance athletes should NOT have extreme low volume (e.g., 30 mins) 4-7 days before a race. Maintain moderate volume (1-2 hrs) and activation intervals. Extreme tapers (< 45 mins) should only happen 1-3 days out.
+
+        **1. Athlete Profile & Settings:**
+        - Name: {name}
+        - Sport: {sport}
+        - VO2max: {vo2max} ml/kg/min (Fitness age: {fitness_age})
+        {off_days_context}
+        {race_context}
+        
+        **2. Physical & Mental Condition (Readiness):**
+        - Resting HR: {resting_hr}
+        - Body Battery: {body_battery}/100 (Higher means more energy available)
+        - Stress Level: {stress}/100 (Lower is better)
+        - Sleep: {sleep_duration} (Score: {sleep_score}/100, Quality: {sleep_quality})
+        
+        **3. Recent Load (Activities):**
+        {activities_str}
+        
+        **Task:**
+        Based on the readiness metrics above, determine if the first few days of the plan need to be recovery-focused or if the athlete is primed for high intensity.
+        Generate a highly detailed, professional-grade training plan balancing progressive overload and recovery.
+        For every workout, you MUST provide structured steps (Warmup, Main Set, Cooldown) and specific intensity targets.
+        
+        **CRITICAL SCHEDULING RULES:**
+        - You MUST strictly respect the Off Days ({off_days_context}). Set "Rest" for those days.
+        - If 'Time Constraint' is provided, strictly follow it! If 0 minutes, tell them to rest.
+        - Emphasize recovery if Stress is high or Body Battery is low.
+        - **UPCOMING RACE TAPER**: If a race is 4-7 days away, DO NOT drop volume excessively (e.g., don't prescribe just 30 mins). Prescribe moderate volume (1-2 hours of cycling or moderate running) with short race-pace intervals (activation). If a race is 1-3 days away, apply a sharp taper (rest or 15-30 min easy sessions).
+        - IF the athlete completed a race in the last 1-3 days, you can prescribe rest, but for subsequent days (or if you prescribe a light workout), you MUST add a LARGE COLORED recommendation in the text: 🚨 **DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin!** 🚨 (translate to target language, visually prominent).
+        - If a recent race is present, include a visually prominent warning in the plan summary: **🚨 DİKKAT: Kendinizi yorgun hissediyorsanız dinlenin! / If you feel tired, rest! 🚨**
+        
+        **Targets:**
+        - Running: Prescribe Pace (min/km) or Heart Rate Zone.
+        - Cycling: Prescribe Power (Watts) or HR Zone.
+        - Swimming: Prescribe Pace per 100m.
+        
+        **Output Format:**
+        Return ONLY valid JSON with this structure:
+        {{
+            "title": "Title of the Block (e.g. Base Building 1)",
+            "summary": "Strategic overview of the focus...",
+            "weeks": [
+                {{
+                    "week_number": 1,
+                    "focus": "Endurance & Force",
+                    "total_distance": "approx 40km",
+                    "total_tss": "approx 300",
+                    "days": [
+                        {{
+                            "day_name": "Monday",
+                            "activity_type": "Run", 
+                            "workout_title": "4x8min Threshold Intervals",
+                            "total_duration": "60 min",
+                            "overview": "Key session to boost lactate threshold.",
+                            "tss_estimate": 65,
+                            "structure": {{
+                                "warmup": {{ "duration": "15 min", "description": "Easy jog + dynamic drills", "target": "Zone 1-2" }},
+                                "main_set": [
+                                    {{ "repeats": 4, "duration": "8 min", "description": "Run at threshold effort", "target": "Pace: 4:15-4:20 min/km" }},
+                                    {{ "repeats": 4, "duration": "2 min", "description": "Recovery jog", "target": "Zone 1" }}
+                                ],
+                                "cooldown": {{ "duration": "10 min", "description": "Easy flush", "target": "Zone 1" }}
+                            }}
+                        }}
+                    ]
+                }}
+            ]
+        }}
+        
+        **CRITICAL:**
+        - The `days` array must contain 7 days per week.
+        - Use "Rest" as activity_type for rest days (structure can be null).
+        - Ensure the content is in **{target_language}**.
+        - Do not encompass the JSON in code blocks. Just valid JSON.
+        """
+        
+        try:
+            logger.info("Generating professional structured plan...")
+            response = self._call_gemini_with_retry(prompt, generation_config={"response_mime_type": "application/json"})
+            return self._clean_json_response(response.text)
+        except Exception as e:
+            logger.error(f"Failed to generate plan: {e}")
+            return '{"error": "Failed to generate plan"}'
+
+    @rate_limit(max_calls=20, period=60)
+    def analyze_activity(self, activity_data, user_settings=None):
+        """
+        Analyze a specific activity in detail.
+        """
+        try:
+            # Safely extract key metrics - handle various data structures from Garmin
+            # 'get_activity' can return different structures depending on activity type
+            summary = activity_data
+            if isinstance(activity_data, dict) and 'summaryDTO' in activity_data:
+                summary = activity_data['summaryDTO']
+            
+            # Safely extract basic info with fallbacks
+            name = summary.get('activityName', 'Activity') if isinstance(summary, dict) else 'Activity'
+            
+            # Handle activityType which can be a dict or missing
+            type_info = summary.get('activityType', {}) if isinstance(summary, dict) else {}
+            type_key = type_info.get('typeKey', 'exercise') if isinstance(type_info, dict) else 'exercise'
+            
+            # Helper for safe float conversion
+            def safe_float(val):
+                try: 
+                    return float(val) if val is not None else 0.0
+                except: 
+                    return 0.0
+
+            # Safely extract metrics with defaults
+            dist = safe_float(summary.get('distance', 0) if isinstance(summary, dict) else 0)
+            dist_km = dist / 1000
+            
+            duration = safe_float(summary.get('duration', 0) if isinstance(summary, dict) else 0)
+            duration_min = duration / 60 if duration > 0 else 0
+            
+            avg_hr = summary.get('averageHR', 'N/A') if isinstance(summary, dict) else 'N/A'
+            max_hr = summary.get('maxHR', 'N/A') if isinstance(summary, dict) else 'N/A'
+            
+            avg_speed = safe_float(summary.get('averageSpeed', 0) if isinstance(summary, dict) else 0)
+            
+            # approximate pace calculation (min/km)
+            avg_pace_str = "N/A"
+            if avg_speed > 0:
+                pace_per_km_sec = 1000 / avg_speed
+                p_min = int(pace_per_km_sec // 60)
+                p_sec = int(pace_per_km_sec % 60)
+                avg_pace_str = f"{p_min}:{p_sec:02d} /km"
+
+            # Laps/Splits context - handle missing or unexpected structures
+            splits_context = ""
+            laps = []
+            
+            # Try to extract splits from various possible structures
+            if isinstance(activity_data, dict):
+                splits_data = activity_data.get('splits')
+                
+                if splits_data:
+                    if isinstance(splits_data, dict) and 'lapDTOs' in splits_data:
+                        laps = splits_data['lapDTOs']
+                    elif isinstance(splits_data, list):
+                        laps = splits_data
+                 
+            # Only process laps if we actually have them
+            if laps and isinstance(laps, list) and len(laps) > 0:
+                splits_context = "Splits/Laps (First 10):\n"
+                for i, lap in enumerate(laps[:10]):
+                    if not isinstance(lap, dict):
+                        continue
+                        
+                    l_dur = safe_float(lap.get('duration', 0))
+                    l_dist = safe_float(lap.get('distance', 0))
+                    l_hr = lap.get('averageHR', 'N/A')
+                    l_speed = safe_float(lap.get('averageSpeed', 0))
+                    l_pace = "N/A"
+                    if l_speed > 0:
+                        l_p_sec = 1000 / l_speed
+                        l_pace = f"{int(l_p_sec//60)}:{int(l_p_sec%60):02d}"
+                    
+                    splits_context += f"- Lap {i+1}: {l_dist:.0f}m in {l_dur:.0f}s, Avg HR {l_hr}, Pace {l_pace}\n"
+            else:
+                splits_context = "No detailed lap/split data available for this activity.\n"
+
+            # Settings for personalization
+            sport_context = "Endurance Sports"
+            language_code = "en"
+            if user_settings:
+                sport_context = user_settings.get("primary_sport", "Endurance Sports")
+                language_code = user_settings.get("language", "en")
+                
+            target_language = self._get_target_language(language_code)
+
+            prompt = f"""
+            Act as an elite {sport_context} coach analyzing this workout: "{name}" ({type_key}).
+            
+            **Workout Data:**
+            - Distance: {dist_km:.2f} km
+            - Duration: {duration_min:.1f} min
+            - Avg HR: {avg_hr} bpm (Max: {max_hr})
+            - Avg Pace: {avg_pace_str}
+            
+            {splits_context}
+            
+            **Task:**
+            Provide a professional, structured analysis in {target_language} with these sections. 
+            CRITICAL: You MUST translate the section headers into {target_language} as well, but KEEP the emojis exactly as shown below:
+            
+            📊 PERFORMANCE SUMMARY
+            One sentence summarizing the workout type and execution quality.
+            
+            💓 HEART RATE & EFFORT ANALYSIS  
+            2-3 sentences analyzing HR zones, effort level, and pacing strategy based on the data.
+            
+            🎯 COACHING INSIGHTS
+            2-3 sentences with specific recommendations for improvement or what to maintain in future sessions.
+            
+            Keep each section concise and professional.
+            """
+            
+            logger.info(f"Analyzing activity {name} with Gemini...")
+            response = self._call_gemini_with_retry(prompt)
+            return response.text
+        except Exception as e:
+            logger.error(f"Failed to analyze activity: {e}", exc_info=True)
+            return "Could not analyze activity due to an internal error."
+
+    def _clean_json_response(self, response_text):
+        """Enhanced JSON cleaning with validation"""
+        cleaned = response_text.strip()
+        
+        # Remove markdown
+        if cleaned.startswith("```json"):
+            cleaned = cleaned[7:]
+        elif cleaned.startswith("```"):
+            cleaned = cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        
+        cleaned = cleaned.strip()
+        
+        # Validate JSON
+        try:
+            parsed = json.loads(cleaned, strict=False)
+            return json.dumps(parsed)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON from Gemini: {e}\nRaw response header: {response_text[:500]}")
+            # Try to recover using regex
+            import re
+            match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if match:
+                try:
+                    parsed = json.loads(match.group(), strict=False)
+                    logger.info("Successfully recovered JSON using regex.")
+                    return json.dumps(parsed)
+                except Exception as regex_err:
+                    logger.error(f"Regex recovery failed: {regex_err}")
+                    pass
+            
+            # Return safe fallback
+            return '{"advice_text": "AI response formatting error", "workout": null}'
+
+if __name__ == "__main__":
+    # simple test
+    try:
+        brain = CoachBrain()
+        print("Brain initialized.")
+    except Exception as e:
+        print(f"Error: {e}")

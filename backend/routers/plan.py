@@ -1,0 +1,123 @@
+from fastapi import APIRouter, HTTPException, Depends, Request
+from pydantic import BaseModel
+from typing import Optional
+from sqlalchemy.orm import Session
+from backend.services.coach_brain import CoachBrain
+from backend.services.garmin_client import GarminClient
+from backend.services.data_processor import DataProcessor
+from backend.routers.settings import load_settings
+from backend.routers.dashboard import get_garmin_client
+from backend.database import get_db
+import os
+import logging
+import json
+from backend.auth_utils import get_current_user
+from backend.models import User
+
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+class PlanRequest(BaseModel):
+    duration: str = "1-Week" # "1-Week" or "1-Month"
+    language: Optional[str] = "en"
+
+@router.post("/generate")
+def generate_plan(
+    request: Request,
+    payload: PlanRequest, 
+    client: GarminClient = Depends(get_garmin_client),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        # 1. Fetch Data (Client is already authenticated via Depends)
+
+        brain = request.app.state.brain
+        processor = DataProcessor()
+        settings = load_settings(current_user.email)
+        user_settings_dict = settings.model_dump()
+        if payload.language:
+            user_settings_dict["language"] = payload.language
+        
+        # Fetch necessary context
+        activities = client.get_activities(60)
+        health_stats = client.get_health_stats()
+        sleep_data = client.get_sleep_data() 
+        
+        # Get profile with VO2 max
+        profile = client.get_profile()
+        vo2_data = client.get_vo2_max()
+        if profile and vo2_data:
+            profile.update(vo2_data)
+        
+        # Process Activity Data
+        df = processor.process_activities(activities)
+        weekly_summary = processor.calculate_weekly_summary(df)
+        
+        # Generate Plan
+        # We need to make sure calculate_weekly_summary returns a DataFrame or Series that brain expects. 
+        # brain.generate_structured_plan expects a dict or similar for activities_summary.
+        # Let's check logic in previous file version or just cast to dict to be safe.
+        
+        # processor.calculate_weekly_summary returns a DataFrame or Series.
+        # brain.generate_structured_plan signature: 
+        # def generate_structured_plan(self, duration_str, user_profile, activities_summary, health_stats, user_settings):
+        # usually activities_summary is passed as dict. 
+        
+        activities_summary_dict = weekly_summary if isinstance(weekly_summary, dict) else {}
+        if not isinstance(weekly_summary, dict):
+            try:
+                if not weekly_summary.empty:
+                    try:
+                        weekly_summary.index = weekly_summary.index.astype(str)
+                        activities_summary_dict = weekly_summary.to_dict()
+                    except:
+                        activities_summary_dict = weekly_summary.to_dict()
+            except AttributeError:
+                pass
+
+        plan_json_str = brain.generate_structured_plan(
+            duration_str=payload.duration,
+            user_profile=profile,
+            activities_summary=activities_summary_dict,
+            health_stats=health_stats,
+            sleep_data=sleep_data,
+            user_settings=user_settings_dict
+        )
+        
+        # Parse JSON
+        try:
+             plan_data = json.loads(plan_json_str)
+             
+             # Save plan to database for Telegram bot access
+             from backend.database import SessionLocal
+             from backend.models import UserSetting
+             
+             db_session = SessionLocal()
+             try:
+                 plan_key = f"{current_user.email.lower()}_latest_plan"
+                 db_plan = db_session.query(UserSetting).filter(
+                     UserSetting.key == plan_key,
+                     UserSetting.user_id == current_user.id
+                 ).first()
+                 
+                 if db_plan:
+                     db_plan.value = plan_data
+                 else:
+                     new_plan = UserSetting(key=plan_key, value=plan_data, user_id=current_user.id)
+                     db_session.add(new_plan)
+                 
+                 db_session.commit()
+             except Exception as db_e:
+                 logger.error(f"Failed to cache generated plan: {db_e}")
+             finally:
+                 db_session.close()
+
+             return plan_data
+        except json.JSONDecodeError:
+             return {"error": "Failed to parse AI plan", "raw": plan_json_str}
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error generating plan: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

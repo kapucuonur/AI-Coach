@@ -1,0 +1,366 @@
+from fastapi import APIRouter, HTTPException, Depends
+from backend.services.garmin_client import GarminClient
+from backend.services.data_processor import DataProcessor
+from backend.services.coach_brain import CoachBrain
+from backend.database import get_db
+from backend.auth_utils import create_access_token
+from sqlalchemy.orm import Session
+import os
+from datetime import date
+from backend.utils import sanitize_for_json
+import traceback
+import logging
+import asyncio
+import json
+import time
+from fastapi import Request
+from jose import jwt, JWTError
+from backend.auth_utils import ALGORITHM, SECRET_KEY
+router = APIRouter()
+logger = logging.getLogger(__name__)
+
+from pydantic import BaseModel
+from backend.routers.settings import load_settings
+from backend.auth_utils import get_current_user, decrypt_garmin_password
+from backend.models import User
+from datetime import datetime
+from typing import Optional
+
+class DailyMetricsRequest(BaseModel):
+    client_local_time: Optional[str] = None
+
+@router.post("/daily-metrics")
+async def get_daily_metrics(
+    payload: DailyMetricsRequest,
+    request: Request,
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        if not current_user.garmin_email or not current_user.garmin_password:
+            # Return specific error so frontend shows "Connect Garmin" modal
+            raise HTTPException(status_code=400, detail="GARMIN_NOT_CONNECTED")
+            
+        decrypted_pass = decrypt_garmin_password(current_user.garmin_password)
+        client = GarminClient(current_user.garmin_email, decrypted_pass)
+        
+        # 0. Check DB Cache first (TTL: 15 minutes)
+        import time
+        from backend.models import UserSetting
+        
+        setting = db.query(UserSetting).filter(
+            UserSetting.user_id == current_user.id,
+            UserSetting.key == "cache_daily_metrics"
+        ).first()
+
+        force_refresh = payload.force_refresh if hasattr(payload, 'force_refresh') else False
+        if setting and setting.value and not force_refresh:
+            cached_data = setting.value
+            timestamp = cached_data.get("timestamp", 0)
+            if time.time() - timestamp < 900:  # 15 minutes
+                # Validate cache quality — discard if health data was empty (captured during an error state)
+                cached_health = cached_data.get("data", {}).get("metrics", {}).get("health", {})
+                health_is_stale = (
+                    not cached_health or
+                    (cached_health.get("restingHeartRate") is None and
+                     cached_health.get("averageStressLevel") is None and
+                     cached_health.get("bodyBatteryMostRecentValue") is None)
+                )
+                if not health_is_stale:
+                    logger.info(f"Serving /daily-metrics from DB cache for {current_user.email}")
+                    # We still need to evaluate token refresh
+                    needs_refresh = False
+                    auth_header = request.headers.get("Authorization")
+                    if auth_header and auth_header.startswith("Bearer "):
+                        token = auth_header.split(" ")[1]
+                        try:
+                            jwt_payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                            if jwt_payload.get("exp", 0) - time.time() < 86400:
+                                needs_refresh = True
+                        except JWTError:
+                            needs_refresh = True
+                    
+                    resp = cached_data.get("data", {})
+                    if needs_refresh:
+                        resp["access_token"] = create_access_token(data={"sub": current_user.email})
+                        resp["token_type"] = "bearer"
+                    return resp
+                else:
+                    logger.warning(f"Cache for {current_user.email} has empty health data — forcing fresh fetch")
+        
+        # Pass DB session to login for persistence
+        # We run login in a thread since it's synchronous
+        success, status, error_msg = await asyncio.to_thread(client.login, db)
+        
+        if not success:
+             logger.warning(f"Login failed: {status} - {error_msg}")
+             if status == "MFA_REQUIRED":
+                 raise HTTPException(status_code=401, detail="GARMIN_MFA_REQUIRED")
+             
+             if error_msg and "PROXY_FAILURE" in error_msg:
+                 raise HTTPException(status_code=502, detail=error_msg)
+                 
+             raise HTTPException(status_code=401, detail=f"Garmin auth failed: {error_msg}")
+             
+        processor = DataProcessor()
+        
+        # 1. Fetch Data Concurrently
+        # Reduced from 30 down to 10 activities to drastically improve login speed.
+        activities_task = asyncio.to_thread(client.get_activities, 60)
+        health_stats_task = asyncio.to_thread(client.get_health_stats)
+        sleep_data_task = asyncio.to_thread(client.get_sleep_data)
+        profile_task = asyncio.to_thread(client.get_profile)
+        vo2_max_task = asyncio.to_thread(client.get_vo2_max)
+        
+        activities, health_stats, sleep_data, profile, vo2_max_data = await asyncio.gather(
+            activities_task, health_stats_task, sleep_data_task, profile_task, vo2_max_task
+        )
+        
+        # Merge VO2 max data into profile if available
+        if vo2_max_data and profile:
+            profile.update(vo2_max_data)
+            
+        # 2. Process Data for summary block
+        processed_activities = processor.process_activities(activities)
+        activities_summary_dict = processor.calculate_weekly_summary(processed_activities)
+        
+        # Filter for TODAY'S activities (Timezone-Aware)
+        todays_activities = []
+        if processed_activities:
+            if payload.client_local_time:
+                try:
+                    cleaned_time = payload.client_local_time.replace('Z', '+00:00')
+                    client_dt = datetime.fromisoformat(cleaned_time)
+                    today = client_dt.date()
+                except (ValueError, AttributeError):
+                    today = date.today()
+            else:
+                today = date.today()
+                
+            today_str = today.isoformat()
+            todays_activities = [row for row in processed_activities if row.get('date', '').startswith(today_str)]
+
+        # Sanitize helpers
+
+        # Only refresh token if less than 24 hours remain
+        needs_refresh = False
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                exp = payload.get("exp")
+                if exp and exp - time.time() < 86400:
+                    needs_refresh = True
+            except JWTError:
+                needs_refresh = True
+
+        response_data = {
+            "metrics": {
+                "health": health_stats,
+                "sleep": sleep_data,
+                "weekly_volume": activities_summary_dict,
+                "recent_activities": activities,
+                "profile": profile
+            },
+            "todays_activities": todays_activities # Pass down for the AI to use later
+        }
+        
+        cleaned_response = sanitize_for_json(response_data)
+        
+        # Save payload to DB cache
+        try:
+            if not setting:
+                setting = UserSetting(user_id=current_user.id, key="cache_daily_metrics")
+                db.add(setting)
+            setting.value = {"timestamp": time.time(), "data": cleaned_response}
+            db.commit()
+            logger.info(f"Saved /daily-metrics to DB cache for {current_user.email}")
+        except Exception as cache_err:
+            logger.error(f"Failed to save metrics cache: {cache_err}")
+            db.rollback()
+        
+        if needs_refresh:
+            cleaned_response["access_token"] = create_access_token(data={"sub": current_user.email})
+            cleaned_response["token_type"] = "bearer"
+        
+        return cleaned_response
+
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error in daily metrics: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+from typing import Optional, List, Dict, Any
+
+class AIAdviceRequest(BaseModel):
+    activities_summary_dict: dict = {}
+    health_stats: dict = {}
+    sleep_data: dict = {}
+    profile: dict = {}
+    available_time_mins: Optional[int] = None
+    todays_activities: list = []
+    recent_activities: list = []
+    selected_sports: list = []  # e.g. ["cycling", "running"]
+    sport_durations: dict = {}  # e.g. {"cycling": 15, "running": 105}
+    language: Optional[str] = None  # Add explicit language parameter
+    client_local_time: Optional[str] = None
+
+@router.post("/generate-advice")
+async def generate_advice(
+    request: Request,
+    payload: AIAdviceRequest,
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        brain = request.app.state.brain
+        
+        # Load user personalization
+        settings = load_settings(current_user.email)
+        user_settings_dict = settings.model_dump()
+        
+        # Override language if provided explicitly in the payload
+        if payload.language:
+            user_settings_dict['language'] = payload.language
+        
+        # 3. AI Generation (Offloaded to second request)
+        raw_advice = await asyncio.to_thread(
+            brain.generate_daily_advice,
+            payload.profile, 
+            payload.activities_summary_dict, 
+            payload.health_stats, 
+            payload.sleep_data, 
+            user_settings_dict, 
+            payload.todays_activities,
+            payload.recent_activities,
+            client_local_time=payload.client_local_time,
+            available_time_mins=payload.available_time_mins,
+            selected_sports=payload.selected_sports,
+            sport_durations=payload.sport_durations
+        )
+        
+        # Parse the JSON string from Gemini
+        try:
+            parsed_advice = json.loads(raw_advice)
+            advice_text = parsed_advice.get("advice_text", raw_advice)
+            workout = parsed_advice.get("workout", None)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse advice JSON, returning raw text: {e}")
+            advice_text = raw_advice
+            workout = None
+
+        # Save the generated advice to DB for Telegram Bot to read
+        try:
+            from backend.models import UserSetting
+            db = next(get_db())
+            briefing_key = "cache_daily_briefing"
+            setting = db.query(UserSetting).filter(
+                UserSetting.user_id == current_user.id,
+                UserSetting.key == briefing_key
+            ).first()
+            
+            save_payload = {"advice": advice_text, "workout": workout}
+            if not setting:
+                setting = UserSetting(user_id=current_user.id, key=briefing_key)
+                db.add(setting)
+            setting.value = save_payload
+            db.commit()
+        except Exception as cache_err:
+            logger.error(f"Failed to save daily briefing cache: {cache_err}")
+
+        return {
+            "advice": advice_text,
+            "workout": workout
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating advice: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+from backend.routers.dashboard import get_garmin_client
+from typing import Optional, Union
+
+class WorkoutSyncRequest(BaseModel):
+    workout: dict
+    deviceId: Optional[Union[str, int]] = None
+
+@router.post("/sync")
+async def sync_workout_to_watch(
+    request: WorkoutSyncRequest,
+    client: GarminClient = Depends(get_garmin_client)
+):
+    """
+    Send AI-generated workout to Garmin Connect and schedule it for today.
+    """
+    try:
+        workout = request.workout
+        device_id = request.deviceId
+        
+        if not workout:
+            raise HTTPException(status_code=400, detail="No workout data provided")
+        
+        logger.info(f"Received workout sync request: {workout.get('workoutName', 'Unnamed')} for device: {device_id}")
+        
+        # 1. Create Workout in Garmin Connect (Async wrapper around blocking call)
+        try:
+            created_workout = await asyncio.to_thread(client.create_workout, workout)
+            workout_id = created_workout.get("workoutId")
+        except Exception as e:
+            logger.error(f"Failed to create workout: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to save workout to Garmin Connect: {e}")
+            
+        if not workout_id:
+            raise HTTPException(status_code=500, detail="Failed to retrieve workout ID after creation")
+            
+        # 2. Schedule Workout for Today (non-fatal - workout is already saved if this fails)
+        today_str = date.today().isoformat()
+        scheduled = False
+        try:
+            scheduled = await asyncio.to_thread(client.schedule_workout, workout_id, today_str)
+        except Exception as sched_err:
+            logger.warning(f"Could not schedule workout on calendar (non-fatal): {sched_err}")
+        
+        # 3. Queue for specific device (if provided)
+        if device_id:
+            try:
+                await asyncio.to_thread(client.send_workout_to_device, workout_id, device_id)
+            except Exception as dev_err:
+                logger.warning(f"Could not send workout to device (non-fatal): {dev_err}")
+            
+        # 4. Save to DB for our custom Garmin Watch App
+        try:
+            from backend.database import SessionLocal
+            from backend.models import UserSetting
+            db = SessionLocal()
+            try:
+                setting = db.query(UserSetting).filter(UserSetting.key == "last_synced_workout").first()
+                if not setting:
+                    setting = UserSetting(key="last_synced_workout", value=workout)
+                    db.add(setting)
+                else:
+                    setting.value = workout
+                db.commit()
+            except Exception as db_err:
+                logger.error(f"Could not save workout to DB: {db_err}")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Failed setting up db session for workout cache: {e}")
+
+        msg = "Workout saved and scheduled for today." if scheduled else "Workout saved to Garmin Connect. Calendar scheduling unavailable - open the Garmin Connect app to see it."
+        return {
+            "status": "success", 
+            "message": msg,
+            "workoutId": workout_id,
+            "scheduled": scheduled
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Error syncing workout: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
