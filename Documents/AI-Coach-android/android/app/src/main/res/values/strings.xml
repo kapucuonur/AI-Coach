@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AI Coach</string>
+    <string name="title_activity_main">AI Coach</string>
+    <string name="package_name">com.coachonurai.com</string>
+    <string name="custom_url_scheme">com.coachonurai.com</string>
+    <string name="server_client_id">404491505476-gd6i20jpe9v11581njj9t8oqj3ril9s2.apps.googleusercontent.com</string>
+    <string name="facebook_app_id">1604993610417399</string>
+    <string name="facebook_client_token">639c9983d575d10fab6b269085257613</string>
+    <string name="fb_login_protocol_scheme">fb1604993610417399</string>
+</resources>
