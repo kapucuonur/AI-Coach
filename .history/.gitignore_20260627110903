@@ -9,6 +9,3 @@ simulate_history_detailed.py
 simulate_history.py
 backend/database.sqlite
 garmin_activity.json
-node_modules/
-.DS_Store
-.idea/
