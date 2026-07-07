@@ -3781,62 +3781,112 @@ let lastCscData = null;
 if (btnConnectSensor) {
   btnConnectSensor.addEventListener('click', async () => {
     try {
-      if (!navigator.bluetooth) {
+      const BleClient = window.capacitorCommunityBluetoothLe ? window.capacitorCommunityBluetoothLe.BleClient : null;
+
+      if (!BleClient && !navigator.bluetooth) {
         alert("Web Bluetooth is not supported. Use Chrome (Mac/PC) or Bluefy (iOS).");
         return;
       }
 
-      // acceptAllDevices is often more robust when trainers hide their services in advertisement
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['cycling_power'] },
-          { services: ['cycling_speed_and_cadence'] },
-          { services: ['fitness_machine'] },
-          { namePrefix: 'Wahoo' },
-          { namePrefix: 'Tacx' },
-          { namePrefix: 'KICKR' },
-          { namePrefix: 'Elite' },
-          { namePrefix: 'Garmin' },
-          { namePrefix: 'Assioma' },
-          { namePrefix: 'Favero' },
-          { namePrefix: 'Stages' },
-          { namePrefix: '4iiii' },
-          { namePrefix: 'Magene' },
-          { namePrefix: 'Zwift' }
-        ],
-        optionalServices: [
-          'cycling_power',
-          'cycling_speed_and_cadence',
-          'fitness_machine',
-          'heart_rate',
-          'battery_service',
-          'device_information',
-          '00001818-0000-1000-8000-00805f9b34fb',
-          '00001816-0000-1000-8000-00805f9b34fb',
-          '00001826-0000-1000-8000-00805f9b34fb'
-        ]
-      });
-
       btnConnectSensor.textContent = 'Connecting...';
-      const server = await device.gatt.connect();
 
-      try {
-        const powerService = await server.getPrimaryService('cycling_power');
-        powerCharacteristic = await powerService.getCharacteristic('cycling_power_measurement');
-        powerCharacteristic.addEventListener('characteristicvaluechanged', handlePowerData);
-        await powerCharacteristic.startNotifications();
-      } catch(e) { console.log('No power service', e); }
+      if (BleClient) {
+        // Native Capacitor client flow
+        await BleClient.initialize({ androidNeverForLocation: true });
 
-      try {
-        const cscService = await server.getPrimaryService('cycling_speed_and_cadence');
-        cscCharacteristic = await cscService.getCharacteristic('csc_measurement');
-        cscCharacteristic.addEventListener('characteristicvaluechanged', handleCscData);
-        await cscCharacteristic.startNotifications();
-      } catch(e) { console.log('No CSC service', e); }
+        const device = await BleClient.requestDevice({
+          services: ['cycling_power', 'cycling_speed_and_cadence', 'fitness_machine'],
+          optionalServices: ['heart_rate', 'battery_service', 'device_information']
+        });
 
-      btnConnectSensor.textContent = 'Connected ✓';
-      btnConnectSensor.classList.add('btn-success');
-      btnConnectSensor.classList.remove('btn-primary');
+        await BleClient.connect(device.deviceId, () => {
+          console.log('BLE Disconnected');
+          btnConnectSensor.textContent = 'Connect BLE';
+          btnConnectSensor.classList.remove('btn-success');
+          btnConnectSensor.classList.add('btn-primary');
+        });
+
+        // Notifications for Cycling Power
+        try {
+          await BleClient.startNotifications(
+            device.deviceId,
+            'cycling_power',
+            'cycling_power_measurement',
+            (value) => {
+              handlePowerData({ target: { value } });
+            }
+          );
+        } catch (e) { console.log('No power service', e); }
+
+        // Notifications for Cycling Speed and Cadence
+        try {
+          await BleClient.startNotifications(
+            device.deviceId,
+            'cycling_speed_and_cadence',
+            'csc_measurement',
+            (value) => {
+              handleCscData({ target: { value } });
+            }
+          );
+        } catch (e) { console.log('No CSC service', e); }
+
+        btnConnectSensor.textContent = 'Connected ✓';
+        btnConnectSensor.classList.add('btn-success');
+        btnConnectSensor.classList.remove('btn-primary');
+
+      } else {
+        // Fallback: Standard Web Bluetooth
+        const device = await navigator.bluetooth.requestDevice({
+          filters: [
+            { services: ['cycling_power'] },
+            { services: ['cycling_speed_and_cadence'] },
+            { services: ['fitness_machine'] },
+            { namePrefix: 'Wahoo' },
+            { namePrefix: 'Tacx' },
+            { namePrefix: 'KICKR' },
+            { namePrefix: 'Elite' },
+            { namePrefix: 'Garmin' },
+            { namePrefix: 'Assioma' },
+            { namePrefix: 'Favero' },
+            { namePrefix: 'Stages' },
+            { namePrefix: '4iiii' },
+            { namePrefix: 'Magene' },
+            { namePrefix: 'Zwift' }
+          ],
+          optionalServices: [
+            'cycling_power',
+            'cycling_speed_and_cadence',
+            'fitness_machine',
+            'heart_rate',
+            'battery_service',
+            'device_information',
+            '00001818-0000-1000-8000-00805f9b34fb',
+            '00001816-0000-1000-8000-00805f9b34fb',
+            '00001826-0000-1000-8000-00805f9b34fb'
+          ]
+        });
+
+        const server = await device.gatt.connect();
+
+        try {
+          const powerService = await server.getPrimaryService('cycling_power');
+          powerCharacteristic = await powerService.getCharacteristic('cycling_power_measurement');
+          powerCharacteristic.addEventListener('characteristicvaluechanged', handlePowerData);
+          await powerCharacteristic.startNotifications();
+        } catch(e) { console.log('No power service', e); }
+
+        try {
+          const cscService = await server.getPrimaryService('cycling_speed_and_cadence');
+          cscCharacteristic = await cscService.getCharacteristic('csc_measurement');
+          cscCharacteristic.addEventListener('characteristicvaluechanged', handleCscData);
+          await cscCharacteristic.startNotifications();
+        } catch(e) { console.log('No CSC service', e); }
+
+        btnConnectSensor.textContent = 'Connected ✓';
+        btnConnectSensor.classList.add('btn-success');
+        btnConnectSensor.classList.remove('btn-primary');
+      }
+
     } catch (error) {
       console.error('BLE Connection error', error);
       let msg = `Bluetooth Error: ${error.message}\n\n1. Ensure Bluetooth is ON.\n2. MAC USERS: Check System Settings > Privacy > Bluetooth > Chrome is ON.`;
