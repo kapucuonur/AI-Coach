@@ -820,29 +820,25 @@ let maxKneeAngleFrame = null;
 let minKneeAngleFrame = null;
 let activeReportTab = 'extension';
 
+// Multi-Photo States
+let isMultiPhotoMode = false;
+let wasInMultiPhotoModeDuringCalib = false;
+let multiPhotoBottomFile = null;
+let multiPhotoTopFile = null;
+let multiPhotoBottomData = null;
+let multiPhotoTopData = null;
+
+// Slot-specific calibration states
+let calibPinsBottom = [];
+let calibPinsTop = [];
+let pixelToCmBottom = null;
+let pixelToCmTop = null;
+let activeCalibSlot = null; // 'bottom' or 'top' or null
 let latestSinglePoseData = null; // caches last single-view pose analysis data
-
-// ===== ARCHIVED FEATURE STUBS (multi-photo mode removed, live camera only) =====
-// These null/false stubs prevent ReferenceErrors from remaining code paths
-// that referenced the removed photo/video upload feature.
-const isMultiPhotoMode = false;
-const wasInMultiPhotoModeDuringCalib = false;
-const multiPhotoBottomData = null;
-const multiPhotoTopData = null;
-const calibPinsBottom = [];
-const calibPinsTop = [];
-const pixelToCmBottom = null;
-const pixelToCmTop = null;
-const activeCalibSlot = null;
-const photoViewer = null;
-const overlaySlotBottom = null;
-const overlaySlotTop = null;
-const imgSlotBottom = null;
-const imgSlotTop = null;
-
 
 // ===== DOM REFS =====
 const video = document.getElementById('video');
+const photoViewer = document.getElementById('photo-viewer');
 const cameraPlaceholder = document.getElementById('camera-placeholder');
 const btnStart = document.getElementById('btn-start-camera');
 const btnAnalyze = document.getElementById('btn-analyze');
@@ -857,6 +853,10 @@ if (bikeTypeSelect) {
     window.sessionManager.trackEvent('profile_changed', { profile: bikeTypeSelect.value });
   });
 }
+const videoUploadInput = document.getElementById('video-upload-input');
+const photoUploadInput = document.getElementById('photo-upload-input');
+const labelUploadVideo = document.getElementById('label-upload-video');
+const labelUploadPhotos = document.getElementById('label-upload-photos');
 const btnCalibrateBike = document.getElementById('btn-calibrate-bike');
 const btnCalibrateText = document.getElementById('btn-calibrate-text');
 const valSaddleHeight = document.getElementById('val-saddle-height');
@@ -865,6 +865,19 @@ const overlayCanvas = document.getElementById('overlay');
 const checkDelay = document.getElementById('check-delay');
 const countdownOverlay = document.getElementById('countdown-overlay');
 
+// Multi-Photo DOM references
+const multiPhotoViewer = document.getElementById('multi-photo-viewer');
+const imgSlotBottom = document.getElementById('img-slot-bottom');
+const imgSlotTop = document.getElementById('img-slot-top');
+const overlaySlotBottom = document.getElementById('overlay-slot-bottom');
+const overlaySlotTop = document.getElementById('overlay-slot-top');
+const btnSwapSlots = document.getElementById('btn-swap-slots');
+const bottomStrokeUploadInput = document.getElementById('bottom-stroke-upload-input');
+const topStrokeUploadInput = document.getElementById('top-stroke-upload-input');
+const placeholderSlotBottom = document.getElementById('placeholder-slot-bottom');
+const placeholderSlotTop = document.getElementById('placeholder-slot-top');
+const slotBottom = document.getElementById('slot-bottom');
+const slotTop = document.getElementById('slot-top');
 
 // Comparison REFS
 const compContainer = document.getElementById('comparison-container');
@@ -954,6 +967,12 @@ function applyLang(lang) {
   setT('label-dynamic-tracking', t.dynamicTracking || 'Dynamic AI Tracking (Moving Video)');
   setT('label-slot-bottom', t.lblSlotBottom);
   setT('label-slot-top', t.lblSlotTop);
+  setT('label-upload-bottom-title', t.lblUploadBottomTitle);
+  setT('label-upload-bottom-desc', t.lblUploadBottomDesc);
+  setT('label-upload-top-title', t.lblUploadTopTitle);
+  setT('label-upload-top-desc', t.lblUploadTopDesc);
+  setT('btn-upload-video-text', t.btnUploadVideo || 'Video');
+  setT('btn-upload-photos-text', t.btnUploadPhotos || 'Photos');
 
 
   const ratioLabel = document.getElementById('val-wheelbase-text');
@@ -1088,10 +1107,18 @@ async function startCamera() {
     video.style.display = 'block'; // Show video element for live camera
     video.play();
     
+    // Hide multi-photo viewer if transitioning from photo mode
+    if (multiPhotoViewer) multiPhotoViewer.style.display = 'none';
+    isMultiPhotoMode = false;
+    multiPhotoBottomFile = null;
+    multiPhotoTopFile = null;
+    
     cameraPlaceholder.classList.add('hidden');
     
     // UI Update for PRO layout
     btnStart.classList.add('active');
+    if (labelUploadVideo) labelUploadVideo.classList.remove('active');
+    if (labelUploadPhotos) labelUploadPhotos.classList.remove('active');
     btnStop.style.display = 'block';
     btnSwitchCamera.style.display = 'block';
     btnAnalyze.disabled = false;
@@ -1101,15 +1128,21 @@ async function startCamera() {
 }
 
 function stopCamera() {
+  const tipCard = document.getElementById('video-scan-tip-card');
+  if (tipCard) tipCard.style.display = 'none';
+
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   video.srcObject = null;
   video.src = "";
   video.load(); // Force reset
   video.controls = false; // Disable controls for main screen
   video.style.display = 'none'; // Keep video hidden — only show when camera starts
+  if (photoViewer) photoViewer.style.display = 'none';
   cameraPlaceholder.classList.remove('hidden');
   document.getElementById('video-box').classList.remove('calibration-zoom');
   btnStart.classList.remove('active');
+  if (labelUploadVideo) labelUploadVideo.classList.remove('active');
+  if (labelUploadPhotos) labelUploadPhotos.classList.remove('active');
   btnStop.style.display = 'none';
   btnSwitchCamera.style.display = 'none';
   btnAnalyze.disabled = true;
@@ -1127,18 +1160,40 @@ async function switchCamera() {
 // ===== CAPTURE FRAME =====
 function captureBase64() {
   const canvas = document.createElement('canvas');
-  const source = video;
+  const isImage = photoViewer && photoViewer.style.display === 'block';
+  const source = isImage ? photoViewer : video;
 
-  // For live camera: use videoWidth/videoHeight
-  const srcW = source.videoWidth || 640;
-  const srcH = source.videoHeight || 480;
-  console.log(`[captureBase64] Camera mode: videoWidth=${srcW}, videoHeight=${srcH}`);
+  let srcW, srcH;
+  
+  if (isImage) {
+    // For img element, use naturalWidth/naturalHeight
+    srcW = photoViewer.naturalWidth || photoViewer.width || 640;
+    srcH = photoViewer.naturalHeight || photoViewer.height || 480;
+    console.log(`[captureBase64] Image mode: naturalWidth=${photoViewer.naturalWidth}, naturalHeight=${photoViewer.naturalHeight}, computed srcW=${srcW}, srcH=${srcH}`);
+  } else {
+    // For video element, use videoWidth/videoHeight
+    srcW = source.videoWidth || 640;
+    srcH = source.videoHeight || 480;
+    console.log(`[captureBase64] Video mode: videoWidth=${srcW}, videoHeight=${srcH}`);
+  }
 
-  // Keep small for speed
-  const scale = 0.5;
-  const targetW = Math.round(srcW * scale);
-  const targetH = Math.round(srcH * scale);
-  const quality = 0.5;
+  let targetW, targetH, quality;
+
+  if (isImage) {
+    // For uploaded photos: use good resolution (max 1280px wide) so YOLOv8 can detect the pose
+    const maxDim = 1280;
+    const ratio = Math.min(1, maxDim / Math.max(srcW, srcH));
+    targetW = Math.round(srcW * ratio);
+    targetH = Math.round(srcH * ratio);
+    quality = 0.85;
+    console.log(`[captureBase64] Scaling image: ${srcW}x${srcH} -> ${targetW}x${targetH} @ quality ${quality}`);
+  } else {
+    // For live camera/video: keep small for speed
+    const scale = 0.5;
+    targetW = Math.round(srcW * scale);
+    targetH = Math.round(srcH * scale);
+    quality = 0.5;
+  }
 
   canvas.width = targetW;
   canvas.height = targetH;
@@ -1163,16 +1218,29 @@ async function analyze(preCapturedBase64 = null) {
     stopLiveMode();
     return;
   }
-  if (!stream) {
-    alert("No camera stream found. Please start the camera first.");
+  const isImage = photoViewer && photoViewer.style.display === 'block';
+  if (!stream && !video.src && !isImage) {
+    alert("Debug: No video stream, file source, or photo found!");
     return;
+  }
+  
+  // For image mode, verify it's loaded
+  if (isImage && (!photoViewer.naturalWidth || !photoViewer.naturalHeight)) {
+    alert("Image not fully loaded. Please wait a moment and try again.");
+    console.log(`[analyze] Image not ready: naturalWidth=${photoViewer.naturalWidth}, naturalHeight=${photoViewer.naturalHeight}`);
+    return;
+  }
+  
+  // Safety: always strip fullscreen zoom for photo/file mode
+  if (isImage || (uploadedFile && !stream)) {
+    document.getElementById('video-box').classList.remove('calibration-zoom');
   }
 
   isAnalyzing = true;
   showLoading();
 
   try {
-    console.log('[analyze] Starting live camera analysis');
+    console.log(`[analyze] Starting analysis in ${isImage ? 'image' : 'video'} mode`);
     const base64 = preCapturedBase64 || captureBase64();
     let token = localStorage.getItem('bikefit_token');
     
@@ -1184,8 +1252,10 @@ async function analyze(preCapturedBase64 = null) {
     
     console.log(`[analyze] Sending request to ${API_URL}`);
 
+    // Timeout: 30s for photos (larger payload, sent once), 15s for live camera
+    const isPhotoMode = photoViewer && photoViewer.style.display === 'block';
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), isPhotoMode ? 30000 : 15000);
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -3054,10 +3124,22 @@ async function analyzeFullVideo(file) {
 }
 
 async function handleAnalyzeClick() {
-  // Always live camera mode
-  document.getElementById('video-box').classList.add('calibration-zoom');
+  if (isMultiPhotoMode) {
+    analyzeMultiPhotos();
+    return;
+  }
+  const isImage = photoViewer && photoViewer.style.display === 'block';
+  const isFile = !stream && (video.src || isImage || uploadedFile);
 
-  if (checkDelay && checkDelay.checked) {
+  // ONLY go fullscreen calibration-zoom for live camera stream
+  if (!isFile) {
+    document.getElementById('video-box').classList.add('calibration-zoom');
+  } else {
+    // Ensure no fullscreen when working with uploaded file
+    document.getElementById('video-box').classList.remove('calibration-zoom');
+  }
+
+  if (!isFile && checkDelay && checkDelay.checked) {
     let count = 15;
     countdownOverlay.style.display = 'flex';
     countdownOverlay.textContent = count;
@@ -3068,18 +3150,22 @@ async function handleAnalyzeClick() {
         clearInterval(timer);
         countdownOverlay.style.display = 'none';
         
-        startLiveMode();
-        analyze();
+        // Start Analysis Session
+        startLiveMode(); // Start interval via the function we just fixed
+        analyze();       // Run first one immediately
 
+        // Visual feedback that session started
         const workspaceTitle = document.getElementById('label-workspace-title');
-        if (workspaceTitle) workspaceTitle.textContent = '🔴 SESSION ACTIVE (30s)';
+        if (workspaceTitle) workspaceTitle.textContent = "🔴 SESSION ACTIVE (30s)";
         
+        // Auto-stop after 30 seconds
         setTimeout(() => {
-          if (liveInterval) {
+          if (liveInterval) { // Check if still running
             stopLiveMode();
-            if (workspaceTitle) workspaceTitle.textContent = 'Live Analysis Workspace';
+            if (workspaceTitle) workspaceTitle.textContent = "Live Analysis Workspace";
             document.getElementById('video-box').classList.remove('calibration-zoom');
-            alert(currentLang === 'tr' ? '30 Saniyelik Analiz Tamamlandı!' : '30s Session Complete!');
+            alert(currentLang === 'tr' ? "30 Saniyelik Analiz Tamamlandı! Sonuçlar getiriliyor..." : "30s Session Complete! Fetching results...");
+            // FORCE FINAL ANALYZE
             analyze();
           }
         }, 30000);
@@ -3089,13 +3175,782 @@ async function handleAnalyzeClick() {
       }
     }, 1000);
   } else {
-    startLiveMode();
-    analyze();
+    // SINGLE CLICK ANALYSIS
+    // If it's a video file uploaded by the user, run the full video analysis premium workflow
+    if (uploadedFile && !isImageFile(uploadedFile)) {
+        analyzeFullVideo(uploadedFile);
+    } else if (video.src && !isImage) {
+        if (video.paused) video.play();
+        if (!liveInterval) startLiveMode();
+        analyze();
+    } else {
+        analyze();
+    }
   }
 }
 
-
 btnAnalyze.addEventListener('click', handleAnalyzeClick);
+
+// Handle Video & Photo Upload
+// Handle Video Upload
+if (videoUploadInput) {
+  videoUploadInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Normal single video or single photo behavior
+      isMultiPhotoMode = false;
+      multiPhotoBottomFile = null;
+      multiPhotoTopFile = null;
+      if (multiPhotoViewer) multiPhotoViewer.style.display = 'none';
+      
+      uploadedFile = file; // Store in global state!
+      if (stream) stopCamera();
+      const url = URL.createObjectURL(file);
+      
+      const tipCard = document.getElementById('video-scan-tip-card');
+      if (tipCard) tipCard.style.display = 'flex';
+      if (compContainer) compContainer.style.display = 'none';
+
+      // Clear previous overlays/results
+      if (overlayCanvas) {
+        const ctx = overlayCanvas.getContext('2d');
+        ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      }
+      
+      const isImg = isImageFile(file);
+      if (isImg) {
+        if (photoViewer) {
+          photoViewer.style.display = 'block';
+          photoViewer.src = url;
+        }
+        video.style.display = 'none';
+        video.src = '';
+        video.controls = false;
+        if (btnStop) btnStop.style.display = 'none';
+      } else {
+        if (photoViewer) photoViewer.style.display = 'none';
+        video.style.display = 'block';
+        video.src = url;
+        video.loop = false;
+        video.controls = true;
+        if (btnStop) btnStop.style.display = 'block';
+        video.onended = () => {
+          console.log("Video ended. Stopping analysis session.");
+          stopLiveMode(); // Stop the 1.5s interval
+          
+          // Reset UI state from "fullscreen/zoom" back to dashboard view
+          document.getElementById('video-box').classList.remove('calibration-zoom');
+          const fsControls = document.getElementById('fullscreen-controls');
+          if (fsControls) fsControls.style.display = 'none';
+          
+          const workspaceTitle = document.getElementById('label-workspace-title');
+          if (workspaceTitle) {
+            workspaceTitle.textContent = "🏁 ANALYSIS COMPLETE";
+            setTimeout(() => {
+              workspaceTitle.textContent = translations[currentLang].proWorkspace || "Live Analysis Workspace";
+            }, 5000);
+          }
+        };
+      }
+      
+      cameraPlaceholder.classList.add('hidden');
+      btnStart.classList.remove('active');
+      if (labelUploadVideo) labelUploadVideo.classList.add('active');
+      if (labelUploadPhotos) labelUploadPhotos.classList.remove('active');
+      btnAnalyze.disabled = false;
+    }
+  });
+}
+
+// Robust helper to check if file is an image (supporting HEIC/HEIF and extension fallback on iOS/Safari)
+function isImageFile(file) {
+  if (!file) return false;
+  if (file.type && file.type.startsWith('image/')) return true;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'bmp', 'tiff'];
+  return allowedExtensions.includes(ext);
+}
+
+// Handle Photo Upload (Supports 1 or 2 images)
+if (photoUploadInput) {
+  photoUploadInput.addEventListener('change', (e) => {
+    window.sessionManager.trackEvent('photo_uploaded');
+    const files = e.target.files;
+    if (files.length === 0) return;
+    
+    if (files.length === 2) {
+      const file1 = files[0];
+      const file2 = files[1];
+      if (!isImageFile(file1) || !isImageFile(file2)) {
+        alert(translations[currentLang].errMultiSelect || "Please select exactly 2 photos for dual-stroke biomechanical analysis.");
+        e.target.value = '';
+        return;
+      }
+      
+      isMultiPhotoMode = true;
+      multiPhotoBottomFile = file1;
+      multiPhotoTopFile = file2;
+      multiPhotoBottomData = null;
+      multiPhotoTopData = null;
+      
+      if (labelUploadPhotos) labelUploadPhotos.classList.add('active');
+      if (labelUploadVideo) labelUploadVideo.classList.remove('active');
+      if (btnStart) btnStart.classList.remove('active');
+      
+      if (stream) stopCamera();
+      
+      const url1 = URL.createObjectURL(file1);
+      const url2 = URL.createObjectURL(file2);
+      
+      imgSlotBottom.src = url1;
+      imgSlotTop.src = url2;
+      
+      // Clear canvases
+      const ctxBottom = overlaySlotBottom.getContext('2d');
+      ctxBottom.clearRect(0, 0, overlaySlotBottom.width, overlaySlotBottom.height);
+      const ctxTop = overlaySlotTop.getContext('2d');
+      ctxTop.clearRect(0, 0, overlaySlotTop.width, overlaySlotTop.height);
+      
+      // Hide video element, single photo viewer, and camera placeholder
+      video.style.display = 'none';
+      video.src = '';
+      if (photoViewer) photoViewer.style.display = 'none';
+      cameraPlaceholder.classList.add('hidden');
+      
+      // Display split-screen multi-photo viewer
+      multiPhotoViewer.style.display = 'flex';
+      
+      // Set dynamic translated titles for slot headers
+      document.getElementById('label-slot-bottom').textContent = translations[currentLang].lblSlotBottom || "Bottom Stroke (Max Extension)";
+      document.getElementById('label-slot-top').textContent = translations[currentLang].lblSlotTop || "Top Stroke (Max Flexion)";
+      
+      btnStart.classList.remove('active');
+      btnStop.style.display = 'none';
+      
+      // Clear reports and any previous results
+      const infFeedback = document.getElementById('inference-feedback');
+      if (infFeedback) infFeedback.style.display = 'none';
+      const repPlaceholder = document.getElementById('report-placeholder');
+      if (repPlaceholder) repPlaceholder.style.display = 'block';
+      const bioReport = document.getElementById('session-report-card');
+      if (bioReport) bioReport.style.display = 'none';
+      
+      updateMultiPhotoUI();
+      return;
+    } else if (files.length > 2) {
+      alert(translations[currentLang].errMultiSelect || "Please select exactly 2 photos for dual-stroke biomechanical analysis.");
+      e.target.value = '';
+      return;
+    }
+    
+    // Normal single image behavior
+    const file = files[0];
+    if (file) {
+      if (isImageFile(file)) {
+        isMultiPhotoMode = true;
+        
+        if (labelUploadPhotos) labelUploadPhotos.classList.add('active');
+        if (labelUploadVideo) labelUploadVideo.classList.remove('active');
+        if (btnStart) btnStart.classList.remove('active');
+        
+        // Sequential populating logic to make one-by-one uploading slick and functional!
+        if (!multiPhotoBottomFile) {
+          multiPhotoBottomFile = file;
+          multiPhotoBottomData = null;
+          const url = URL.createObjectURL(file);
+          imgSlotBottom.src = url;
+          const ctxBottom = overlaySlotBottom.getContext('2d');
+          ctxBottom.clearRect(0, 0, overlaySlotBottom.width, overlaySlotBottom.height);
+        } else if (!multiPhotoTopFile) {
+          multiPhotoTopFile = file;
+          multiPhotoTopData = null;
+          const url = URL.createObjectURL(file);
+          imgSlotTop.src = url;
+          const ctxTop = overlaySlotTop.getContext('2d');
+          ctxTop.clearRect(0, 0, overlaySlotTop.width, overlaySlotTop.height);
+        } else {
+          // If both slots are full, overwrite the bottom slot
+          multiPhotoBottomFile = file;
+          multiPhotoBottomData = null;
+          const url = URL.createObjectURL(file);
+          imgSlotBottom.src = url;
+          const ctxBottom = overlaySlotBottom.getContext('2d');
+          ctxBottom.clearRect(0, 0, overlaySlotBottom.width, overlaySlotBottom.height);
+        }
+        
+        if (stream) stopCamera();
+        
+        // Hide video element, single photo viewer, and camera placeholder
+        video.style.display = 'none';
+        video.src = '';
+        if (photoViewer) photoViewer.style.display = 'none';
+        cameraPlaceholder.classList.add('hidden');
+        
+        // Display split-screen multi-photo viewer
+        multiPhotoViewer.style.display = 'flex';
+        
+        // Set dynamic translated titles for slot headers
+        document.getElementById('label-slot-bottom').textContent = translations[currentLang].lblSlotBottom || "Bottom Stroke (Max Extension)";
+        document.getElementById('label-slot-top').textContent = translations[currentLang].lblSlotTop || "Top Stroke (Max Flexion)";
+        
+        btnStart.classList.remove('active');
+        btnStop.style.display = 'none';
+        
+        // Clear reports and any previous results
+        const infFeedback = document.getElementById('inference-feedback');
+        if (infFeedback) infFeedback.style.display = 'none';
+        const repPlaceholder = document.getElementById('report-placeholder');
+        if (repPlaceholder) repPlaceholder.style.display = 'block';
+        const bioReport = document.getElementById('session-report-card');
+        if (bioReport) bioReport.style.display = 'none';
+        
+        updateMultiPhotoUI();
+      }
+    }
+  });
+}
+
+// Convert File to base64 helper promise
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+// Update the split-screen Multi-Photo UI based on current files
+function updateMultiPhotoUI() {
+  const btnChangeBottom = document.getElementById('change-photo-bottom');
+  const btnChangeTop = document.getElementById('change-photo-top');
+
+  if (multiPhotoBottomFile) {
+    if (placeholderSlotBottom) placeholderSlotBottom.style.display = 'none';
+    if (imgSlotBottom) imgSlotBottom.style.display = 'block';
+    if (btnChangeBottom) btnChangeBottom.style.display = 'block';
+  } else {
+    if (placeholderSlotBottom) placeholderSlotBottom.style.display = 'flex';
+    if (imgSlotBottom) {
+      imgSlotBottom.style.display = 'none';
+      imgSlotBottom.src = '';
+    }
+    if (btnChangeBottom) btnChangeBottom.style.display = 'none';
+  }
+  
+  if (multiPhotoTopFile) {
+    if (placeholderSlotTop) placeholderSlotTop.style.display = 'none';
+    if (imgSlotTop) imgSlotTop.style.display = 'block';
+    if (btnChangeTop) btnChangeTop.style.display = 'block';
+  } else {
+    if (placeholderSlotTop) placeholderSlotTop.style.display = 'flex';
+    if (imgSlotTop) {
+      imgSlotTop.style.display = 'none';
+      imgSlotTop.src = '';
+    }
+    if (btnChangeTop) btnChangeTop.style.display = 'none';
+  }
+  
+  if (multiPhotoBottomFile && multiPhotoTopFile) {
+    if (btnAnalyze) btnAnalyze.disabled = false;
+  } else {
+    if (btnAnalyze) btnAnalyze.disabled = true;
+  }
+}
+
+// Bind slot input change event listeners
+if (bottomStrokeUploadInput) {
+  bottomStrokeUploadInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!isImageFile(file)) {
+        alert(translations[currentLang].errMultiSelect || "Please select exactly 2 photos for dual-stroke biomechanical analysis.");
+        e.target.value = '';
+        return;
+      }
+      isMultiPhotoMode = true;
+      if (labelUploadPhotos) labelUploadPhotos.classList.add('active');
+      if (labelUploadVideo) labelUploadVideo.classList.remove('active');
+      if (btnStart) btnStart.classList.remove('active');
+      multiPhotoBottomFile = file;
+      multiPhotoBottomData = null; // Reset previous session output
+      
+      const url = URL.createObjectURL(file);
+      imgSlotBottom.src = url;
+      
+      // Clear canvas
+      const ctxBottom = overlaySlotBottom.getContext('2d');
+      ctxBottom.clearRect(0, 0, overlaySlotBottom.width, overlaySlotBottom.height);
+      
+      if (stream) stopCamera();
+      
+      // Hide standard video/photo components
+      video.style.display = 'none';
+      video.src = '';
+      if (photoViewer) photoViewer.style.display = 'none';
+      if (cameraPlaceholder) cameraPlaceholder.classList.add('hidden');
+      
+      // Display split screen multi viewer
+      if (multiPhotoViewer) multiPhotoViewer.style.display = 'flex';
+      
+      const lblBottom = document.getElementById('label-slot-bottom');
+      if (lblBottom) lblBottom.textContent = translations[currentLang].lblSlotBottom || "Bottom Stroke (Max Extension)";
+      const lblTop = document.getElementById('label-slot-top');
+      if (lblTop) lblTop.textContent = translations[currentLang].lblSlotTop || "Top Stroke (Max Flexion)";
+      
+      if (btnStart) btnStart.classList.remove('active');
+      if (btnStop) btnStop.style.display = 'none';
+      
+      // Clear reports and any previous results
+      const infFeedback = document.getElementById('inference-feedback');
+      if (infFeedback) infFeedback.style.display = 'none';
+      const repPlaceholder = document.getElementById('report-placeholder');
+      if (repPlaceholder) repPlaceholder.style.display = 'block';
+      const bioReport = document.getElementById('session-report-card');
+      if (bioReport) bioReport.style.display = 'none';
+      
+      updateMultiPhotoUI();
+    }
+  });
+}
+
+if (topStrokeUploadInput) {
+  topStrokeUploadInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!isImageFile(file)) {
+        alert(translations[currentLang].errMultiSelect || "Please select exactly 2 photos for dual-stroke biomechanical analysis.");
+        e.target.value = '';
+        return;
+      }
+      isMultiPhotoMode = true;
+      if (labelUploadPhotos) labelUploadPhotos.classList.add('active');
+      if (labelUploadVideo) labelUploadVideo.classList.remove('active');
+      if (btnStart) btnStart.classList.remove('active');
+      multiPhotoTopFile = file;
+      multiPhotoTopData = null; // Reset previous session output
+      
+      const url = URL.createObjectURL(file);
+      imgSlotTop.src = url;
+      
+      // Clear canvas
+      const ctxTop = overlaySlotTop.getContext('2d');
+      ctxTop.clearRect(0, 0, overlaySlotTop.width, overlaySlotTop.height);
+      
+      if (stream) stopCamera();
+      
+      // Hide standard video/photo components
+      video.style.display = 'none';
+      video.src = '';
+      if (photoViewer) photoViewer.style.display = 'none';
+      if (cameraPlaceholder) cameraPlaceholder.classList.add('hidden');
+      
+      // Display split screen multi viewer
+      if (multiPhotoViewer) multiPhotoViewer.style.display = 'flex';
+      
+      const lblBottom = document.getElementById('label-slot-bottom');
+      if (lblBottom) lblBottom.textContent = translations[currentLang].lblSlotBottom || "Bottom Stroke (Max Extension)";
+      const lblTop = document.getElementById('label-slot-top');
+      if (lblTop) lblTop.textContent = translations[currentLang].lblSlotTop || "Top Stroke (Max Flexion)";
+      
+      if (btnStart) btnStart.classList.remove('active');
+      if (btnStop) btnStop.style.display = 'none';
+      
+      // Clear reports and any previous results
+      const infFeedback = document.getElementById('inference-feedback');
+      if (infFeedback) infFeedback.style.display = 'none';
+      const repPlaceholder = document.getElementById('report-placeholder');
+      if (repPlaceholder) repPlaceholder.style.display = 'block';
+      const bioReport = document.getElementById('session-report-card');
+      if (bioReport) bioReport.style.display = 'none';
+      
+      updateMultiPhotoUI();
+    }
+  });
+}
+
+// Change button click event listeners (programmatic upload trigger)
+const btnChangeBottom = document.getElementById('change-photo-bottom');
+if (btnChangeBottom) {
+  btnChangeBottom.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (bottomStrokeUploadInput) bottomStrokeUploadInput.click();
+  });
+}
+
+const btnChangeTop = document.getElementById('change-photo-top');
+if (btnChangeTop) {
+  btnChangeTop.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (topStrokeUploadInput) topStrokeUploadInput.click();
+  });
+}
+
+// Click interceptors for slots to open Calibration Modal directly when photo is already loaded
+if (slotBottom) {
+  slotBottom.addEventListener('click', (e) => {
+    if (multiPhotoBottomFile) {
+      e.preventDefault();
+      startCalibrationSequence('bottom');
+    } else {
+      if (e.target.tagName !== 'BUTTON' && e.target.id !== 'change-photo-bottom') {
+        bottomStrokeUploadInput.click();
+      }
+    }
+  });
+}
+
+if (slotTop) {
+  slotTop.addEventListener('click', (e) => {
+    if (multiPhotoTopFile) {
+      e.preventDefault();
+      startCalibrationSequence('top');
+    } else {
+      if (e.target.tagName !== 'BUTTON' && e.target.id !== 'change-photo-top') {
+        topStrokeUploadInput.click();
+      }
+    }
+  });
+}
+
+// Interactive Swap Button Event Listener
+if (btnSwapSlots) {
+  btnSwapSlots.addEventListener('click', () => {
+    // Rotation transition styling
+    btnSwapSlots.style.transform = (btnSwapSlots.style.transform === 'translate(-50%, -50%) rotate(180deg)') 
+      ? 'translate(-50%, -50%) rotate(0deg)' 
+      : 'translate(-50%, -50%) rotate(180deg)';
+      
+    // Swap files
+    const tempFile = multiPhotoBottomFile;
+    multiPhotoBottomFile = multiPhotoTopFile;
+    multiPhotoTopFile = tempFile;
+    
+    // Swap image preview sources
+    const tempSrc = imgSlotBottom.src;
+    imgSlotBottom.src = imgSlotTop.src;
+    imgSlotTop.src = tempSrc;
+    
+    // Swap AI outputs
+    const tempData = multiPhotoBottomData;
+    multiPhotoBottomData = multiPhotoTopData;
+    multiPhotoTopData = tempData;
+    
+    // Swap calibration states
+    const tempPins = calibPinsBottom;
+    calibPinsBottom = calibPinsTop;
+    calibPinsTop = tempPins;
+    
+    const tempScale = pixelToCmBottom;
+    pixelToCmBottom = pixelToCmTop;
+    pixelToCmTop = tempScale;
+    
+    // Re-draw or clear canvases
+    if (multiPhotoBottomData && multiPhotoBottomData.keypoints) {
+      drawOverlay(
+        multiPhotoBottomData.keypoints, 
+        multiPhotoBottomData.width, 
+        multiPhotoBottomData.height, 
+        overlaySlotBottom, 
+        imgSlotBottom, 
+        multiPhotoBottomData
+      );
+    } else {
+      const ctxBottom = overlaySlotBottom.getContext('2d');
+      ctxBottom.clearRect(0, 0, overlaySlotBottom.width, overlaySlotBottom.height);
+    }
+    
+    if (multiPhotoTopData && multiPhotoTopData.keypoints) {
+      drawOverlay(
+        multiPhotoTopData.keypoints, 
+        multiPhotoTopData.width, 
+        multiPhotoTopData.height, 
+        overlaySlotTop, 
+        imgSlotTop, 
+        multiPhotoTopData
+      );
+    } else {
+      const ctxTop = overlaySlotTop.getContext('2d');
+      ctxTop.clearRect(0, 0, overlaySlotTop.width, overlaySlotTop.height);
+    }
+    
+    // Regenerate report if already analyzed
+    if (multiPhotoBottomData || multiPhotoTopData) {
+      generateMultiPhotoReport();
+    }
+    
+    // Keep placeholder and preview element visibility in sync after swapping
+    updateMultiPhotoUI();
+  });
+}
+
+// Sequential AI Multi-Photo Analyzer Engine
+async function analyzeMultiPhotos() {
+  if (isAnalyzing) return;
+  if (!multiPhotoBottomFile || !multiPhotoTopFile) {
+    alert(translations[currentLang].errMultiSelect || "Please select exactly 2 photos for dual-stroke biomechanical analysis.");
+    return;
+  }
+  
+  isAnalyzing = true;
+  showLoading();
+  
+  try {
+    const base64Bottom = await fileToBase64(multiPhotoBottomFile);
+    const base64Top = await fileToBase64(multiPhotoTopFile);
+    
+    let token = localStorage.getItem('bikefit_token');
+    if (!token && window.Capacitor && window.Capacitor.isNativePlatform()) {
+      token = 'G1zl1_Adm1n_Pass_99'; 
+      localStorage.setItem('bikefit_token', token);
+    }
+    
+    // 1. Process Bottom Stroke Photo
+    console.log("[analyzeMultiPhotos] Call 1: processing Bottom Stroke (BDC)");
+    const resBottom = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'access-token': token
+      },
+      body: JSON.stringify({
+        image_base64: base64Bottom,
+        bike_type: bikeTypeSelect.value,
+        save_to_dataset: true
+      })
+    });
+    
+    if (!resBottom.ok) throw new Error(`Bottom stroke analysis failed (${resBottom.status})`);
+    const dataBottom = await resBottom.json();
+    if (dataBottom.error) throw new Error(dataBottom.error || "Bottom stroke pose detection error");
+    
+    multiPhotoBottomData = dataBottom;
+    
+    // 2. Process Top Stroke Photo
+    console.log("[analyzeMultiPhotos] Call 2: processing Top Stroke (TDC)");
+    const resTop = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'access-token': token
+      },
+      body: JSON.stringify({
+        image_base64: base64Top,
+        bike_type: bikeTypeSelect.value,
+        save_to_dataset: true
+      })
+    });
+    
+    if (!resTop.ok) throw new Error(`Top stroke analysis failed (${resTop.status})`);
+    const dataTop = await resTop.json();
+    if (dataTop.error) throw new Error(dataTop.error || "Top stroke pose detection error");
+    
+    multiPhotoTopData = dataTop;
+    
+    // Draw skeletal outputs on split-screen viewports
+    drawOverlay(
+      multiPhotoBottomData.keypoints, 
+      multiPhotoBottomData.width, 
+      multiPhotoBottomData.height, 
+      overlaySlotBottom, 
+      imgSlotBottom, 
+      multiPhotoBottomData
+    );
+    
+    drawOverlay(
+      multiPhotoTopData.keypoints, 
+      multiPhotoTopData.width, 
+      multiPhotoTopData.height, 
+      overlaySlotTop, 
+      imgSlotTop, 
+      multiPhotoTopData
+    );
+    
+    // Dismiss loading overlay
+    document.getElementById('loading-state').style.display = 'none';
+    
+    // Generate Biomechanical Session Report and dashboard
+    generateMultiPhotoReport();
+    
+  } catch (err) {
+    console.error("Multi-Photo Analysis Failed:", err);
+    alert((currentLang === 'tr' ? "Analiz Başarısız: " : "Analysis Failed: ") + err.message);
+    
+    // Reset loader display
+    document.getElementById('loading-state').style.display = 'none';
+    showError(translations[currentLang].errNoPose || "No pose detected. Make sure your full body is visible from the side.");
+  } finally {
+    isAnalyzing = false;
+  }
+}
+
+// Biomechanical Session Report Generator for Multi-Photo
+function generateMultiPhotoReport() {
+  if (!multiPhotoBottomData || !multiPhotoTopData) return;
+  
+  const angleBottom = parseFloat(multiPhotoBottomData.knee_angle);
+  const angleTop = parseFloat(multiPhotoTopData.knee_angle);
+  
+  let extData, flexData, extSnap, flexSnap;
+  const snapshotBottom = captureSnapshotWithOverlay(imgSlotBottom, overlaySlotBottom, multiPhotoBottomData.width, multiPhotoBottomData.height);
+  const snapshotTop = captureSnapshotWithOverlay(imgSlotTop, overlaySlotTop, multiPhotoTopData.width, multiPhotoTopData.height);
+  
+  if (angleBottom >= angleTop) {
+    extData = multiPhotoBottomData;
+    flexData = adjustFlexionFeedback(multiPhotoTopData);
+    extSnap = snapshotBottom;
+    flexSnap = snapshotTop;
+  } else {
+    extData = multiPhotoTopData;
+    flexData = adjustFlexionFeedback(multiPhotoBottomData);
+    extSnap = snapshotTop;
+    flexSnap = snapshotBottom;
+  }
+  
+  // 1. Calculate Score for Extension
+  const feedExt = [
+    extData.knee_feedback,
+    extData.hip_feedback,
+    extData.elbow_feedback,
+    extData.torso_feedback,
+    extData.ankle_feedback
+  ];
+  const idealExt = feedExt.filter(f => f && f.toLowerCase().includes('ideal')).length;
+  const scoreExt = Math.round((idealExt / feedExt.length) * 100);
+  
+  // 2. Calculate Score for Flexion
+  const feedFlex = [
+    flexData.knee_feedback,
+    flexData.hip_feedback,
+    flexData.elbow_feedback,
+    flexData.torso_feedback,
+    flexData.ankle_feedback
+  ];
+  const idealFlex = feedFlex.filter(f => f && f.toLowerCase().includes('ideal')).length;
+  const scoreFlex = Math.round((idealFlex / feedFlex.length) * 100);
+  
+  // 4. Map to global session report session objects
+  maxKneeAngleFrame = {
+    angle: parseFloat(extData.knee_angle),
+    photo: extSnap,
+    data: JSON.parse(JSON.stringify(extData)),
+    score: scoreExt
+  };
+  
+  minKneeAngleFrame = {
+    angle: parseFloat(flexData.knee_angle),
+    photo: flexSnap,
+    data: JSON.parse(JSON.stringify(flexData)),
+    score: scoreFlex
+  };
+  
+  // 5. Update main sidebar results with Extension values
+  renderAngle('knee',  extData.knee_angle,  extData.knee_feedback);
+  renderAngle('hip',   extData.hip_angle,   extData.hip_feedback);
+  renderAngle('elbow', extData.elbow_angle, extData.elbow_feedback);
+  renderAngle('torso', extData.torso_angle, extData.torso_feedback);
+  renderAngle('ankle', extData.ankle_angle, extData.ankle_feedback);
+  
+  const overallScore = Math.round((scoreExt + scoreFlex) / 2);
+  document.getElementById('score-value').textContent = `${overallScore}%`;
+  
+  // Unhide reports and hide placeholder
+  const infFeedback = document.getElementById('inference-feedback');
+  if (infFeedback) infFeedback.style.display = 'none';
+  const repPlaceholder = document.getElementById('report-placeholder');
+  if (repPlaceholder) repPlaceholder.style.display = 'none';
+  const bioReport = document.getElementById('session-report-card');
+  if (bioReport) bioReport.style.display = 'flex'; // Fix display layout style to preserve flex
+  
+  document.getElementById('results-list').style.display = '';
+  document.getElementById('idle-state').style.display = 'none';
+  document.getElementById('error-state').style.display = 'none';
+  
+  // 6. Refresh active tab UI
+  updateReportUI();
+}
+// ===== CALIBRATION =====
+function updateCalibTopBarButtons() {
+  const btnCalibBottom = document.getElementById('btn-calib-select-bottom');
+  const btnCalibTop = document.getElementById('btn-calib-select-top');
+  
+  if (btnCalibBottom && btnCalibTop) {
+    if (activeCalibSlot === 'bottom') {
+      btnCalibBottom.style.background = 'var(--primary)';
+      btnCalibBottom.style.color = '#fff';
+      btnCalibBottom.style.boxShadow = '0 4px 12px rgba(99,102,241,0.3)';
+      
+      btnCalibTop.style.background = 'transparent';
+      btnCalibTop.style.color = 'rgba(255,255,255,0.6)';
+      btnCalibTop.style.boxShadow = 'none';
+    } else {
+      btnCalibTop.style.background = 'var(--primary)';
+      btnCalibTop.style.color = '#fff';
+      btnCalibTop.style.boxShadow = '0 4px 12px rgba(99,102,241,0.3)';
+      
+      btnCalibBottom.style.background = 'transparent';
+      btnCalibBottom.style.color = 'rgba(255,255,255,0.6)';
+      btnCalibBottom.style.boxShadow = 'none';
+    }
+  }
+}
+
+function handleCalibSlotSwitch(targetSlot) {
+  if (activeCalibSlot === targetSlot) return;
+  
+  // Save current pins to cache
+  if (activeCalibSlot === 'bottom') {
+    calibPinsBottom = [...calibPins];
+  } else if (activeCalibSlot === 'top') {
+    calibPinsTop = [...calibPins];
+  }
+  
+  activeCalibSlot = targetSlot;
+  updateCalibTopBarButtons();
+  
+  const targetImg = activeCalibSlot === 'top' ? imgSlotTop : imgSlotBottom;
+  if (photoViewer && targetImg) {
+    photoViewer.src = targetImg.src;
+  }
+  
+  // Load pins for the target slot, or shift them
+  calibPins = [];
+  if (activeCalibSlot === 'bottom') {
+    if (calibPinsBottom.length === 4) {
+      calibPins = [...calibPinsBottom];
+    } else if (calibPinsTop.length === 4) {
+      const shift = getHipShift('top', 'bottom');
+      calibPins = calibPinsTop.map(p => ({ ...p, x: p.x + shift.dx, y: p.y + shift.dy }));
+    }
+  } else if (activeCalibSlot === 'top') {
+    if (calibPinsTop.length === 4) {
+      calibPins = [...calibPinsTop];
+    } else if (calibPinsBottom.length === 4) {
+      const shift = getHipShift('bottom', 'top');
+      calibPins = calibPinsBottom.map(p => ({ ...p, x: p.x + shift.dx, y: p.y + shift.dy }));
+    }
+  }
+  
+  // Update button texts
+  const t = translations[currentLang];
+  if (calibPins.length === 4) {
+    btnCalibrateText.textContent = "✅ Done! (Click Here)";
+    btnCalibrateBike.classList.remove('btn-danger');
+    btnCalibrateBike.classList.add('btn-success');
+    if (btnDoneFS) btnDoneFS.style.display = 'block';
+  } else {
+    btnCalibrateText.textContent = t.calibFWheel;
+    btnCalibrateBike.classList.remove('btn-primary', 'btn-success');
+    btnCalibrateBike.classList.add('btn-danger');
+    if (btnDoneFS) btnDoneFS.style.display = 'none';
+  }
+  
+  // Resize overlayCanvas to match target image dimensions
+  if (targetImg) {
+    overlayCanvas.width = targetImg.naturalWidth || overlayCanvas.width;
+    overlayCanvas.height = targetImg.naturalHeight || overlayCanvas.height;
+  }
+}
 
 function estimateCalibrationPins(kps, imgW, imgH) {
   const W = overlayCanvas.width || 640;
@@ -3153,8 +4008,36 @@ function estimateCalibrationPins(kps, imgW, imgH) {
   ];
 }
 
+function startCalibrationSequence(slot = null) {
+  const isMulti = (multiPhotoViewer && multiPhotoViewer.style.display === 'flex') || (multiPhotoBottomFile || multiPhotoTopFile);
+  
+  if (isMulti) {
+    if (!slot) {
+      if (multiPhotoBottomFile) slot = 'bottom';
+      else if (multiPhotoTopFile) slot = 'top';
+      else slot = 'bottom';
+    }
+    activeCalibSlot = slot;
+    
+    const targetImg = activeCalibSlot === 'top' ? imgSlotTop : imgSlotBottom;
+    if (!targetImg || !targetImg.src || targetImg.style.display === 'none') {
+      alert(currentLang === 'tr' ? "Lütfen önce bir fotoğraf yükleyin!" : "Please upload a photo first!");
+      return;
+    }
+    
+    if (photoViewer) {
+      photoViewer.style.display = 'block';
+      photoViewer.src = targetImg.src;
+    }
+    if (multiPhotoViewer) {
+      multiPhotoViewer.style.display = 'none';
+    }
+    wasInMultiPhotoModeDuringCalib = true;
+  } else {
+    wasInMultiPhotoModeDuringCalib = false;
+    activeCalibSlot = null;
+  }
 
-function startCalibrationSequence() {
   isCalibrating = true;
   
   document.getElementById('video-box').classList.add('calibration-zoom');
@@ -3190,26 +4073,64 @@ function startCalibrationSequence() {
   if (!video.paused) video.pause();
   stopLiveMode();
   
-  // Pre-populate calibration pins from last known pose or use proportional fallback
+  // Load pins
+  calibPins = [];
+  if (wasInMultiPhotoModeDuringCalib) {
+    if (activeCalibSlot === 'bottom') {
+      if (calibPinsBottom.length === 4) {
+        calibPins = [...calibPinsBottom];
+      } else if (calibPinsTop.length === 4) {
+        const shift = getHipShift('top', 'bottom');
+        calibPins = calibPinsTop.map(p => ({ ...p, x: p.x + shift.dx, y: p.y + shift.dy }));
+      }
+    } else if (activeCalibSlot === 'top') {
+      if (calibPinsTop.length === 4) {
+        calibPins = [...calibPinsTop];
+      } else if (calibPinsBottom.length === 4) {
+        const shift = getHipShift('bottom', 'top');
+        calibPins = calibPinsBottom.map(p => ({ ...p, x: p.x + shift.dx, y: p.y + shift.dy }));
+      }
+    }
+  }
+  
+  // Pre-populate if calibPins has less than 4 pins using active pose keypoints or proportions
   if (calibPins.length < 4) {
     let activeKps = null;
     let actW = null;
     let actH = null;
     
-    if (latestSinglePoseData) {
-      activeKps = latestSinglePoseData.keypoints;
-      actW = latestSinglePoseData.width;
-      actH = latestSinglePoseData.height;
+    if (wasInMultiPhotoModeDuringCalib) {
+      const activeData = activeCalibSlot === 'top' ? multiPhotoTopData : multiPhotoBottomData;
+      if (activeData) {
+        activeKps = activeData.keypoints;
+        actW = activeData.width;
+        actH = activeData.height;
+      }
+    } else {
+      if (latestSinglePoseData) {
+        activeKps = latestSinglePoseData.keypoints;
+        actW = latestSinglePoseData.width;
+        actH = latestSinglePoseData.height;
+      }
     }
     
-    // Configure overlayCanvas dimensions from live camera
-    const w = video.videoWidth || 640;
-    const h = video.videoHeight || 480;
+    // Configure overlayCanvas dimensions first to make sure scaling works
+    const isImage = photoViewer && photoViewer.style.display === 'block';
+    const source = isImage ? photoViewer : video;
+    let w = source.videoWidth || source.naturalWidth || 640;
+    let h = source.videoHeight || source.naturalHeight || 480;
+    if (wasInMultiPhotoModeDuringCalib) {
+      const targetImg = activeCalibSlot === 'top' ? imgSlotTop : imgSlotBottom;
+      if (targetImg) {
+        w = targetImg.naturalWidth || w;
+        h = targetImg.naturalHeight || h;
+      }
+    }
     overlayCanvas.width = w;
     overlayCanvas.height = h;
     
     calibPins = estimateCalibrationPins(activeKps, actW, actH);
-    console.log('[startCalibrationSequence] Pre-populated pins:', calibPins);
+    console.log("[startCalibrationSequence] Pre-populated pins:", calibPins);
   }
   
   calibrationHipX = null;
@@ -3219,7 +4140,7 @@ function startCalibrationSequence() {
   
   const t = translations[currentLang];
   if (calibPins.length === 4) {
-    btnCalibrateText.textContent = '✅ Done! (Click Here)';
+    btnCalibrateText.textContent = "✅ Done! (Click Here)";
     btnCalibrateBike.classList.remove('btn-danger');
     btnCalibrateBike.classList.add('btn-success');
     if (btnDoneFS) btnDoneFS.style.display = 'block';
@@ -3231,20 +4152,60 @@ function startCalibrationSequence() {
   }
   
   document.getElementById('r-metrics').style.display = 'none';
-  overlayCanvas.style.zIndex = '10';
-  overlayCanvas.style.pointerEvents = 'auto';
-  overlayCanvas.style.cursor = 'crosshair';
+  overlayCanvas.style.zIndex = "10";
+  overlayCanvas.style.pointerEvents = "auto";
+  overlayCanvas.style.cursor = "crosshair";
+  
+  // Setup slot toggles inside floating top bar
+  const calibSlotSelector = document.getElementById('calib-slot-selector');
+  if (calibSlotSelector) {
+    calibSlotSelector.style.display = wasInMultiPhotoModeDuringCalib ? 'flex' : 'none';
+  }
+  
+  updateCalibTopBarButtons();
 
-  const w = video.videoWidth || 640;
-  const h = video.videoHeight || 480;
+  const isImage = photoViewer && photoViewer.style.display === 'block';
+  const source = isImage ? photoViewer : video;
+  
+  let w = source.videoWidth || source.naturalWidth || 640;
+  let h = source.videoHeight || source.naturalHeight || 480;
+  if (wasInMultiPhotoModeDuringCalib) {
+    const targetImg = activeCalibSlot === 'top' ? imgSlotTop : imgSlotBottom;
+    if (targetImg) {
+      w = targetImg.naturalWidth || w;
+      h = targetImg.naturalHeight || h;
+    }
+  }
+  
   overlayCanvas.width = w;
   overlayCanvas.height = h;
   const ctx = overlayCanvas.getContext('2d');
   ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  
+  const calibVideoControls = document.getElementById('calib-video-controls');
+  if (calibVideoControls) {
+    if (!isImage && !wasInMultiPhotoModeDuringCalib && video.src && !video.srcObject) {
+      calibVideoControls.style.display = 'flex';
+      const slider = document.getElementById('calib-video-slider');
+      const timeLbl = document.getElementById('calib-video-time');
+      const btnPlay = document.getElementById('btn-calib-play');
+      if (slider) {
+        slider.max = video.duration || 100;
+        slider.value = video.currentTime;
+      }
+      if (timeLbl) {
+        timeLbl.textContent = `${video.currentTime.toFixed(2)} / ${(video.duration || 0).toFixed(2)}s`;
+      }
+      if (btnPlay) {
+        btnPlay.textContent = video.paused ? '▶ Play' : '⏸ Pause';
+      }
+    } else {
+      calibVideoControls.style.display = 'none';
+    }
+  }
 
   drawOverlay({});
 }
-
 
 if (btnCalibrateBike) {
   btnCalibrateBike.addEventListener('click', () => {
@@ -3292,6 +4253,8 @@ if (calibInpWheelbase) {
       const dy = calibPins[1].y - calibPins[0].y;
       const wheelbasePx = Math.sqrt(dx*dx + dy*dy);
       pixelToCm = (bikeMetadata.wheelbase / 10) / wheelbasePx;
+      if (activeCalibSlot === 'bottom') pixelToCmBottom = pixelToCm;
+      else if (activeCalibSlot === 'top') pixelToCmTop = pixelToCm;
     }
   });
 }
@@ -3302,6 +4265,15 @@ if (calibInpChainring) {
   calibInpChainring.addEventListener('input', syncFloatingSpecs);
 }
 
+const btnCalibSelectBottom = document.getElementById('btn-calib-select-bottom');
+const btnCalibSelectTop = document.getElementById('btn-calib-select-top');
+
+if (btnCalibSelectBottom) {
+  btnCalibSelectBottom.addEventListener('click', () => handleCalibSlotSwitch('bottom'));
+}
+if (btnCalibSelectTop) {
+  btnCalibSelectTop.addEventListener('click', () => handleCalibSlotSwitch('top'));
+}
 
 function resetCalibration() {
   const t = translations[currentLang];

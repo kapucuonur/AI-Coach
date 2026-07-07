@@ -106,6 +106,16 @@
         </div>
         <div class="source-group">
           <button class="btn-source active" id="btn-start-camera">📷 Camera</button>
+          <label class="btn-source" id="label-upload-video" for="video-upload-input" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+            🎥 <span id="btn-upload-video-text">Video</span>
+          </label>
+          <input type="file" id="video-upload-input" accept="video/*" style="display: none;" />
+          
+          <label class="btn-source" id="label-upload-photos" for="photo-upload-input" style="cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+            📸 <span id="btn-upload-photos-text">Photos</span>
+          </label>
+          <input type="file" id="photo-upload-input" accept="image/*" multiple style="display: none;" />
+          
           <button class="btn-source btn-danger" id="btn-stop" style="display:none">⏹ Stop</button>
           <button class="btn-source btn-secondary" id="btn-switch-camera" style="display:none">🔄 Switch</button>
         </div>
@@ -113,11 +123,18 @@
 
       <div class="viewport-container" id="video-box">
         <video id="video" playsinline muted style="display:none;"></video>
+        <img id="photo-viewer" style="display:none; width:100%; height:100%; object-fit:contain; position:absolute; top:0; left:0; z-index:1;" />
         <canvas id="overlay"></canvas>
         
-        <!-- Fullscreen Calibration Top Bar (Live Camera) -->
-        <div id="calibration-top-bar" style="display:none; position:absolute; top:20px; left:20px; right:20px; z-index:10001; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:12px; pointer-events:auto; font-family:var(--font);">
-          <!-- Floating Specs Controller -->
+        <!-- Elegant Fullscreen Calibration Top Bar -->
+        <div id="calibration-top-bar" style="display:none; position:absolute; top:20px; left:20px; right:20px; z-index:10001; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; pointer-events:auto; font-family:var(--font);">
+          <!-- Left: Active Photo Switcher (only shown in dual-photo mode) -->
+          <div id="calib-slot-selector" style="display:flex; background:rgba(18,18,29,0.85); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); padding:4px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); gap:5px; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <button id="btn-calib-select-bottom" type="button" class="btn" style="padding:6px 16px; border:none; background:var(--primary); color:#fff; font-size:0.8rem; font-weight:700; border-radius:8px; cursor:pointer; transition:all 0.2s; box-shadow:0 4px 12px rgba(99,102,241,0.3);">Bottom Stroke</button>
+            <button id="btn-calib-select-top" type="button" class="btn" style="padding:6px 16px; border:none; background:transparent; color:rgba(255,255,255,0.6); font-size:0.8rem; font-weight:700; border-radius:8px; cursor:pointer; transition:all 0.2s;">Top Stroke</button>
+          </div>
+          
+          <!-- Right: Floating Specs Controller -->
           <div id="calib-specs-controller" style="display:flex; align-items:center; background:rgba(18,18,29,0.85); backdrop-filter:blur(15px); -webkit-backdrop-filter:blur(15px); padding:10px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.08); gap:15px; color:#fff; font-size:0.8rem; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
             <div style="display:flex; align-items:center; gap:8px;">
               <label style="font-weight:700; color:rgba(255,255,255,0.7); text-transform:uppercase; letter-spacing:0.5px; font-size:0.72rem;">Wheelbase (mm):</label>
@@ -134,14 +151,76 @@
           </div>
         </div>
 
-
+        <!-- Split-Screen multi-photo viewer -->
+        <div id="multi-photo-viewer" style="display:none; width:100%; height:100%; position:absolute; top:0; left:0; z-index:2; background:#0b0c10; padding:15px; box-sizing:border-box; flex-direction:row; gap:15px; justify-content:center; align-items:stretch;">
+          <!-- Bottom Stroke / Extension Slot -->
+          <input type="file" id="bottom-stroke-upload-input" accept="image/*" style="display:none;" />
+          <div class="multi-photo-slot" id="slot-bottom" style="flex:1; position:relative; border-radius:12px; overflow:hidden; border:2px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02); display:flex; flex-direction:column; cursor:pointer; margin:0; padding:0;">
+            <div class="slot-header" style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:rgba(99,102,241,0.15); border-bottom:1px solid rgba(255,255,255,0.1); z-index:5;">
+              <span id="label-slot-bottom" style="font-size:0.8rem; font-weight:700; color:#c7d2fe; letter-spacing:0.5px; text-transform:uppercase;">Bottom Stroke (Max Extension)</span>
+              <button id="change-photo-bottom" type="button" style="display:none; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; transition:all 0.2s;">Change</button>
+            </div>
+            <div style="flex:1; position:relative; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+              <div id="placeholder-slot-bottom" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:1; padding:20px; text-align:center; color:rgba(255,255,255,0.4);">
+                <span style="font-size:2.5rem; filter:drop-shadow(0 0 10px rgba(99,102,241,0.3));">📥</span>
+                <span id="label-upload-bottom-title" style="font-size:0.8rem; font-weight:600; color:#fff;">Click to upload Bottom Stroke photo</span>
+                <span id="label-upload-bottom-desc" style="font-size:0.7rem; color:rgba(255,255,255,0.35);">Pedal at the lowest point (Max Extension)</span>
+              </div>
+              <img id="img-slot-bottom" style="max-width:100%; max-height:100%; object-fit:contain; display:none; z-index:2;" />
+              <canvas id="overlay-slot-bottom" style="position:absolute; max-width:100%; max-height:100%; object-fit:contain; pointer-events:none; z-index:3;"></canvas>
+            </div>
+          </div>
+          
+          <!-- Swap Slots Button floating in center -->
+          <button id="btn-swap-slots" type="button" style="position:absolute; z-index:10; top:50%; left:50%; transform:translate(-50%, -50%); width:48px; height:48px; border-radius:50%; border:1px solid rgba(255,255,255,0.25); background:rgba(31,31,46,0.9); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); color:#fff; font-size:1.3rem; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 8px 32px rgba(0,0,0,0.5); transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1); outline:none;">
+            🔄
+          </button>
+          
+          <!-- Top Stroke / Flexion Slot -->
+          <input type="file" id="top-stroke-upload-input" accept="image/*" style="display:none;" />
+          <div class="multi-photo-slot" id="slot-top" style="flex:1; position:relative; border-radius:12px; overflow:hidden; border:2px solid rgba(255,255,255,0.05); background:rgba(255,255,255,0.02); display:flex; flex-direction:column; cursor:pointer; margin:0; padding:0;">
+            <div class="slot-header" style="display:flex; justify-content:space-between; align-items:center; padding:10px; background:rgba(6,182,212,0.15); border-bottom:1px solid rgba(255,255,255,0.1); z-index:5;">
+              <span id="label-slot-top" style="font-size:0.8rem; font-weight:700; color:#c5f2f7; letter-spacing:0.5px; text-transform:uppercase;">Top Stroke (Max Flexion)</span>
+              <button id="change-photo-top" type="button" style="display:none; font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.1); color:#fff; cursor:pointer; transition:all 0.2s;">Change</button>
+            </div>
+            <div style="flex:1; position:relative; width:100%; display:flex; align-items:center; justify-content:center; overflow:hidden;">
+              <div id="placeholder-slot-top" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; z-index:1; padding:20px; text-align:center; color:rgba(255,255,255,0.4);">
+                <span style="font-size:2.5rem; filter:drop-shadow(0 0 10px rgba(6,182,212,0.3));">📥</span>
+                <span id="label-upload-top-title" style="font-size:0.8rem; font-weight:600; color:#fff;">Click to upload Top Stroke photo</span>
+                <span id="label-upload-top-desc" style="font-size:0.7rem; color:rgba(255,255,255,0.35);">Pedal at the highest point (Max Flexion)</span>
+              </div>
+              <img id="img-slot-top" style="max-width:100%; max-height:100%; object-fit:contain; display:none; z-index:2;" />
+              <canvas id="overlay-slot-top" style="position:absolute; max-width:100%; max-height:100%; object-fit:contain; pointer-events:none; z-index:3;"></canvas>
+            </div>
+          </div>
+        </div>
         <div id="countdown-overlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); color: #fff; font-size: 8rem; font-weight: 800; align-items: center; justify-content: center; z-index: 10; pointer-events: none; font-family: var(--font);"></div>
         <div id="camera-placeholder" class="viewport-placeholder">
           <div class="p-icon">🚲</div>
           <p>AI Engine Ready</p>
           <small>Select source to begin tracking</small>
         </div>
-
+        <!-- Dedicated Glassmorphic Video Playback Controller for Manual Calibration -->
+        <div id="calib-video-controls" style="display:none; position:absolute; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 10001; background: rgba(18, 18, 29, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.08); width: 90%; max-width: 500px; flex-direction: column; gap: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); color: #fff; pointer-events: auto; font-family: var(--font);">
+          <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 12px;">
+            <!-- Play/Pause Button -->
+            <button id="btn-calib-play" type="button" class="btn" style="background: var(--primary); border: none; border-radius: 8px; color: #fff; padding: 6px 14px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">⏸ Pause</button>
+            
+            <!-- Sub-second step buttons -->
+            <div style="display: flex; gap: 6px;">
+              <button id="btn-calib-prev-frame" type="button" class="btn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; padding: 6px 12px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">◀ -1f</button>
+              <button id="btn-calib-next-frame" type="button" class="btn" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; padding: 6px 12px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">+1f ▶</button>
+            </div>
+            
+            <!-- Time Tracker -->
+            <span id="calib-video-time" style="font-size: 0.8rem; font-weight: 700; font-family: monospace; min-width: 90px; text-align: right; color: rgba(255,255,255,0.85);">0.00 / 0.00s</span>
+          </div>
+          
+          <!-- Seek Slider -->
+          <div style="display: flex; align-items: center; width: 100%;">
+            <input type="range" id="calib-video-slider" min="0" max="100" value="0" step="0.01" style="width: 100%; -webkit-appearance: none; background: rgba(255, 255, 255, 0.15); height: 6px; border-radius: 3px; outline: none; cursor: pointer; transition: background 0.2s;" />
+          </div>
+        </div>
 
         <div id="fullscreen-controls" style="display:none; position:absolute; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 10001; gap: 15px;">
           <button id="btn-cancel-fullscreen" class="btn btn-danger" style="font-size: 1.1rem; padding: 12px 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); border-radius: 30px;">❌ Cancel</button>
@@ -184,7 +263,14 @@
           </label>
         </div>
 
-
+        <!-- PREMIUM AI VIDEO SCANNER WARNING & INFO CARD -->
+        <div id="video-scan-tip-card" class="glass-info-card" style="display: none; margin-top: 15px; margin-bottom: 5px;">
+          <div class="tip-icon">💡</div>
+          <div class="tip-content">
+            <h4 id="tip-title">⚡ AI Video Scanning Tip</h4>
+            <p id="tip-desc">Keep your camera stable while filming. Ensure the cyclist doesn't pass out of frame; stationary trainer riding or camera-parallel side-view shots yield the highest biomechanical accuracy.</p>
+          </div>
+        </div>
 
         <button class="btn-primary-pro" id="btn-analyze" disabled style="width: 100%; padding: 16px; font-size: 1.1rem;">Analyze Now</button>
       </div>
