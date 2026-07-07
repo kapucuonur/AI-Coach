@@ -3795,8 +3795,16 @@ if (btnConnectSensor) {
         await BleClient.initialize({ androidNeverForLocation: true });
 
         const device = await BleClient.requestDevice({
-          services: ['cycling_power', 'cycling_speed_and_cadence', 'fitness_machine'],
-          optionalServices: ['heart_rate', 'battery_service', 'device_information']
+          services: [
+            '00001818-0000-1000-8000-00805f9b34fb', // cycling_power
+            '00001816-0000-1000-8000-00805f9b34fb', // cycling_speed_and_cadence
+            '00001826-0000-1000-8000-00805f9b34fb'  // fitness_machine
+          ],
+          optionalServices: [
+            '0000180d-0000-1000-8000-00805f9b34fb', // heart_rate
+            '0000180f-0000-1000-8000-00805f9b34fb', // battery_service
+            '0000180a-0000-1000-8000-00805f9b34fb'  // device_information
+          ]
         });
 
         await BleClient.connect(device.deviceId, () => {
@@ -3810,8 +3818,8 @@ if (btnConnectSensor) {
         try {
           await BleClient.startNotifications(
             device.deviceId,
-            'cycling_power',
-            'cycling_power_measurement',
+            '00001818-0000-1000-8000-00805f9b34fb', // cycling_power
+            '00002a63-0000-1000-8000-00805f9b34fb', // cycling_power_measurement
             (value) => {
               handlePowerData({ target: { value } });
             }
@@ -3822,8 +3830,8 @@ if (btnConnectSensor) {
         try {
           await BleClient.startNotifications(
             device.deviceId,
-            'cycling_speed_and_cadence',
-            'csc_measurement',
+            '00001816-0000-1000-8000-00805f9b34fb', // cycling_speed_and_cadence
+            '00002a5b-0000-1000-8000-00805f9b34fb', // csc_measurement
             (value) => {
               handleCscData({ target: { value } });
             }
