@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">BikeFit AI</string>
-    <string name="title_activity_main">BikeFit AI</string>
-    <string name="package_name">com.trihonor.bikefitai</string>
-    <string name="custom_url_scheme">com.trihonor.bikefitai</string>
-</resources>
