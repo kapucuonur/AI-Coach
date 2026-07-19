@@ -395,34 +395,36 @@ export function SettingsModal({ isOpen, onClose, onSave }) {
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('upcoming_races')}</label>
                             <button
                                 onClick={addRace}
-                                className="text-xs flex items-center gap-1 text-garmin-blue hover:text-blue-600 dark:hover:text-blue-400"
+                                className="text-xs sm:text-sm font-semibold flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/20 text-garmin-blue px-2.5 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                             >
                                 <Plus size={14} /> {t('add_race')}
                             </button>
                         </div>
 
-                        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
                             {races.map((race, index) => (
-                                <div key={index} className="flex gap-2 items-start">
+                                <div key={index} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-start p-2.5 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-100 dark:border-gray-700/50">
                                     <input
                                         type="text"
                                         placeholder="Race Name"
                                         value={race.name}
                                         onChange={(e) => updateRace(index, 'name', e.target.value)}
-                                        className="flex-1 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                        className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
                                     />
-                                    <input
-                                        type="date"
-                                        value={race.date}
-                                        onChange={(e) => updateRace(index, 'date', e.target.value)}
-                                        className="w-32 bg-gray-50 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
-                                    />
-                                    <button
-                                        onClick={() => removeRace(index)}
-                                        className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="date"
+                                            value={race.date}
+                                            onChange={(e) => updateRace(index, 'date', e.target.value)}
+                                            className="flex-1 sm:w-32 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-garmin-blue"
+                                        />
+                                        <button
+                                            onClick={() => removeRace(index)}
+                                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg shrink-0"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                             {races.length === 0 && (
